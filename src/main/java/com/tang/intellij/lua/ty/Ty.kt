@@ -63,6 +63,8 @@ interface ITy : Comparable<ITy> {
 
     fun union(ty: ITy): ITy
 
+    fun replace(old:ITy, new:ITy):ITy
+
     fun subTypeOf(other: ITy, context: SearchContext, strict: Boolean): Boolean
 
     fun getSuperClass(context: SearchContext): ITy?
@@ -130,6 +132,13 @@ abstract class Ty(override val kind: TyKind) : ITy {
         return TyUnion.union(this, ty)
     }
 
+    override fun replace(old:ITy, new:ITy):ITy{
+        return when {
+            old is TyUnion->old.ReplaceMatth(old, new)
+            else->return new
+        }
+    }
+
     override fun toString(): String {
         val list = mutableListOf<String>()
         TyUnion.each(this) { //尽量不使用Global
@@ -177,10 +186,22 @@ abstract class Ty(override val kind: TyKind) : ITy {
     override fun eachTopClass(fn: Processor<ITyClass>) {
         when (this) {
             is ITyClass -> fn.process(this)
+            is ITyGeneric -> {
+                if(this.base is ITyClass)
+                {
+                    fn.process(this.base as ITyClass);
+                }
+            }
             is TyUnion -> {
                 ContainerUtil.process(getChildTypes()) {
                     if (it is ITyClass && !fn.process(it))
                         return@process false
+                    if (it is ITyGeneric)
+                    {
+                        var baseTy = it.base;
+                        if(baseTy is ITyClass && !fn.process(baseTy))
+                            return@process false
+                    }
                     true
                 }
             }

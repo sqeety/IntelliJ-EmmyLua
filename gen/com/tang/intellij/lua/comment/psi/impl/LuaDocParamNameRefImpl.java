@@ -40,4 +40,10 @@ public class LuaDocParamNameRefImpl extends ASTWrapperPsiElement implements LuaD
     return LuaDocPsiImplUtilKt.getReference(this);
   }
 
+  @Override
+  @NotNull
+  public String toString() {
+    return LuaDocPsiImplUtilKt.toString(this);
+  }
+
 }

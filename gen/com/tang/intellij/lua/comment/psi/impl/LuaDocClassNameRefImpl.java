@@ -47,4 +47,10 @@ public class LuaDocClassNameRefImpl extends ASTWrapperPsiElement implements LuaD
     return LuaDocPsiImplUtilKt.resolveType(this);
   }
 
+  @Override
+  @NotNull
+  public String toString() {
+    return LuaDocPsiImplUtilKt.toString(this);
+  }
+
 }

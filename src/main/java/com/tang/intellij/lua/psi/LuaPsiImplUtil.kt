@@ -37,7 +37,6 @@ import com.tang.intellij.lua.search.SearchContext
 import com.tang.intellij.lua.stubs.LuaClassMemberStub
 import com.tang.intellij.lua.stubs.LuaFuncBodyOwnerStub
 import com.tang.intellij.lua.ty.*
-import java.util.*
 import javax.swing.Icon
 
 fun setName(owner: PsiNameIdentifierOwner, name: String): PsiElement {
@@ -525,7 +524,11 @@ fun getIdExpr(tableField: LuaTableField): LuaExpr? {
 }
 
 fun toString(stubElement: StubBasedPsiElement<out StubElement<*>>): String {
-    return "STUB:[" + stubElement.javaClass.simpleName + "]"
+    return "STUB:[" + stubElement.javaClass.simpleName + "]" + "" + stubElement.text.replace("\n", " ")
+}
+
+fun toString(target: LuaExpr): String {
+    return "STUB:[" + target.javaClass.simpleName + "]" + "" + target.text.replace("\n", " ")
 }
 
 fun getPresentation(nameExpr: LuaNameExpr): ItemPresentation {

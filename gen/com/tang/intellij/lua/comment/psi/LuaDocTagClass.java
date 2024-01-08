@@ -42,6 +42,9 @@ public interface LuaDocTagClass extends LuaDocPsiElement, PsiNameIdentifierOwner
   LuaDocClassNameRef getSuperClassNameRef();
 
   @Nullable
+  LuaDocGenericParameterList getGenericParameters();
+
+  @Nullable
   PsiElement getModule();
 
 }

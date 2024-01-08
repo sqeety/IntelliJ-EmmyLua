@@ -26,6 +26,7 @@ import java.util.Stack;
 %{ // User code
     private int _typeLevel = 0;
     private boolean _typeReq = false;
+    private boolean classAppendGeneric = false;
     private Stack<Integer> _stack = new Stack<>();
     public _LuaDocLexer() {
         this((java.io.Reader) null);
@@ -71,6 +72,7 @@ SINGLE_QUOTED_STRING='([^\\\']|\\\S|\\[\r\n])*'?    //'([^\\'\r\n]|\\[^\r\n])*'?
 %state xPARAM
 %state xTYPE_REF
 %state xCLASS
+%state xCLASS_GENERIC
 %state xCLASS_EXTEND
 %state xFIELD
 %state xFIELD_ID
@@ -90,7 +92,7 @@ SINGLE_QUOTED_STRING='([^\\\']|\\\S|\\[\r\n])*'?    //'([^\\'\r\n]|\\[^\r\n])*'?
     .                          { yybegin(xCOMMENT_STRING); yypushback(yylength()); }
 }
 
-<xTAG, xTAG_WITH_ID, xTAG_NAME, xPARAM, xTYPE_REF, xCLASS, xCLASS_EXTEND, xFIELD, xFIELD_ID, xCOMMENT_STRING, xGENERIC, xALIAS, xSUPPRESS> {
+<xTAG, xTAG_WITH_ID, xTAG_NAME, xPARAM, xTYPE_REF, xCLASS, xCLASS_GENERIC, xCLASS_EXTEND, xFIELD, xFIELD_ID, xCOMMENT_STRING, xGENERIC, xALIAS, xSUPPRESS> {
     {EOL}                      { yybegin(YYINITIAL);return com.intellij.psi.TokenType.WHITE_SPACE;}
     {LINE_WS}+                 { return com.intellij.psi.TokenType.WHITE_SPACE; }
 }
@@ -135,7 +137,11 @@ SINGLE_QUOTED_STRING='([^\\\']|\\\S|\\[\r\n])*'?    //'([^\\'\r\n]|\\[^\r\n])*'?
 }
 
 <xCLASS> {
-    {ID}                       { yybegin(xCLASS_EXTEND); return ID; }
+    {ID}                       { yybegin(xCLASS_GENERIC); return ID; }
+}
+<xCLASS_GENERIC>{
+    "<"                        { yybegin(xTYPE_REF);classAppendGeneric=true;_typeLevel++;return LT;}
+    [^]                        { yybegin(xCLASS_EXTEND); yypushback(yylength()); }
 }
 <xCLASS_EXTEND> {
     ":"                        { beginType(); return EXTENDS;}
@@ -173,7 +179,7 @@ SINGLE_QUOTED_STRING='([^\\\']|\\\S|\\[\r\n])*'?    //'([^\\'\r\n]|\\[^\r\n])*'?
     "[]"                       { _typeReq = false; return ARR; }
     "fun"                      { return FUN; }
     "vararg"                   { _typeReq = true; return VARARG; }
-    "..."|{ID}                 { if (_typeReq || _typeLevel > 0) { _typeReq = false; return ID; } else { yybegin(xCOMMENT_STRING); yypushback(yylength()); } }
+    "..."|{ID}                 { if (_typeReq || _typeLevel > 0) { _typeReq = false; return ID; } else { if (classAppendGeneric) { classAppendGeneric = false; yybegin(xCLASS_EXTEND); yypushback(yylength()); }else { yybegin(xCOMMENT_STRING); yypushback(yylength()); }}}
 }
 
 <xDOUBLE_QUOTED_STRING> {

@@ -18,6 +18,7 @@
 
 package com.tang.intellij.lua.comment.psi
 
+import com.intellij.extapi.psi.ASTWrapperPsiElement
 import com.intellij.icons.AllIcons
 import com.intellij.navigation.ItemPresentation
 import com.intellij.psi.PsiElement
@@ -27,6 +28,9 @@ import com.intellij.psi.StubBasedPsiElement
 import com.intellij.psi.stubs.StubElement
 import com.intellij.psi.util.PsiTreeUtil
 import com.tang.intellij.lua.comment.LuaCommentUtil
+import com.tang.intellij.lua.comment.psi.impl.LuaDocTagClassImpl
+import com.tang.intellij.lua.comment.psi.impl.LuaDocTagFieldImpl
+import com.tang.intellij.lua.comment.psi.impl.LuaDocTyImpl
 import com.tang.intellij.lua.comment.reference.LuaClassNameReference
 import com.tang.intellij.lua.comment.reference.LuaDocParamNameReference
 import com.tang.intellij.lua.comment.reference.LuaDocSeeReference
@@ -34,6 +38,7 @@ import com.tang.intellij.lua.psi.LuaClassMember
 import com.tang.intellij.lua.psi.LuaElementFactory
 import com.tang.intellij.lua.psi.Visibility
 import com.tang.intellij.lua.search.SearchContext
+import com.tang.intellij.lua.stubs.LuaPlaceholderStub
 import com.tang.intellij.lua.ty.*
 import javax.swing.Icon
 
@@ -208,9 +213,12 @@ fun getType(tagType: LuaDocTagType): ITy {
     return tagType.ty?.getType() ?: Ty.UNKNOWN
 }
 
-@Suppress("UNUSED_PARAMETER")
 fun toString(stubElement: StubBasedPsiElement<out StubElement<*>>): String {
-    return "[STUB]"// + stubElement.getNode().getElementType().toString();
+    return "STUB:[" + stubElement.javaClass.simpleName + "]" + "" + stubElement.text.replace("\n", " ");
+}
+
+fun toString(stubElement: ASTWrapperPsiElement): String {
+    return "STUB:[" + stubElement.javaClass.simpleName + "]" + "" + stubElement.text.replace("\n", " ");
 }
 
 fun getName(tagField: LuaDocTagField): String? {
@@ -325,6 +333,10 @@ fun guessType(f:LuaDocTableField, context: SearchContext): ITy {
 }
 
 fun getNameIdentifier(g: LuaDocGenericDef): PsiElement? {
+    return g.id
+}
+
+fun getNameIdentifier(g: LuaDocGenericParameter): PsiElement? {
     return g.id
 }
 

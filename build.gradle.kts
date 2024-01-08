@@ -169,7 +169,12 @@ task("installEmmyDebugger", type = Copy::class) {
     }
     destinationDir = file("src/main/resources")
 }
-
+allprojects {
+    repositories {
+        maven (url="https://maven.aliyun.com/repository/public/")
+        mavenCentral()
+    }
+}
 project(":") {
     repositories {
         maven(url = "https://www.jetbrains.com/intellij-repository/releases")

@@ -21,9 +21,15 @@ import com.intellij.codeInsight.template.TemplateManager
 import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.refactoring.suggested.startOffset
+import com.tang.intellij.lua.comment.psi.LuaDocCommentString
 import com.tang.intellij.lua.comment.psi.LuaDocPsiElement
 import com.tang.intellij.lua.comment.psi.api.LuaComment
 import com.tang.intellij.lua.psi.LuaCommentOwner
+import com.tang.intellij.lua.psi.LuaLocalDef
+import com.tang.intellij.lua.psi.LuaNameDef
+import com.tang.intellij.lua.psi.LuaNameExpr
+import com.tang.intellij.lua.psi.LuaNameList
 
 /**
  *
@@ -77,6 +83,43 @@ object LuaCommentUtil {
 
     fun findComment(psi: PsiElement): LuaComment? {
         return PsiTreeUtil.getParentOfType(psi, LuaComment::class.java)
+    }
+    fun findMethodClassComment(psi: LuaNameExpr): LuaComment? {
+        val findTypeName = psi.name
+        val file = psi.containingFile
+        var children = file.children
+        for (i in children.size - 1 downTo 0 step 1) {
+            val child = children[i]
+            if(child.startOffset < psi.startOffset){
+                if(child is LuaLocalDef){
+                    if(getLocalDefName(child) == findTypeName){
+                        return getLocalDefComment(child)
+                    }
+                }
+            }
+        }
+        return PsiTreeUtil.getParentOfType(psi, LuaComment::class.java)
+    }
+
+    private fun getLocalDefComment(def: LuaLocalDef): LuaComment? {
+        val children = def.children
+        for (child in children) {
+            if (child is LuaComment) {
+                return child
+            }
+        }
+        return null
+    }
+
+    private fun getLocalDefName(def: LuaLocalDef): String? {
+        val children = def.children
+        for (child in children) {
+            if (child is LuaNameList) {
+                val defList = child.nameDefList
+                return defList[0].name;
+            }
+        }
+        return null
     }
 
     fun isComment(psi: PsiElement): Boolean {

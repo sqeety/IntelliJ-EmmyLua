@@ -17,6 +17,8 @@ public interface LuaDocTypes {
   IElementType FUNCTION_TY = LuaParserDefinitionKt.createDocType("FUNCTION_TY");
   IElementType GENERAL_TY = LuaParserDefinitionKt.createDocType("GENERAL_TY");
   IElementType GENERIC_DEF = LuaParserDefinitionKt.createDocType("GENERIC_DEF");
+  IElementType GENERIC_PARAMETER = LuaParserDefinitionKt.createDocType("GENERIC_PARAMETER");
+  IElementType GENERIC_PARAMETER_LIST = LuaParserDefinitionKt.createDocType("GENERIC_PARAMETER_LIST");
   IElementType GENERIC_TY = LuaParserDefinitionKt.createDocType("GENERIC_TY");
   IElementType LAN_ID = LuaParserDefinitionKt.createDocType("LAN_ID");
   IElementType PARAM_NAME_REF = LuaParserDefinitionKt.createDocType("PARAM_NAME_REF");
@@ -111,6 +113,12 @@ public interface LuaDocTypes {
       }
       else if (type == GENERIC_DEF) {
         return new LuaDocGenericDefImpl(node);
+      }
+      else if (type == GENERIC_PARAMETER) {
+        return new LuaDocGenericParameterImpl(node);
+      }
+      else if (type == GENERIC_PARAMETER_LIST) {
+        return new LuaDocGenericParameterListImpl(node);
       }
       else if (type == GENERIC_TY) {
         return new LuaDocGenericTyImpl(node);

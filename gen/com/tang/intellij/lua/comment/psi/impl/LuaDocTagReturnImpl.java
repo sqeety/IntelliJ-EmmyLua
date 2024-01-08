@@ -52,4 +52,10 @@ public class LuaDocTagReturnImpl extends ASTWrapperPsiElement implements LuaDocT
     return LuaDocPsiImplUtilKt.getType(this);
   }
 
+  @Override
+  @NotNull
+  public String toString() {
+    return LuaDocPsiImplUtilKt.toString(this);
+  }
+
 }

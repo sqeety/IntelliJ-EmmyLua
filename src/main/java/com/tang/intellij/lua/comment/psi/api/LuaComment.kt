@@ -42,4 +42,5 @@ interface LuaComment : PsiComment, LuaDocPsiElement {
     fun guessType(context: SearchContext): ITy
     fun isOverride(): Boolean
     fun createSubstitutor(): ITySubstitutor?
+    override fun toString(): String
 }

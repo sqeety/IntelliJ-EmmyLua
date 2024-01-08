@@ -62,4 +62,10 @@ public class LuaDocGenericDefImpl extends ASTWrapperPsiElement implements LuaDoc
     return LuaDocPsiImplUtilKt.getTextOffset(this);
   }
 
+  @Override
+  @NotNull
+  public String toString() {
+    return LuaDocPsiImplUtilKt.toString(this);
+  }
+
 }

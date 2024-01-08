@@ -279,6 +279,7 @@ classMethodName ::=  nameExpr (funcPrefixRef)* (('.' ID) | (':' ID)) {
     methods = [
         dot = 'DOT'
         colon = 'COLON'
+        toString
     ]
     stubClass = 'com.tang.intellij.lua.stubs.LuaPlaceholderStub'
 }
@@ -335,6 +336,7 @@ attribute ::= '<' ID '>' {
 }
 nameList ::= nameDef attribute? (',' nameDef attribute?)* {
     stubClass = "com.tang.intellij.lua.stubs.LuaPlaceholderStub"
+    methods = [toString]
 }
 localDef ::= 'local' nameList ('=' exprList)? {
     pin = 1
@@ -344,7 +346,7 @@ localDef ::= 'local' nameList ('=' exprList)? {
         "com.tang.intellij.lua.psi.LuaStatement"
         "com.tang.intellij.lua.psi.LuaDeclarationScope"
     ]
-    methods = [getComment assign = 'ASSIGN']
+    methods = [getComment assign = 'ASSIGN' toString]
 }
 
 returnStat ::= return exprList? {
@@ -355,7 +357,7 @@ breakStat ::= break
 private lastStat ::= returnStat | breakStat
 
 exprList ::= expr (',' expr)* {
-    methods = [guessTypeAt]
+    methods = [guessTypeAt toString]
     stubClass = "com.tang.intellij.lua.stubs.LuaPlaceholderStub"
 }
 
@@ -472,11 +474,12 @@ funcBody ::= '(' (parList)? ')' <<lazyBlock>>? 'end' {
     methods = [
         RPAREN = 'RPAREN'
         ELLIPSIS = 'ELLIPSIS'
+        toString
     ]
     stubClass = 'com.tang.intellij.lua.stubs.LuaPlaceholderStub'
 }
 
-private parList ::= paramNameDef (',' paramNameDef)* (',' '...')? | '...' { recoverWhile = parList_recover }
+private parList ::= paramNameDef (',' paramNameDef)* (',' '...')? | '...' { recoverWhile = parList_recover methods = [toString]}
 private parList_recover ::= !(')'|'in')
 
 tableExpr ::= '{' fieldList '}' {
@@ -550,6 +553,7 @@ nameDef ::= ID {
         setName
         getNameIdentifier
         getUseScope
+        toString
     ]
     stubClass = "com.tang.intellij.lua.stubs.LuaNameDefStub"
 }
@@ -567,7 +571,6 @@ nameExpr ::= ID {
         getPresentation
         getReferences
         isDeprecated
-
         toString
     ]
     mixin = "com.tang.intellij.lua.psi.impl.LuaNameExprMixin"
