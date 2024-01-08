@@ -525,7 +525,7 @@ fun getIdExpr(tableField: LuaTableField): LuaExpr? {
 }
 
 fun toString(stubElement: StubBasedPsiElement<out StubElement<*>>): String {
-    return "STUB:[" + stubElement.javaClass.simpleName + "]"
+    return "STUB:[" + stubElement.javaClass.simpleName + "]"+"\n"+stubElement.text;
 }
 
 fun getPresentation(nameExpr: LuaNameExpr): ItemPresentation {

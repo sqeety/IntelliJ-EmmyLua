@@ -23,8 +23,7 @@ import com.intellij.psi.tree.IStubFileElementType
 import com.tang.intellij.lua.lang.LuaLanguage
 import com.tang.intellij.lua.psi.LuaBlock
 import com.tang.intellij.lua.psi.LuaPsiElement
-import com.tang.intellij.lua.ty.ITy
-import com.tang.intellij.lua.ty.Ty
+import com.tang.intellij.lua.psi.toString
 
 abstract class LuaStubElementType<StubT : StubElement<*>, PsiT : LuaPsiElement>(debugName: String)
     : IStubElementType<StubT, PsiT>(debugName, LuaLanguage.INSTANCE) {
@@ -40,12 +39,15 @@ abstract class LuaStubElementType<StubT : StubElement<*>, PsiT : LuaPsiElement>(
     }
 
     override fun getExternalId() = "lua.${super.toString()}"
+    override fun toString(): String {
+        return "STUB:[" + this.javaClass.simpleName + "]"
+    }
 }
 
 abstract class LuaStubBase<T : PsiElement>(parent: StubElement<*>?, type: LuaStubElementType<*, *>)
     : StubBase<T>(parent, type) {
     override fun toString(): String {
-        return "${super.toString()}($stubType)"
+        return "STUB:[" + this.javaClass.simpleName + "]"
     }
 }
 
@@ -74,6 +76,9 @@ class LuaPlaceholderStub(parent: StubElement<*>?, elementType: LuaStubElementTyp
 
         override fun indexStub(stub: LuaPlaceholderStub, sink: IndexSink) {
         }
+    }
+    override fun toString(): String {
+        return "STUB:[" + this.javaClass.simpleName + "]"
     }
 }
 

@@ -35,6 +35,7 @@ import com.tang.intellij.lua.search.SearchContext
 interface ITyClass : ITy {
     val className: String
     val varName: String
+    val genericNames: Array<String>
     var superClassName: String?
     var aliasName: String?
     fun processAlias(processor: Processor<String>): Boolean
@@ -73,6 +74,7 @@ fun ITyClass.isVisibleInScope(project: Project, contextTy: ITy, visibility: Visi
 }
 
 abstract class TyClass(override val className: String,
+                       override var genericNames: Array<String> = emptyArray(),
                        override val varName: String = "",
                        override var superClassName: String? = null
 ) : Ty(TyKind.Class), ITyClass {
@@ -148,6 +150,7 @@ abstract class TyClass(override val className: String,
             val tyClass = classDef.type
             aliasName = tyClass.aliasName
             superClassName = tyClass.superClassName
+            genericNames = tyClass.genericNames;
         }
     }
 
@@ -164,7 +167,10 @@ abstract class TyClass(override val className: String,
         // class extends table
         if (other == Ty.TABLE) return true
         if (super.subTypeOf(other, context, strict)) return true
-
+        if(other is ITyGeneric)
+        {
+            return subTypeOf(other.base, context, strict)
+        }
         // Lazy init for superclass
         this.doLazyInit(context)
         // Check if any of the superclasses are type
@@ -203,21 +209,21 @@ abstract class TyClass(override val className: String,
         fun createAnonymousType(nameDef: LuaNameDef): TyClass {
             val stub = nameDef.stub
             val tyName = stub?.anonymousType ?: getAnonymousType(nameDef)
-            return createSerializedClass(tyName, nameDef.name, null, null, TyFlags.ANONYMOUS)
+            return createSerializedClass(tyName, emptyArray(), nameDef.name, null, null, TyFlags.ANONYMOUS)
         }
 
         fun createGlobalType(nameExpr: LuaNameExpr, store: Boolean): ITy {
             val name = nameExpr.name
-            val g = createSerializedClass(getGlobalTypeName(nameExpr), name, null, null, TyFlags.GLOBAL)
+            val g = createSerializedClass(getGlobalTypeName(nameExpr), emptyArray(),name, null, null, TyFlags.GLOBAL)
             if (!store && LuaSettings.instance.isRecognizeGlobalNameAsType)
-                return createSerializedClass(name, name, null, null, TyFlags.GLOBAL).union(g)
+                return createSerializedClass(name, emptyArray(), name, null, null, TyFlags.GLOBAL).union(g)
             return g
         }
 
         fun createGlobalType(name: String): ITy {
-            val g = createSerializedClass(getGlobalTypeName(name), name, null, null, TyFlags.GLOBAL)
+            val g = createSerializedClass(getGlobalTypeName(name), emptyArray(), name, null, null, TyFlags.GLOBAL)
             if (LuaSettings.instance.isRecognizeGlobalNameAsType)
-                return createSerializedClass(name, name, null, null, TyFlags.GLOBAL).union(g)
+                return createSerializedClass(name, emptyArray(), name, null, null, TyFlags.GLOBAL).union(g)
             return g
         }
 
@@ -247,6 +253,19 @@ class TyPsiDocClass(tagClass: LuaDocTagClass) : TyClass(tagClass.name) {
         val supperRef = tagClass.superClassNameRef
         if (supperRef != null)
             superClassName = supperRef.text
+        val genericTypes = mutableListOf<String>()
+        val genericParameters = tagClass.genericParameters
+        if(genericParameters != null){
+            if(genericParameters.genericParameterList.isNotEmpty()){
+                genericParameters.genericParameterList.forEach {
+                    val genericName = it.name
+                    if(genericName != null) {
+                        genericTypes.add(genericName)
+                    }
+                }
+            }
+        }
+        genericNames = genericTypes.toTypedArray()
         aliasName = tagClass.aliasName
     }
 
@@ -254,11 +273,12 @@ class TyPsiDocClass(tagClass: LuaDocTagClass) : TyClass(tagClass.name) {
 }
 
 open class TySerializedClass(name: String,
+                             genericNames: Array<String> = emptyArray(),
                              varName: String = name,
                              supper: String? = null,
                              alias: String? = null,
                              flags: Int = 0)
-    : TyClass(name, varName, supper) {
+    : TyClass(name, genericNames, varName, supper) {
     init {
         aliasName = alias
         this.flags = flags
@@ -276,6 +296,7 @@ open class TySerializedClass(name: String,
 class TyLazyClass(name: String) : TySerializedClass(name)
 
 fun createSerializedClass(name: String,
+                          genericNames: Array<String> = emptyArray(),
                           varName: String = name,
                           supper: String? = null,
                           alias: String? = null,
@@ -288,7 +309,7 @@ fun createSerializedClass(name: String,
         }
     }
 
-    return TySerializedClass(name, varName, supper, alias, flags)
+    return TySerializedClass(name, genericNames, varName, supper, alias, flags)
 }
 
 private val PsiFile.uid: String get() {
@@ -373,10 +394,24 @@ class TySerializedDocTable(name: String) : TySerializedClass(name) {
 object TyClassSerializer : TySerializer<ITyClass>() {
     override fun deserializeTy(flags: Int, stream: StubInputStream): ITyClass {
         val className = stream.readName()
+        val genericCount = stream.readVarInt()
+        val genericNames:Array<String>
+        if(genericCount == 0) {
+            genericNames = emptyArray()
+        }
+        else
+        {
+            val list = mutableListOf<String>()
+            for (i in 0 until genericCount){
+                list.add(StringRef.toString(stream.readName()))
+            }
+            genericNames = list.toTypedArray()
+        }
         val varName = stream.readName()
         val superName = stream.readName()
         val aliasName = stream.readName()
         return createSerializedClass(StringRef.toString(className),
+                genericNames,
                 StringRef.toString(varName),
                 StringRef.toString(superName),
                 StringRef.toString(aliasName),
@@ -385,6 +420,12 @@ object TyClassSerializer : TySerializer<ITyClass>() {
 
     override fun serializeTy(ty: ITyClass, stream: StubOutputStream) {
         stream.writeName(ty.className)
+        stream.writeVarInt(ty.genericNames.size);
+        if(ty.genericNames.isNotEmpty()){
+            for (genericName in ty.genericNames){
+                stream.writeName(genericName)
+            }
+        }
         stream.writeName(ty.varName)
         stream.writeName(ty.superClassName)
         stream.writeName(ty.aliasName)
