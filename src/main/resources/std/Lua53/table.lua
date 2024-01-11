@@ -76,7 +76,7 @@ function table.pack(...) end
 --- removes the last element of list `l`.
 ---@overload fun<V>(list:table<number, V> | V[]):V
 ---@generic V
----@param list table<number, V>
+---@param list table<number, V> | V[]
 ---@param pos number
 ---@return V
 function table.remove(list, pos) end
