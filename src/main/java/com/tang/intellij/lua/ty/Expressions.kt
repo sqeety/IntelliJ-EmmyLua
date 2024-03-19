@@ -202,7 +202,34 @@ private fun LuaCallExpr.infer(context: SearchContext): ITy {
             is ITyClass -> ret = ret.union(it)
         }
     }
-
+    //泛型处理
+    if (ty is ITyFunction && ty.mainSignature.tyParameters.isNotEmpty()) {
+        val returnDisplayName = ty.mainSignature.returnTy.displayName;
+        for (parameter in ty.mainSignature.tyParameters){
+            if(parameter.displayName == returnDisplayName){
+                if (expr is LuaIndexExpr) {
+                    val previousTy = expr.guessParentType(context)
+                    previousTy.each { t ->
+                        if (t is ITyGeneric)
+                        {
+                            val base = t.base
+                            if(base is TyLazyClass){
+                                base.lazyInit(context)
+                                if(base.genericNames.isNotEmpty()){
+                                    for ((index, genericName) in base.genericNames.withIndex()){
+                                        if(returnDisplayName == genericName){
+                                            ret = ret.union(t.getParamTy(index))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    break
+                }
+            }
+        }
+    }
     // xxx.new()
     if (expr is LuaIndexExpr) {
         val fnName = expr.name
@@ -366,7 +393,26 @@ private fun LuaIndexExpr.infer(context: SearchContext): ITy {
                 result = result.union(guessFieldType(propName, clazz, context))
                 true
             })
-            
+            //泛型临时处理
+            prefixType.each { ty ->
+                if (ty is ITyGeneric)
+                {
+                    val base = ty.base
+                    if(base is TyLazyClass){
+                        base.lazyInit(context)
+                        if(base.genericNames.isNotEmpty()){
+                            val temp = result
+                            for ((index, genericName) in base.genericNames.withIndex()){
+                                temp.each { rt->
+                                    if(rt.displayName == genericName){
+                                        result = result.replace(rt, ty.getParamTy(index))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             // table<string, K> -> member type is K
             prefixType.each { ty ->
                 if (ty is ITyGeneric && ty.getParamTy(0) == Ty.STRING)

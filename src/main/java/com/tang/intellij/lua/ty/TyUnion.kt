@@ -36,6 +36,16 @@ class TyUnion : Ty(TyKind.Union) {
         return this
     }
 
+    fun ReplaceMatth(old: ITy, new:ITy): TyUnion {
+        if (new is TyUnion) {
+            return this;
+        }
+        else {
+            childSet.remove(old)
+            childSet.add(new)
+        }
+        return this
+    }
     private fun addChild(ty: ITy): Boolean {
         return childSet.add(ty)
     }
