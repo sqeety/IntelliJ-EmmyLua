@@ -192,7 +192,19 @@ class FunSignature(colonCall: Boolean,
 
         fun create(colonCall: Boolean, functionTy: LuaDocFunctionTy): IFunSignature {
             val list = mutableListOf<TyParameter>()
-            functionTy.genericDefList.forEach { it.name?.let { name -> list.add(TyParameter(name, it.classNameRef?.text)) } }
+            functionTy.genericDefList.forEach {it->
+                it.name?.let {
+                    name ->
+                    val nameRef = it.classNameRef
+                    val array: Array<String>
+                    if (nameRef != null) {
+                        array = arrayOf(nameRef.text)
+                    } else {
+                        array = emptyArray();
+                    }
+                    list.add(TyParameter(name, array))
+                }
+            }
             return FunSignature(
                     colonCall,
                     functionTy.returnType,

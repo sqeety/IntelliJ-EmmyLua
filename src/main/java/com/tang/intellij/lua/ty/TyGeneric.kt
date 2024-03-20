@@ -23,8 +23,10 @@ import com.tang.intellij.lua.comment.psi.LuaDocGenericTy
 import com.tang.intellij.lua.comment.psi.LuaDocTy
 import com.tang.intellij.lua.psi.LuaClassMember
 import com.tang.intellij.lua.search.SearchContext
+import com.tang.intellij.lua.stubs.readNames
+import com.tang.intellij.lua.stubs.writeNames
 
-class TyParameter(val name:String, base: String? = null) : TySerializedClass(name, emptyArray(), name, base) {
+class TyParameter(val name:String, base: Array<String> = emptyArray()) : TySerializedClass(name, emptyArray(), name, base) {
 
     override val kind: TyKind
         get() = TyKind.GenericParam
@@ -40,13 +42,13 @@ class TyParameter(val name:String, base: String? = null) : TySerializedClass(nam
 object TyGenericParamSerializer : TySerializer<TyParameter>() {
     override fun deserializeTy(flags: Int, stream: StubInputStream): TyParameter {
         val name = StringRef.toString(stream.readName())
-        val base = StringRef.toString(stream.readName())
+        val base = stream.readNames();
         return TyParameter(name, base)
     }
 
     override fun serializeTy(ty: TyParameter, stream: StubOutputStream) {
         stream.writeName(ty.name)
-        stream.writeName(ty.superClassName)
+        stream.writeNames(ty.superClassName)
     }
 }
 

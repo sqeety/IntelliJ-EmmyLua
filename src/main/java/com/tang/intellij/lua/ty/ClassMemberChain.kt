@@ -18,12 +18,12 @@ package com.tang.intellij.lua.ty
 
 import com.tang.intellij.lua.psi.LuaClassMember
 
-class ClassMemberChain(val ty: ITyClass, var superChain: ClassMemberChain?) {
+class ClassMemberChain(val ty: ITyClass, var superChain: Array<ClassMemberChain>) {
     private val members = mutableMapOf<String, LuaClassMember>()
 
     fun add(member: LuaClassMember) {
         val name = member.name ?: return
-        val superExist = superChain?.findMember(name)
+        val superExist = findSuperMember(name)
         val override = superExist == null || canOverride(member, superExist)
         if (override) {
             val selfExist = members[name]
@@ -32,16 +32,35 @@ class ClassMemberChain(val ty: ITyClass, var superChain: ClassMemberChain?) {
         }
     }
 
-    fun findMember(name: String): LuaClassMember? {
-        return members.getOrElse(name) { superChain?.findMember(name) }
+    fun findSuperMember(name: String): LuaClassMember? {
+        if(superChain.isNotEmpty()){
+            for (classMemberChain in superChain) {
+                val find = classMemberChain.findMember(name)
+                if(find != null){
+                    return find
+                }
+            }
+        }
+       return null
     }
 
+    fun findMember(name: String): LuaClassMember? {
+        return members.getOrElse(name) { findSuperMember(name) }
+    }
+
+    private fun superProcess(deep: Boolean, processor: (ITyClass, String, LuaClassMember) -> Unit) {
+        if(superChain.isNotEmpty()){
+            for (classMemberChain in superChain) {
+                classMemberChain.process(deep, processor)
+            }
+        }
+    }
     private fun process(deep: Boolean, processor: (ITyClass, String, LuaClassMember) -> Unit) {
         for ((t, u) in members) {
             processor(ty, t, u)
         }
         if (deep)
-            superChain?.process(deep, processor)
+            superProcess(true, processor)
     }
 
     fun process(deep: Boolean, processor: (ITyClass, LuaClassMember) -> Unit) {

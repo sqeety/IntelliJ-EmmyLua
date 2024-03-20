@@ -18,4 +18,7 @@ public interface LuaDocClassNameRef extends LuaDocPsiElement {
   @NotNull
   ITy resolveType();
 
+  @Nullable
+  String getName();
+
 }

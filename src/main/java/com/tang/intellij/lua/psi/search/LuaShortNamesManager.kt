@@ -113,9 +113,19 @@ abstract class LuaShortNamesManager {
         context: SearchContext,
         processor: Processor<LuaClassMember>
     ): Boolean {
-        return if (type is TyParameter)
-            type.superClassName?.let { processMembers(it, memberName, context, processor) } ?: true
-        else processMembers(type.className, memberName, context, processor)
+        if (type is TyParameter)
+        {
+            var result = true
+            if(type.superClassName.isNotEmpty()){
+                for (it in type.superClassName) {
+                    result = result && processMembers(it, memberName, context, processor)
+                }
+            }
+            return result
+        }
+        else {
+            return processMembers(type.className, memberName, context, processor)
+        }
     }
 
     open fun processMembers(

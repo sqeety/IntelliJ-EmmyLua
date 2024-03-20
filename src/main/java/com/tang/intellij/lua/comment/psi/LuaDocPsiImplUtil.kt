@@ -63,6 +63,10 @@ fun getName(identifierOwner: PsiNameIdentifierOwner): String? {
     return id?.text
 }
 
+fun getName(identifierOwner: LuaDocClassNameRef): String? {
+    return identifierOwner.text
+}
+
 fun setName(identifierOwner: PsiNameIdentifierOwner, newName: String): PsiElement {
     val oldId = identifierOwner.nameIdentifier
     if (oldId != null) {

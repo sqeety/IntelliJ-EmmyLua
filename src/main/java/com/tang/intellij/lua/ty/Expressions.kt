@@ -137,9 +137,14 @@ fun LuaCallExpr.createSubstitutor(sig: IFunSignature, context: SearchContext): I
             val argTy = list[processedIndex + 1]
             GenericAnalyzer(argTy, varargTy).analyze(map)
         }
-        sig.tyParameters.forEach {
+        sig.tyParameters.forEach { it ->
             val superCls = it.superClassName
-            if (Ty.isInvalid(map[it.name]) && superCls != null) map[it.name] = Ty.create(superCls)
+            if(superCls.isNotEmpty()){
+                superCls.forEach {
+                    if (Ty.isInvalid(map[it])) map[it] = Ty.create(it)
+                }
+            }
+
         }
         return object : TySubstitutor() {
             override fun substitute(clazz: ITyClass): ITy {

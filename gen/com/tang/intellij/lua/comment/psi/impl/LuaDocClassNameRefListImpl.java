@@ -10,17 +10,15 @@ import com.intellij.psi.util.PsiTreeUtil;
 import static com.tang.intellij.lua.comment.psi.LuaDocTypes.*;
 import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import com.tang.intellij.lua.comment.psi.*;
-import com.intellij.psi.PsiReference;
-import com.tang.intellij.lua.ty.ITy;
 
-public class LuaDocClassNameRefImpl extends ASTWrapperPsiElement implements LuaDocClassNameRef {
+public class LuaDocClassNameRefListImpl extends ASTWrapperPsiElement implements LuaDocClassNameRefList {
 
-  public LuaDocClassNameRefImpl(@NotNull ASTNode node) {
+  public LuaDocClassNameRefListImpl(@NotNull ASTNode node) {
     super(node);
   }
 
   public void accept(@NotNull LuaDocVisitor visitor) {
-    visitor.visitClassNameRef(this);
+    visitor.visitClassNameRefList(this);
   }
 
   @Override
@@ -31,32 +29,8 @@ public class LuaDocClassNameRefImpl extends ASTWrapperPsiElement implements LuaD
 
   @Override
   @NotNull
-  public PsiElement getId() {
-    return notNullChild(findChildByType(ID));
-  }
-
-  @Override
-  @NotNull
-  public PsiReference getReference() {
-    return LuaDocPsiImplUtilKt.getReference(this);
-  }
-
-  @Override
-  @NotNull
-  public ITy resolveType() {
-    return LuaDocPsiImplUtilKt.resolveType(this);
-  }
-
-  @Override
-  @NotNull
-  public String toString() {
-    return LuaDocPsiImplUtilKt.toString(this);
-  }
-
-  @Override
-  @Nullable
-  public String getName() {
-    return LuaDocPsiImplUtilKt.getName(this);
+  public List<LuaDocClassNameRef> getClassNameRefList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaDocClassNameRef.class);
   }
 
 }

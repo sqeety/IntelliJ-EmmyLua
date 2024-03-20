@@ -258,9 +258,14 @@ generic_parameter_list ::= '<' generic_parameter (',' generic_parameter)* '>'{
 }
 
 class_name_ref ::= ID {
-    methods = [getReference resolveType toString]
+    methods = [getReference resolveType toString getName]
 }
-tag_class ::= (TAG_NAME_CLASS|TAG_NAME_MODULE) ID (generic_parameter_list)? (EXTENDS class_name_ref)? comment_string? {
+
+class_name_ref_list ::= class_name_ref (',' class_name_ref)* {
+
+}
+
+tag_class ::= (TAG_NAME_CLASS|TAG_NAME_MODULE) ID (generic_parameter_list)? (EXTENDS class_name_ref_list)? comment_string? {
     pin = 2
     implements = [
         "com.tang.intellij.lua.comment.psi.LuaDocPsiElement"
@@ -279,7 +284,7 @@ tag_class ::= (TAG_NAME_CLASS|TAG_NAME_MODULE) ID (generic_parameter_list)? (EXT
         toString
         isDeprecated
 
-        superClassNameRef = 'class_name_ref'
+        superClassNameRef = 'class_name_ref_list'
         genericParameters='generic_parameter_list'
         module = 'TAG_NAME_MODULE'
     ]

@@ -39,7 +39,7 @@ public interface LuaDocTagClass extends LuaDocPsiElement, PsiNameIdentifierOwner
   boolean isDeprecated();
 
   @Nullable
-  LuaDocClassNameRef getSuperClassNameRef();
+  LuaDocClassNameRefList getSuperClassNameRef();
 
   @Nullable
   LuaDocGenericParameterList getGenericParameters();

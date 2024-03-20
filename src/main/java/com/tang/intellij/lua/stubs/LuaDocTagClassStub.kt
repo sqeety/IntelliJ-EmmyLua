@@ -42,8 +42,16 @@ class LuaDocTagClassType : LuaStubElementType<LuaDocTagClassStub, LuaDocTagClass
     }
 
     override fun createStub(luaDocTagClass: LuaDocTagClass, stubElement: StubElement<*>): LuaDocTagClassStub {
-        val superClassNameRef = luaDocTagClass.superClassNameRef
-        val superClassName = superClassNameRef?.text
+        val classNameRefList = luaDocTagClass.superClassNameRef?.classNameRefList;
+        val superClassNames = mutableListOf<String>()
+        if(classNameRefList != null){
+            classNameRefList.forEach{
+                val superClassName = it.name
+                if(superClassName != null) {
+                    superClassNames.add(superClassName)
+                }
+            }
+        }
         val aliasName: String? = luaDocTagClass.aliasName
         val genericTypes = mutableListOf<String>()
         val genericParameters = luaDocTagClass.genericParameters
@@ -57,44 +65,28 @@ class LuaDocTagClassType : LuaStubElementType<LuaDocTagClassStub, LuaDocTagClass
                 }
             }
         }
-        return LuaDocTagClassStubImpl(luaDocTagClass.name, genericTypes.toTypedArray(), aliasName, superClassName, luaDocTagClass.isDeprecated, stubElement)
+        return LuaDocTagClassStubImpl(luaDocTagClass.name, genericTypes.toTypedArray(), aliasName, superClassNames.toTypedArray(), luaDocTagClass.isDeprecated, stubElement)
     }
 
     override fun serialize(luaDocClassStub: LuaDocTagClassStub, stubOutputStream: StubOutputStream) {
         stubOutputStream.writeName(luaDocClassStub.className)
-        stubOutputStream.writeVarInt(luaDocClassStub.genericNames.size)
-        if(luaDocClassStub.genericNames.isNotEmpty()){
-            for (genericName in luaDocClassStub.genericNames){
-                stubOutputStream.writeName(genericName)
-            }
-        }
+        stubOutputStream.writeNames(luaDocClassStub.genericNames)
         stubOutputStream.writeName(luaDocClassStub.aliasName)
-        stubOutputStream.writeName(luaDocClassStub.superClassName)
+        stubOutputStream.writeNames(luaDocClassStub.superClassName)
         stubOutputStream.writeBoolean(luaDocClassStub.isDeprecated)
     }
 
+
     override fun deserialize(stubInputStream: StubInputStream, stubElement: StubElement<*>): LuaDocTagClassStub {
         val className = stubInputStream.readName()
-        val genericCount = stubInputStream.readVarInt()
-        val genericNames:Array<String>
-        if(genericCount == 0) {
-            genericNames = emptyArray()
-        }
-        else
-        {
-            val list = mutableListOf<String>()
-            for (i in 0 until genericCount){
-                list.add(StringRef.toString(stubInputStream.readName()))
-            }
-            genericNames = list.toTypedArray()
-        }
+        val genericNames = stubInputStream.readNames()
         val aliasName = stubInputStream.readName()
-        val superClassName = stubInputStream.readName()
+        val superClassName = stubInputStream.readNames()
         val isDeprecated = stubInputStream.readBoolean()
         return LuaDocTagClassStubImpl(StringRef.toString(className)!!,
                 genericNames,
                 StringRef.toString(aliasName),
-                StringRef.toString(superClassName),
+                superClassName,
                 isDeprecated,
                 stubElement)
     }
@@ -105,8 +97,8 @@ class LuaDocTagClassType : LuaStubElementType<LuaDocTagClassStub, LuaDocTagClass
         indexSink.occurrence(StubKeys.SHORT_NAME, classType.className)
 
         val superClassName = classType.superClassName
-        if (superClassName != null) {
-            indexSink.occurrence(StubKeys.SUPER_CLASS, superClassName)
+        if (superClassName.isNotEmpty()) {
+            superClassName.forEach{indexSink.occurrence(StubKeys.SUPER_CLASS, it)}
         }
     }
 }
@@ -115,7 +107,7 @@ interface LuaDocTagClassStub : StubElement<LuaDocTagClass> {
     val className: String
     val genericNames:Array<String>
     val aliasName: String?
-    val superClassName: String?
+    val superClassName: Array<String>
     val classType: TyClass
     val isDeprecated: Boolean
 }
@@ -123,7 +115,7 @@ interface LuaDocTagClassStub : StubElement<LuaDocTagClass> {
 class LuaDocTagClassStubImpl(override val className: String,
                              override val genericNames:Array<String>,
                              override val aliasName: String?,
-                             override val superClassName: String?,
+                             override val superClassName: Array<String>,
                              override val isDeprecated: Boolean,
                              parent: StubElement<*>)
     : LuaDocStubBase<LuaDocTagClass>(parent, LuaElementType.CLASS_DEF), LuaDocTagClassStub {

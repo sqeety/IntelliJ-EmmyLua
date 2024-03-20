@@ -83,7 +83,7 @@ fun StubOutputStream.writeTyParams(tyParams: Array<TyParameter>) {
     writeByte(tyParams.size)
     tyParams.forEach { parameter ->
         writeName(parameter.name)
-        writeName(parameter.superClassName)
+        writeNames(parameter.superClassName)
     }
 }
 
@@ -92,7 +92,7 @@ fun StubInputStream.readTyParams(): Array<TyParameter> {
     val size = readByte()
     for (i in 0 until size) {
         val name = StringRef.toString(readName())
-        val base = StringRef.toString(readName())
+        val base = readNames()
         list.add(TyParameter(name, base))
     }
     return list.toTypedArray()
