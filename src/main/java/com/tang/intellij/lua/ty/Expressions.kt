@@ -209,7 +209,7 @@ private fun LuaCallExpr.infer(context: SearchContext): ITy {
     }
     //泛型处理
     if (ty is ITyFunction) {
-        val returnDisplayName = ty.mainSignature.returnTy.displayName;
+        val returnDisplayName = ty.mainSignature.returnTy.displayName
         if (expr is LuaIndexExpr) {
             val previousTy = expr.guessParentType(context)
             previousTy.each { t ->

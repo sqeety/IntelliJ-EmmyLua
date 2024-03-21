@@ -39,7 +39,9 @@ import com.tang.intellij.lua.psi.search.LuaClassInheritorsSearch
 import com.tang.intellij.lua.psi.search.LuaOverridingMethodsSearch
 import com.tang.intellij.lua.psi.search.LuaShortNamesManager
 import com.tang.intellij.lua.search.SearchContext
+import com.tang.intellij.lua.ty.ITyClass
 import com.tang.intellij.lua.ty.TyClass
+import com.tang.intellij.lua.ty.TyUnion
 
 /**
  * line marker
@@ -50,6 +52,42 @@ class LuaLineMarkerProvider : AbstractLineMarkerProvider() {
     private val daemonSettings = DaemonCodeAnalyzerSettings.getInstance()
     private val colorsManager = EditorColorsManager.getInstance()
 
+    private fun CollectMakersInSuperMethod(manager:LuaShortNamesManager, type:ITyClass, methodName:String, context: SearchContext,result: MutableCollection<in LineMarkerInfo<*>>, id : PsiElement) : Boolean{
+        val superType = type.getSuperClass(context) ?: return false
+        if(superType is TyClass){
+            val superTypeName = superType.className
+            val method = manager.findMethod(superTypeName, methodName, context)
+            if(method != null){
+                val builder = NavigationGutterIconBuilder.create(AllIcons.Gutter.OverridingMethod)
+                        .setTargets(method)
+                        .setTooltipText("Overrides function in $superTypeName")
+                result.add(builder.createLineMarkerInfo(id))
+                return true
+            }
+            CollectMakersInSuperMethod(manager, superType, methodName, context, result, id)
+        }
+        if(superType is TyUnion){
+            var findResult = false
+            for (childType in superType.getChildTypes()) {
+                if(childType is TyClass){
+                    val superTypeName = childType.className
+                    var method = manager.findMethod(superTypeName, methodName, context)
+                    if(method != null){
+                        val builder = NavigationGutterIconBuilder.create(AllIcons.Gutter.OverridingMethod)
+                                .setTargets(method)
+                                .setTooltipText("Overrides function in $superTypeName")
+                        result.add(builder.createLineMarkerInfo(id))
+                        findResult = true
+                        continue
+                    }
+                    if(CollectMakersInSuperMethod(manager, childType, methodName, context, result, id))
+                        findResult = true
+                }
+            }
+            return findResult
+        }
+        return false
+    }
     private fun collectNavigationMarkers(element: PsiElement, result: MutableCollection<in LineMarkerInfo<*>>) {
         if (element is LuaClassMethodName) {
             val methodDef = PsiTreeUtil.getParentOfType(element, LuaClassMethod::class.java)!!
@@ -61,21 +99,7 @@ class LuaLineMarkerProvider : AbstractLineMarkerProvider() {
             val classMethodNameId = element.id
             if (type != null && classMethodNameId != null) {
                 val methodName = methodDef.name!!
-                var superType = type.getSuperClass(context)
-
-                while (superType != null && superType is TyClass) {
-                    ProgressManager.checkCanceled()
-                    val superTypeName = superType.className
-                    val superMethod = LuaShortNamesManager.getInstance(project).findMethod(superTypeName, methodName, context)
-                    if (superMethod != null) {
-                        val builder = NavigationGutterIconBuilder.create(AllIcons.Gutter.OverridingMethod)
-                                .setTargets(superMethod)
-                                .setTooltipText("Overrides function in $superTypeName")
-                        result.add(builder.createLineMarkerInfo(classMethodNameId))
-                        break
-                    }
-                    superType = superType.getSuperClass(context)
-                }
+                CollectMakersInSuperMethod(LuaShortNamesManager.getInstance(project), type, methodName, context, result, classMethodNameId)
             }
 
             // OverridenMethod

@@ -33,6 +33,7 @@ import com.tang.intellij.lua.psi.search.LuaOverridingMethodsSearch
 import com.tang.intellij.lua.reference.LuaOverridingMethodReference
 import com.tang.intellij.lua.search.SearchContext
 import com.tang.intellij.lua.ty.ITyClass
+import com.tang.intellij.lua.ty.TyUnion
 
 class LuaFindUsagesHandlerFactory : FindUsagesHandlerFactory() {
     override fun createFindUsagesHandler(element: PsiElement, forHighlightUsages: Boolean): FindUsagesHandler? {
@@ -62,20 +63,31 @@ class FindMethodUsagesHandler(val methodDef: LuaClassMethod) : FindUsagesHandler
         return collection
     }
 
+    private fun iteratorAllSuper(arr:MutableList<PsiElement>, type:ITyClass, methodName:String, ctx:SearchContext){
+        val superClass = type.getSuperClass(ctx)
+        if (superClass is ITyClass) {
+            val superMethod = superClass.findMember(methodName, ctx)
+            if (superMethod != null) arr.add(superMethod)
+            iteratorAllSuper(arr, superClass, methodName, ctx)
+        }else if(superClass is TyUnion){
+            superClass.getChildTypes().forEach {
+                if(it is ITyClass){
+                    val superMethod = it.findMember(methodName, ctx)
+                    if (superMethod != null) arr.add(superMethod)
+                    iteratorAllSuper(arr, it, methodName, ctx)
+                }
+            }
+        }
+    }
+
     override fun getPrimaryElements(): Array<PsiElement> {
         val arr: MutableList<PsiElement> = mutableListOf(methodDef)
         val ctx = SearchContext.get(psiElement.project)
         //base declarations
         val methodName = methodDef.name
-        var parentType = methodDef.guessParentType(ctx) as? ITyClass
-        while (methodName != null && parentType != null) {
-            val superClass = parentType.getSuperClass(ctx) as? ITyClass
-            if (superClass != null) {
-                val superMethod = superClass.findMember(methodName, ctx)
-                if (superMethod != null) arr.add(superMethod)
-            }
-            parentType = superClass
-        }
+        val parentType = methodDef.guessParentType(ctx) as? ITyClass
+        if(parentType != null && methodName != null)
+            iteratorAllSuper(arr, parentType, methodName, ctx)
         return arr.toTypedArray()
     }
 
