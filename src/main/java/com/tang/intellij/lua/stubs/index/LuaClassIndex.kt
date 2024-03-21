@@ -50,7 +50,9 @@ class LuaClassIndex : StringStubIndexExtension<LuaDocTagClass>() {
         fun find(name: String, project: Project, scope: GlobalSearchScope): LuaDocTagClass? {
             var tagClass: LuaDocTagClass? = null
             process(name, project, scope, Processor {
-                tagClass = it
+                if(it is LuaDocTagClass){
+                    tagClass = it
+                }
                 false
             })
             return tagClass
