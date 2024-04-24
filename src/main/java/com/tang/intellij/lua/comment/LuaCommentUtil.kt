@@ -129,7 +129,8 @@ object LuaCommentUtil {
         for (child in children) {
             if (child is LuaNameList) {
                 val defList = child.nameDefList
-                return defList[0].name;
+                if(defList.size > 0)
+                    return defList[0].name;
             }
         }
         return null
