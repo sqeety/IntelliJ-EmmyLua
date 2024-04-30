@@ -16,6 +16,7 @@
 
 package com.tang.intellij.lua.debugger
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.project.IndexNotReadyException
 import com.intellij.openapi.project.Project
@@ -34,38 +35,46 @@ import com.tang.intellij.lua.psi.*
 abstract class LuaDebuggerEvaluator : XDebuggerEvaluator() {
     override fun getExpressionRangeAtOffset(project: Project, document: Document, offset: Int, sideEffectsAllowed: Boolean): TextRange? {
         var currentRange: TextRange? = null
-        PsiDocumentManager.getInstance(project).commitAndRunReadAction {
-            try {
-                val file = PsiDocumentManager.getInstance(project).getPsiFile(document) ?: return@commitAndRunReadAction
-                if (currentRange == null) {
-                    val ele = file.findElementAt(offset)
-                    if (ele != null && ele.node.elementType == LuaTypes.ID) {
-                        val parent = ele.parent
-                        when (parent) {
-                            is LuaFuncDef,
-                            is LuaLocalFuncDef -> currentRange = ele.textRange
-                            is LuaClassMethodName,
-                            is PsiNameIdentifierOwner -> currentRange = parent.textRange
+        val application = ApplicationManager.getApplication()
+        var canAction = true
+        if(!application.isDispatchThread) {
+            if(application.isReadAccessAllowed){
+                canAction = false
+            }
+        }
+        if(canAction){
+            PsiDocumentManager.getInstance(project).commitAndRunReadAction {
+                try {
+                    val file = PsiDocumentManager.getInstance(project).getPsiFile(document) ?: return@commitAndRunReadAction
+                    if (currentRange == null) {
+                        val ele = file.findElementAt(offset)
+                        if (ele != null && ele.node.elementType == LuaTypes.ID) {
+                            when (val parent = ele.parent) {
+                                is LuaFuncDef,
+                                is LuaLocalFuncDef -> currentRange = ele.textRange
+                                is LuaClassMethodName,
+                                is PsiNameIdentifierOwner -> currentRange = parent.textRange
+                            }
                         }
                     }
-                }
 
-                if (currentRange == null) {
-                    val expr = PsiTreeUtil.findElementOfClassAtOffset(file, offset, LuaExpr::class.java, false)
-                    currentRange = when (expr) {
-                        is LuaCallExpr,
-                        is LuaClosureExpr,
-                        is LuaLiteralExpr -> null
-                        else -> expr?.textRange
+                    if (currentRange == null) {
+                        val expr = PsiTreeUtil.findElementOfClassAtOffset(file, offset, LuaExpr::class.java, false)
+                        currentRange = when (expr) {
+                            is LuaCallExpr,
+                            is LuaClosureExpr,
+                            is LuaLiteralExpr -> null
+                            else -> expr?.textRange
+                        }
                     }
+                } catch (ignored: IndexNotReadyException) {
                 }
-            } catch (ignored: IndexNotReadyException) {
             }
         }
         return currentRange
     }
 
-    override fun evaluate(express: String, xEvaluationCallback: XDebuggerEvaluator.XEvaluationCallback, xSourcePosition: XSourcePosition?) {
+    override fun evaluate(express: String, xEvaluationCallback: XEvaluationCallback, xSourcePosition: XSourcePosition?) {
         var expr = express.trim()
         if (!expr.endsWith(')')) {
             val lastDot = express.lastIndexOf('.')
@@ -76,5 +85,5 @@ abstract class LuaDebuggerEvaluator : XDebuggerEvaluator() {
         eval(expr, xEvaluationCallback, xSourcePosition)
     }
 
-    protected abstract fun eval(express: String, xEvaluationCallback: XDebuggerEvaluator.XEvaluationCallback, xSourcePosition: XSourcePosition?)
+    protected abstract fun eval(express: String, xEvaluationCallback: XEvaluationCallback, xSourcePosition: XSourcePosition?)
 }
