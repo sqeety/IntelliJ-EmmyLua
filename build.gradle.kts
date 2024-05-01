@@ -134,23 +134,23 @@ task("unzipEmmyDebugger", type = Copy::class) {
 task("installEmmyDebugger", type = Copy::class) {
     dependsOn("unzipEmmyDebugger")
     from("temp/windows/x64/") {
-        include("emmy_core.dll")
+        include("*.*")
         into("debugger/emmy/windows/x64")
     }
     from("temp/windows/x86/") {
-        include("emmy_core.dll")
+        include("*.*")
         into("debugger/emmy/windows/x86")
     }
     from("temp/linux/") {
-        include("emmy_core.so")
+        include("*.*")
         into("debugger/emmy/linux")
     }
     from("temp/mac/x64") {
-        include("emmy_core.dylib")
+        include("*.*")
         into("debugger/emmy/mac/x64")
     }
     from("temp/mac/arm64") {
-        include("emmy_core.dylib")
+        include("*.*")
         into("debugger/emmy/mac/arm64")
     }
     destinationDir = file("src/main/resources")
@@ -227,7 +227,7 @@ project(":") {
     tasks {
         buildPlugin {
             dependsOn(
-                //"bunch",
+                "bunch",
                 "installEmmyDebugger")
             archiveBaseName.set(buildVersionData.archiveName)
             from(fileTree(resDir) { include("!!DONT_UNZIP_ME!!.txt") }) {
