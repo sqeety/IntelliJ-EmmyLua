@@ -206,12 +206,9 @@ abstract class TyClass(override val className: String,
         // Lazy init for superclass
         this.doLazyInit(context)
         // Check if any of the superclasses are type
-        var isSubType = false
-        processSuperClass(this, context) { superType ->
-            isSubType = superType == other
-            !isSubType
+        return !processSuperClass(this, context) { superType ->
+            superType != other
         }
-        return isSubType
     }
 
     override fun substitute(substitutor: ITySubstitutor): ITy {
@@ -279,14 +276,14 @@ abstract class TyClass(override val className: String,
                         if (childType is ITyClass) {
                             if (!processedName.add(childType.className)) {
                                 // todo: Infinite inheritance
-                                result = false
                                 continue
                             }
                             if (!processor(childType)) {
-                                result = false
                                 continue
                             }
-                            result = result && processSuperClass(childType, searchContext, processor)
+                            if(processSuperClass(childType, searchContext, processor)){
+                                result = false
+                            }
                         }
                     }
                     return result
