@@ -40,6 +40,8 @@ import com.tang.intellij.lua.search.SearchContext
 import com.tang.intellij.lua.ty.ITyClass
 import com.tang.intellij.lua.ty.TyClass
 import com.tang.intellij.lua.ty.TyUnion
+import kotlinx.collections.immutable.immutableHashSetOf
+import java.util.HashSet
 
 /**
  * line marker
@@ -49,30 +51,44 @@ class LuaLineMarkerProvider : AbstractLineMarkerProvider() {
 
     private val daemonSettings = DaemonCodeAnalyzerSettings.getInstance()
     private val colorsManager = EditorColorsManager.getInstance()
-    
-    private fun collectMakersInSuperMethod(manager:LuaShortNamesManager, type:ITyClass, methodName:String, context: SearchContext, result: MutableCollection<LuaClassMethod>, id : PsiElement) : Boolean{
+
+    private fun collectMakersInSuperMethod(
+        manager: LuaShortNamesManager,
+        type: ITyClass,
+        methodName: String,
+        context: SearchContext,
+        result: MutableCollection<LuaClassMethod>,
+        id: PsiElement,
+        alreadyProcessed: HashSet<String>
+    ): Boolean{
         val superType = type.getSuperClass(context) ?: return false
         if(superType is TyClass){
             val superTypeName = superType.className
+            if(!alreadyProcessed.add(superTypeName)){
+                return false
+            }
             val method = manager.findMethod(superTypeName, methodName, context)
             if(method != null){
                 result.add(method)
                 return true
             }
-            return collectMakersInSuperMethod(manager, superType, methodName, context, result, id)
+            return collectMakersInSuperMethod(manager, superType, methodName, context, result, id, alreadyProcessed)
         }
         if(superType is TyUnion){
             var findResult = false
             for (childType in superType.getChildTypes()) {
                 if(childType is TyClass){
                     val superTypeName = childType.className
+                    if(!alreadyProcessed.add(superTypeName)){
+                        continue
+                    }
                     val method = manager.findMethod(superTypeName, methodName, context)
                     if(method != null){
                         result.add(method)
                         findResult = true
                         break
                     }
-                    if(collectMakersInSuperMethod(manager, childType, methodName, context, result, id))
+                    if(collectMakersInSuperMethod(manager, childType, methodName, context, result, id, alreadyProcessed))
                     {
                         findResult = true
                         break
@@ -95,7 +111,8 @@ class LuaLineMarkerProvider : AbstractLineMarkerProvider() {
             if (type != null && classMethodNameId != null) {
                 val methodName = methodDef.name!!
                 val collection = mutableListOf<LuaClassMethod>()
-                collectMakersInSuperMethod(LuaShortNamesManager.getInstance(project), type, methodName, context, collection, classMethodNameId)
+                val alreadyProcessed = hashSetOf<String>()
+                collectMakersInSuperMethod(LuaShortNamesManager.getInstance(project), type, methodName, context, collection, classMethodNameId, alreadyProcessed)
                 if (collection.size > 0) {
                     result.add(createLineMarkerInfo(
                         classMethodNameId,
