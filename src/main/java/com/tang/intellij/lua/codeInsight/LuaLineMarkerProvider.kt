@@ -16,10 +16,7 @@
 
 package com.tang.intellij.lua.codeInsight
 
-import com.intellij.codeInsight.daemon.AbstractLineMarkerProvider
-import com.intellij.codeInsight.daemon.DaemonCodeAnalyzerSettings
-import com.intellij.codeInsight.daemon.LineMarkerInfo
-import com.intellij.codeInsight.daemon.createLineMarkerInfo
+import com.intellij.codeInsight.daemon.*
 import com.intellij.codeInsight.daemon.impl.LineMarkersPass
 import com.intellij.codeInsight.navigation.NavigationGutterIconBuilder
 import com.intellij.icons.AllIcons
@@ -36,6 +33,7 @@ import com.tang.intellij.lua.comment.psi.LuaDocTagClass
 import com.tang.intellij.lua.lang.LuaIcons
 import com.tang.intellij.lua.psi.*
 import com.tang.intellij.lua.psi.search.LuaClassInheritorsSearch
+import com.tang.intellij.lua.psi.search.LuaOverridenMethodsSearch
 import com.tang.intellij.lua.psi.search.LuaOverridingMethodsSearch
 import com.tang.intellij.lua.psi.search.LuaShortNamesManager
 import com.tang.intellij.lua.search.SearchContext
@@ -51,37 +49,34 @@ class LuaLineMarkerProvider : AbstractLineMarkerProvider() {
 
     private val daemonSettings = DaemonCodeAnalyzerSettings.getInstance()
     private val colorsManager = EditorColorsManager.getInstance()
-
-    private fun CollectMakersInSuperMethod(manager:LuaShortNamesManager, type:ITyClass, methodName:String, context: SearchContext,result: MutableCollection<in LineMarkerInfo<*>>, id : PsiElement) : Boolean{
+    
+    private fun collectMakersInSuperMethod(manager:LuaShortNamesManager, type:ITyClass, methodName:String, context: SearchContext, result: MutableCollection<LuaClassMethod>, id : PsiElement) : Boolean{
         val superType = type.getSuperClass(context) ?: return false
         if(superType is TyClass){
             val superTypeName = superType.className
             val method = manager.findMethod(superTypeName, methodName, context)
             if(method != null){
-                val builder = NavigationGutterIconBuilder.create(AllIcons.Gutter.OverridingMethod)
-                        .setTargets(method)
-                        .setTooltipText("Overrides function in $superTypeName")
-                result.add(builder.createLineMarkerInfo(id))
+                result.add(method)
                 return true
             }
-            CollectMakersInSuperMethod(manager, superType, methodName, context, result, id)
+            return collectMakersInSuperMethod(manager, superType, methodName, context, result, id)
         }
         if(superType is TyUnion){
             var findResult = false
             for (childType in superType.getChildTypes()) {
                 if(childType is TyClass){
                     val superTypeName = childType.className
-                    var method = manager.findMethod(superTypeName, methodName, context)
+                    val method = manager.findMethod(superTypeName, methodName, context)
                     if(method != null){
-                        val builder = NavigationGutterIconBuilder.create(AllIcons.Gutter.OverridingMethod)
-                                .setTargets(method)
-                                .setTooltipText("Overrides function in $superTypeName")
-                        result.add(builder.createLineMarkerInfo(id))
+                        result.add(method)
                         findResult = true
-                        continue
+                        break
                     }
-                    if(CollectMakersInSuperMethod(manager, childType, methodName, context, result, id))
+                    if(collectMakersInSuperMethod(manager, childType, methodName, context, result, id))
+                    {
                         findResult = true
+                        break
+                    }
                 }
             }
             return findResult
@@ -99,7 +94,26 @@ class LuaLineMarkerProvider : AbstractLineMarkerProvider() {
             val classMethodNameId = element.id
             if (type != null && classMethodNameId != null) {
                 val methodName = methodDef.name!!
-                CollectMakersInSuperMethod(LuaShortNamesManager.getInstance(project), type, methodName, context, result, classMethodNameId)
+                val collection = mutableListOf<LuaClassMethod>()
+                collectMakersInSuperMethod(LuaShortNamesManager.getInstance(project), type, methodName, context, collection, classMethodNameId)
+                if (collection.size > 0) {
+                    result.add(createLineMarkerInfo(
+                        classMethodNameId,
+                        classMethodNameId.textRange,
+                        AllIcons.Gutter.OverridingMethod,
+                        null,
+                        object : LuaLineMarkerNavigator<PsiElement, LuaClassMethod>() {
+
+                            override fun getTitle(elt: PsiElement)
+                                    = "Choose Overriden Method of ${methodDef.name}"
+
+                            override fun search(elt: PsiElement)
+                                    = LuaOverridenMethodsSearch.search(methodDef)
+                        },
+                        GutterIconRenderer.Alignment.CENTER,
+                        { "Choose Overriden Method" }
+                    ))
+                }
             }
 
             // OverridenMethod
@@ -113,13 +127,13 @@ class LuaLineMarkerProvider : AbstractLineMarkerProvider() {
                     object : LuaLineMarkerNavigator<PsiElement, LuaClassMethod>() {
 
                         override fun getTitle(elt: PsiElement)
-                                = "Choose Overriding Method of ${methodDef.name}"
+                                = "Choose Implement Method of ${methodDef.name}"
 
                         override fun search(elt: PsiElement)
                                 = LuaOverridingMethodsSearch.search(methodDef)
                     },
                     GutterIconRenderer.Alignment.CENTER,
-                    { "Choose Overriding Method" }
+                    { "Choose Implement Method" }
                 ))
             }
 
