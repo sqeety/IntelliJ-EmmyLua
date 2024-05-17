@@ -209,7 +209,8 @@ private fun LuaCallExpr.infer(context: SearchContext): ITy {
     }
     //泛型处理
     if (ty is ITyFunction) {
-        val returnDisplayName = ty.mainSignature.returnTy.displayName
+        val returnTy = ty.mainSignature.returnTy
+        val returnDisplayName = returnTy.displayName
         if (expr is LuaIndexExpr) {
             val previousTy = expr.guessParentType(context)
             previousTy.each { t ->
@@ -221,6 +222,20 @@ private fun LuaCallExpr.infer(context: SearchContext): ITy {
                             for ((index, genericName) in base.genericNames.withIndex()) {
                                 if (returnDisplayName == genericName) {
                                     ret = ret.replace(ret, t.getParamTy(index))
+                                } else if (returnTy is TySerializedGeneric) {
+                                    val needParams: Array<ITy> = returnTy.params
+                                    var dirty = false
+                                    val newParams: Array<ITy> = needParams.copyOf()
+                                    for ((id, needParam) in needParams.withIndex()) {
+                                        if (needParam.displayName == genericName) {
+                                            dirty = true
+                                            newParams[id] = t.getParamTy(index)
+                                        }
+                                    }
+                                    if (dirty) {
+                                        val newType = TySerializedGeneric(newParams, returnTy.base)
+                                        ret = ret.replace(ret, newType)
+                                    }
                                 }
                             }
                         }
