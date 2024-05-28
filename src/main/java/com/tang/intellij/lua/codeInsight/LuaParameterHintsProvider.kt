@@ -75,7 +75,7 @@ class LuaParameterHintsProvider : InlayParameterHintsProvider {
                 val expr = exprList.getOrNull(index) ?: return@processArgs false
                 val show =
                 if (index == 0) {
-                    isInstanceMethodUsedAsStaticMethod
+                    !isInstanceMethodUsedAsStaticMethod
                 } else
                     true
                     //PsiTreeUtil.instanceOf(expr, *EXPR_HINT)
