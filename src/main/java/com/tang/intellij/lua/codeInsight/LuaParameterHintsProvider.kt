@@ -74,9 +74,11 @@ class LuaParameterHintsProvider : InlayParameterHintsProvider {
             sig.processArgs(null, callExpr.isMethodColonCall) { index, paramInfo ->
                 val expr = exprList.getOrNull(index) ?: return@processArgs false
                 val show =
-                if (index == 0 && isInstanceMethodUsedAsStaticMethod) {
+                if (index == 0) {
+                    isInstanceMethodUsedAsStaticMethod
+                } else
                     true
-                } else PsiTreeUtil.instanceOf(expr, *EXPR_HINT)
+                    //PsiTreeUtil.instanceOf(expr, *EXPR_HINT)
                 if (show)
                     list.add(InlayInfo(paramInfo.name, expr.node.startOffset))
                 true

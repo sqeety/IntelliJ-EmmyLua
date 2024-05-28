@@ -33,6 +33,7 @@ import com.tang.intellij.lua.psi.search.LuaShortNamesManager
 import com.tang.intellij.lua.search.SearchContext
 import com.tang.intellij.lua.stubs.readNames
 import com.tang.intellij.lua.stubs.writeNames
+import java.util.HashSet
 
 interface ITyClass : ITy {
     val className: String
@@ -42,7 +43,7 @@ interface ITyClass : ITy {
     var aliasName: String?
     fun processAlias(processor: Processor<String>): Boolean
     fun lazyInit(searchContext: SearchContext)
-    fun getMemberChain(context: SearchContext): ClassMemberChain
+    fun getMemberChain(context: SearchContext, alreadyProcessed: HashSet<ITy>): ClassMemberChain
     fun processMembers(context: SearchContext, processor: (ITyClass, LuaClassMember) -> Unit, deep: Boolean = true)
     fun processMembers(context: SearchContext, processor: (ITyClass, LuaClassMember) -> Unit) {
         processMembers(context, processor, true)
@@ -104,23 +105,27 @@ abstract class TyClass(override val className: String,
         return true
     }
 
-    override fun getMemberChain(context: SearchContext): ClassMemberChain {
+    override fun getMemberChain(context: SearchContext, alreadyProcessed: HashSet<ITy>): ClassMemberChain {
         val superClazz = getSuperClass(context)
-        val array:Array<ClassMemberChain>
-        if(superClazz != null){
-            if(superClazz is ITyClass){
-                array = arrayOf(superClazz.getMemberChain(context))
-            }else if(superClazz is TyUnion){
+        val array: Array<ClassMemberChain>
+        if (superClazz != null) {
+            if (alreadyProcessed.contains(superClazz)) {
+                return ClassMemberChain(this, emptyArray())
+            }
+            alreadyProcessed.add(superClazz)
+            if (superClazz is ITyClass) {
+                array = arrayOf(superClazz.getMemberChain(context, alreadyProcessed))
+            } else if (superClazz is TyUnion) {
                 val multiArray = mutableListOf<ClassMemberChain>()
                 for (childType in superClazz.getChildTypes()) {
-                    if(childType is ITyClass)
-                        multiArray.add(childType.getMemberChain(context))
+                    if (childType is ITyClass)
+                        multiArray.add(childType.getMemberChain(context, alreadyProcessed))
                 }
                 array = multiArray.toTypedArray()
-            }else{
+            } else {
                 array = emptyArray()
             }
-        }else{
+        } else {
             array = emptyArray()
         }
         val chain = ClassMemberChain(this, array)
@@ -138,17 +143,17 @@ abstract class TyClass(override val className: String,
     }
 
     override fun processMembers(context: SearchContext, processor: (ITyClass, LuaClassMember) -> Unit, deep: Boolean) {
-        val chain = getMemberChain(context)
+        val chain = getMemberChain(context, HashSet())
         chain.process(deep, processor)
     }
 
     override fun findMember(name: String, searchContext: SearchContext): LuaClassMember? {
-        val chain = getMemberChain(searchContext)
+        val chain = getMemberChain(searchContext, HashSet())
         return chain.findMember(name)
     }
 
     override fun findSuperMember(name: String, searchContext: SearchContext): LuaClassMember? {
-        val chain = getMemberChain(searchContext)
+        val chain = getMemberChain(searchContext, HashSet())
         return chain.findSuperMember(name)
     }
 
