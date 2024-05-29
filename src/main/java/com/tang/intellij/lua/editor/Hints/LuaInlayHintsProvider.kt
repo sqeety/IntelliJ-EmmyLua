@@ -68,20 +68,6 @@ class LuaInlayHintsProvider: InlayHintsProvider<NoSettings> {
     ): InlayHintsCollector? {
         return object : FactoryInlayHintsCollector(editor) {
             override fun collect(element: PsiElement, editor: Editor, sink: InlayHintsSink): Boolean {
-//                if (element is LuaClassMethodDef) {
-//                    val method = element.resolveMethod()
-//                    if (method != null) {
-//                        val parameters = method.parameterList.parameters
-//                        val arguments = element.argumentList.expressions
-//                        for (i in parameters.indices) {
-//                            if (i < arguments.size) {
-//                                val hintText = parameters[i].name + ": "
-//                                val offset = arguments[i].textRange.startOffset
-//                                sink.addInlineElement(offset, false, factory.text(hintText), false)
-//                            }
-//                        }
-//                    }
-//                }
                 if(element is LuaClassMethodNameImpl) {
                     val methodDef = element.parentOfType<LuaClassMethodDefImpl>()
                     if (methodDef != null) {
@@ -93,7 +79,7 @@ class LuaInlayHintsProvider: InlayHintsProvider<NoSettings> {
 
                         val clickablePresentation = factory.referenceOnHover(textPresentation, object : InlayPresentationFactory.ClickListener {
                             override fun onClick(event: MouseEvent, translated: Point) {
-
+                                ShowUsagesAction.startFindUsages(methodDef, RelativePoint(event), editor)
                             }
                         })
 
