@@ -404,7 +404,7 @@ private fun LuaIndexExpr.infer(context: SearchContext): ITy {
         if (propName != null) {
             val prefixType = parentTy ?: indexExpr.guessParentType(context)
             prefixType.eachTopClass(Processor { clazz ->
-                result = result.union(guessFieldType(propName, clazz, context))
+                result = guessFieldType(propName, clazz, context).union(result)
                 true
             })
             //泛型临时处理
