@@ -39,7 +39,7 @@ class ClassMemberChain(val ty: ITyClass, var superChain: Array<ClassMemberChain>
             if (selfExist == null)
             {
                 members[name] = member
-                if(isClassDefineMember(member)){
+                if(LuaPsiTreeUtilEx.isClassDefineMember(member, ty.className)){
                     builtinMembers.add(name)
                 }
             }
@@ -48,7 +48,7 @@ class ClassMemberChain(val ty: ITyClass, var superChain: Array<ClassMemberChain>
                     members[name] = member
                 }
                 if(!builtinMembers.contains(name)){
-                    if(isClassDefineMember(member)){
+                    if(LuaPsiTreeUtilEx.isClassDefineMember(member, ty.className)){
                         builtinMembers.add(name)
                         members[name] = member
                     }
@@ -57,42 +57,6 @@ class ClassMemberChain(val ty: ITyClass, var superChain: Array<ClassMemberChain>
         }
     }
 
-    private fun isClassDefineMember(member: LuaClassMember):Boolean{
-        val className = getClassDefineName(member)
-        var prev = member.prevSibling
-        while(prev != null) {
-            if(prev is LuaLocalDef) {
-                val localName = prev.nameList?.firstChild?.text
-                if(localName == className){
-                    prev.children.forEach { psiElement ->
-                        if(psiElement is LuaCommentImpl) {
-                            val docTag = psiElement.findTag(LuaDocTagClass::class.java)
-                            if (docTag != null) {
-                                val type = docTag.type
-                                if(type.className == ty.className) {
-                                    return true;
-                                }
-                            }
-                        }
-                    }
-                    return false
-                }
-            }
-            prev = prev.prevSibling
-        }
-        return false
-    }
-
-    private fun getClassDefineName(member: LuaClassMember):String?{
-        if(member is LuaClassMethodDefImpl){
-            val luaClassMethodName = member.children.find { it is LuaClassMethodNameImpl }
-            val luaName = luaClassMethodName?.firstChild
-            if (luaName is LuaNameExprImpl) {
-                return luaName.text
-            }
-        }
-        return null
-    }
 
     fun findSuperMember(name: String): LuaClassMember? {
         if(superChain.isNotEmpty()){

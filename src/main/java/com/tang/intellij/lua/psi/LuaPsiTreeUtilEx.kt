@@ -22,6 +22,11 @@ import com.intellij.psi.PsiNamedElement
 import com.intellij.psi.StubBasedPsiElement
 import com.intellij.psi.stubs.StubElement
 import com.intellij.util.Processor
+import com.tang.intellij.lua.comment.psi.LuaDocTagClass
+import com.tang.intellij.lua.comment.psi.impl.LuaCommentImpl
+import com.tang.intellij.lua.psi.impl.LuaClassMethodDefImpl
+import com.tang.intellij.lua.psi.impl.LuaClassMethodNameImpl
+import com.tang.intellij.lua.psi.impl.LuaNameExprImpl
 import com.tang.intellij.lua.stubs.LuaFileStub
 
 typealias STUB_ELE = StubElement<*>
@@ -187,5 +192,42 @@ object LuaPsiTreeUtilEx {
             }
             child = child.nextSibling
         }
+    }
+
+    fun isClassDefineMember(member: LuaClassMember, classDefineName:String):Boolean{
+        val className = getClassDefineName(member)
+        var prev = member.prevSibling
+        while(prev != null) {
+            if(prev is LuaLocalDef) {
+                val localName = prev.nameList?.firstChild?.text
+                if(localName == className){
+                    prev.children.forEach { psiElement ->
+                        if(psiElement is LuaCommentImpl) {
+                            val docTag = psiElement.findTag(LuaDocTagClass::class.java)
+                            if (docTag != null) {
+                                val type = docTag.type
+                                if(type.className == classDefineName) {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                    return false
+                }
+            }
+            prev = prev.prevSibling
+        }
+        return false
+    }
+
+    private fun getClassDefineName(member: LuaClassMember):String?{
+        if(member is LuaClassMethodDefImpl){
+            val luaClassMethodName = member.children.find { it is LuaClassMethodNameImpl }
+            val luaName = luaClassMethodName?.firstChild
+            if (luaName is LuaNameExprImpl) {
+                return luaName.text
+            }
+        }
+        return null
     }
 }

@@ -26,6 +26,7 @@ import com.intellij.util.containers.ContainerUtil
 import com.tang.intellij.lua.comment.psi.LuaDocTagField
 import com.tang.intellij.lua.psi.LuaClassMember
 import com.tang.intellij.lua.psi.LuaClassMethod
+import com.tang.intellij.lua.psi.LuaPsiTreeUtilEx
 import com.tang.intellij.lua.psi.LuaTableField
 import com.tang.intellij.lua.search.SearchContext
 import com.tang.intellij.lua.ty.ITyClass
@@ -45,6 +46,13 @@ class LuaClassMemberIndex : IntStubIndexExtension<LuaClassMember>() {
             if (context.isDumb)
                 return false
             val all = instance.get(key.hashCode(), context.project, context.scope)
+            if(all.size > 1){
+                val className = key.substring(0, key.indexOf("*"))
+                all.forEach {
+                    if(LuaPsiTreeUtilEx.isClassDefineMember(it, className))
+                        return processor.process(it)
+                }
+            }
             return ContainerUtil.process(all, processor)
         }
 
