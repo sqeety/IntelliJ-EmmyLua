@@ -239,11 +239,10 @@ interface ITyFunction : ITy {
 val ITyFunction.isColonCall get() = hasFlag(TyFlags.SELF_FUNCTION)
 
 fun ITyFunction.process(processor: (IFunSignature) -> Boolean) {
-    if (processor(mainSignature)) {
-        for (signature in signatures) {
-            if (!processor(signature))
-                break
-        }
+    processor(mainSignature)
+    for (signature in signatures) {
+        if (!processor(signature))
+            break
     }
 }
 

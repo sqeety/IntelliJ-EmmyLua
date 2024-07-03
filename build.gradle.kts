@@ -39,12 +39,13 @@ data class BuildData(
     val instrumentCodeCompilerVersion: String = ideaSDKVersion
 )
 
+//https://www.jetbrains.com/intellij-repository/snapshots
 val buildDataList = listOf(
     BuildData(
         ideaSDKShortVersion = "241",
-        ideaSDKVersion = "241.14494.158-EAP-SNAPSHOT",
-        sinceBuild = "232",
-        untilBuild = "241.*",
+        ideaSDKVersion = "242-EAP-SNAPSHOT",
+        sinceBuild = "241",
+        untilBuild = "243.*",
         bunch = "212",
         targetCompatibilityLevel = JavaVersion.VERSION_17,
         jvmTarget = "17"

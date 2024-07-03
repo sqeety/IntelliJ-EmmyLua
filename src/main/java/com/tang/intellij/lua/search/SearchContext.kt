@@ -108,11 +108,13 @@ class SearchContext private constructor(val project: Project) {
         }
     }
 
+
     /**
      * 用于有多返回值的索引设定
      */
     val index: Int get() = myIndex
-
+    //函数调用变量个数
+    var paramCount: Int = 0
     private var myDumb = false
     private var myForStub = false
     private var myIndex = -1

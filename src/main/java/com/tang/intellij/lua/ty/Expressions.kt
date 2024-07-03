@@ -25,6 +25,7 @@ import com.tang.intellij.lua.Constants
 import com.tang.intellij.lua.ext.recursionGuard
 import com.tang.intellij.lua.project.LuaSettings
 import com.tang.intellij.lua.psi.*
+import com.tang.intellij.lua.psi.impl.LuaListArgsImpl
 import com.tang.intellij.lua.psi.impl.LuaNameExprMixin
 import com.tang.intellij.lua.psi.search.LuaShortNamesManager
 import com.tang.intellij.lua.search.GuardType
@@ -162,11 +163,17 @@ private fun LuaCallExpr.getReturnTy(sig: IFunSignature, context: SearchContext):
     return if (returnTy is TyTuple) {
         if (context.guessTuple())
             returnTy
-        else returnTy.list.getOrNull(context.index)
+        else {
+            var returnIndexTy = returnTy.list.getOrNull(context.index)
+            if(returnIndexTy == null){
+                returnIndexTy = returnTy.list.getOrNull(0)
+            }
+            returnIndexTy
+        }
     } else {
         if (context.guessTuple() || context.index == 0)
             returnTy
-        else null
+        else returnTy
     }
 }
 
@@ -198,7 +205,7 @@ private fun LuaCallExpr.infer(context: SearchContext): ITy {
                 it.process(Processor { sig ->
                     val targetTy = getReturnTy(sig, context)
 
-                    if (targetTy != null)
+                    if (targetTy != null && sig.params.size == context.paramCount)
                         ret = ret.union(targetTy)
                     true
                 })
@@ -403,6 +410,14 @@ private fun LuaIndexExpr.infer(context: SearchContext): ITy {
         val propName = indexExpr.name
         if (propName != null) {
             val prefixType = parentTy ?: indexExpr.guessParentType(context)
+            val nextPsi = indexExpr.nextSibling
+            if (nextPsi != null) {
+                if (nextPsi is LuaListArgs) {
+                    context.paramCount = nextPsi.exprList.size
+                }
+            } else {
+                context.paramCount = 0
+            }
             prefixType.eachTopClass(Processor { clazz ->
                 result = guessFieldType(propName, clazz, context).union(result)
                 true
