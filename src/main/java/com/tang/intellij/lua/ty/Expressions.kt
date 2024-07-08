@@ -199,13 +199,13 @@ private fun LuaCallExpr.infer(context: SearchContext): ITy {
 
     var ret: ITy = Ty.UNKNOWN
     val ty = infer(expr, context)//expr.guessType(context)
+    val paramCount = context.paramCount
     TyUnion.each(ty) {
         when (it) {
             is ITyFunction -> {
                 it.process(Processor { sig ->
                     val targetTy = getReturnTy(sig, context)
-
-                    if (targetTy != null && sig.params.size == context.paramCount)
+                    if (targetTy != null && sig.params.size == paramCount)
                         ret = ret.union(targetTy)
                     true
                 })
