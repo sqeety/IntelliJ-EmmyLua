@@ -32,20 +32,24 @@ class MatchFieldInspection : StrictInspection() {
         object : LuaVisitor() {
             override fun visitIndexExpr(o: LuaIndexExpr) {
                 super.visitIndexExpr(o)
+                if(o.lastChild == null) return
+                val nextSibling = o.nextSibling
+                var isFunction = false
+                if (nextSibling != null) {
+                    isFunction = nextSibling.text == "("
+                }
                 val searchContext = SearchContext.get(o.project)
-                val type = o.guessType(searchContext)
                 val previousType = o.prefixExpr.guessType(searchContext)
-                if(previousType != Ty.UNKNOWN) {
+                if (previousType != Ty.UNKNOWN && previousType !is TySerializedClass) {
+                    val type = o.guessType(searchContext)
                     if (type == Ty.NIL || type == Ty.UNKNOWN) {
-                        val nextSibling = o.nextSibling
-                        if (nextSibling != null) {
-                            if (nextSibling.text == "." || nextSibling.text == ":") {
-                                myHolder.registerProblem(o.lastChild, "Unknown field '%s'.".format(o.name))
-                            } else {
+                            if(isFunction)
                                 myHolder.registerProblem(o.lastChild, "Unknown function '%s'.".format(o.name))
+                            else
+                            {
+                                if (o.lastChild.text != "]") {
+                                    myHolder.registerProblem(o.lastChild, "Unknown field '%s'.".format(o.name))
                             }
-                        } else {
-                            myHolder.registerProblem(o.lastChild, "Unknown field '%s'.".format(o.name))
                         }
                     }
                 }
