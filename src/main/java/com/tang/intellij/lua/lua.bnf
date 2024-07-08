@@ -445,6 +445,7 @@ left callExpr ::= args {
         isMethodDotCall
         isMethodColonCall
         isFunctionCall
+        toString
     ]
     stubClass = 'com.tang.intellij.lua.stubs.LuaExprStub'
     mixin = 'com.tang.intellij.lua.psi.impl.LuaCallExprMixin'

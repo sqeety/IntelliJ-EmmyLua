@@ -79,4 +79,10 @@ public class LuaCallExprImpl extends LuaCallExprMixin implements LuaCallExpr {
     return LuaPsiImplUtilKt.isFunctionCall(this);
   }
 
+  @Override
+  @NotNull
+  public String toString() {
+    return LuaPsiImplUtilKt.toString(this);
+  }
+
 }

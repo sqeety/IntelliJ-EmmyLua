@@ -19,11 +19,35 @@ package com.tang.intellij.lua.codeInsight.inspection
 import com.intellij.codeInspection.LocalInspectionToolSession
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.psi.PsiElementVisitor
+import com.intellij.psi.PsiFile
 import com.tang.intellij.lua.psi.*
 import com.tang.intellij.lua.search.SearchContext
 import com.tang.intellij.lua.ty.*
 
 class MatchFieldInspection : StrictInspection() {
+    override fun isAvailableForFile(file: PsiFile): Boolean {
+        if (LuaFileUtil.isStdLibFile(file.virtualFile, file.project)) {
+            return false
+        }
+        return true
+    }
+
+    fun onlyHaveClassInfo(ty:ITy):Boolean{
+        if(ty is TySerializedClass){
+            return true
+        }
+        if(ty is TyUnion){
+            var allClass = true
+            ty.each { t->
+                if(t !is TySerializedClass){
+                    allClass = false
+                }
+            }
+            return allClass
+        }
+        return false
+    }
+
     override fun buildVisitor(
         myHolder: ProblemsHolder,
         isOnTheFly: Boolean,
@@ -34,20 +58,13 @@ class MatchFieldInspection : StrictInspection() {
                 super.visitIndexExpr(o)
                 if(o.lastChild == null) return
                 val searchContext = SearchContext.get(o.project)
-                val res = resolve(o, searchContext)
-                if (res != null) {
-                    val containingFile = res.containingFile
-                    if (LuaFileUtil.isStdLibFile(containingFile.virtualFile, o.project)) {
-                        return
-                    }
-                }
                 val nextSibling = o.nextSibling
                 var isFunction = false
                 if (nextSibling != null) {
                     isFunction = nextSibling.text == "("
                 }
                 val previousType = o.prefixExpr.guessType(searchContext)
-                if (previousType != Ty.UNKNOWN && previousType !is TySerializedClass) {
+                if (previousType != Ty.UNKNOWN && !onlyHaveClassInfo(previousType)) {
                     val type = o.guessType(searchContext)
                     if (type == Ty.NIL || type == Ty.UNKNOWN) {
                             if(isFunction)
