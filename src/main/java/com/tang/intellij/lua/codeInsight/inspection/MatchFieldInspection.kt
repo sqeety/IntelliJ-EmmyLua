@@ -33,12 +33,19 @@ class MatchFieldInspection : StrictInspection() {
             override fun visitIndexExpr(o: LuaIndexExpr) {
                 super.visitIndexExpr(o)
                 if(o.lastChild == null) return
+                val searchContext = SearchContext.get(o.project)
+                val res = resolve(o, searchContext)
+                if (res != null) {
+                    val containingFile = res.containingFile
+                    if (LuaFileUtil.isStdLibFile(containingFile.virtualFile, o.project)) {
+                        return
+                    }
+                }
                 val nextSibling = o.nextSibling
                 var isFunction = false
                 if (nextSibling != null) {
                     isFunction = nextSibling.text == "("
                 }
-                val searchContext = SearchContext.get(o.project)
                 val previousType = o.prefixExpr.guessType(searchContext)
                 if (previousType != Ty.UNKNOWN && previousType !is TySerializedClass) {
                     val type = o.guessType(searchContext)
