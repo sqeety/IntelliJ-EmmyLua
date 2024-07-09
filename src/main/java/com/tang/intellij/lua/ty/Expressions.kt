@@ -203,12 +203,20 @@ private fun LuaCallExpr.infer(context: SearchContext): ITy {
     TyUnion.each(ty) {
         when (it) {
             is ITyFunction -> {
+                var matchFunc = false
                 it.process(Processor { sig ->
                     val targetTy = getReturnTy(sig, context)
-                    if (targetTy != null && sig.params.size == paramCount)
+                    if (targetTy != null && sig.params.size == paramCount) {
                         ret = ret.union(targetTy)
+                        matchFunc = true
+                    }
                     true
                 })
+                if (!matchFunc) {
+                    val targetTy = getReturnTy(it.mainSignature, context)
+                    if (targetTy != null)
+                        ret = ret.union(targetTy)
+                }
             }
             //constructor : Class table __call
             is ITyClass -> ret = ret.union(it)
