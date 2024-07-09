@@ -33,13 +33,20 @@ class MatchFieldInspection : StrictInspection() {
     }
 
     fun onlyHaveClassInfo(ty:ITy):Boolean{
+        if(ty is TyLazyClass){
+            return false
+        }
         if(ty is TySerializedClass){
             return true
         }
         if(ty is TyUnion){
             var allClass = true
             ty.each { t->
-                if(t !is TySerializedClass){
+                if(t is TyLazyClass)
+                {
+                    allClass = false
+                }
+                else if(t !is TySerializedClass){
                     allClass = false
                 }
             }
@@ -61,7 +68,7 @@ class MatchFieldInspection : StrictInspection() {
                 val nextSibling = o.nextSibling
                 var isFunction = false
                 if (nextSibling != null) {
-                    isFunction = nextSibling.text == "("
+                    isFunction = nextSibling is LuaListArgs
                 }
                 val previousType = o.prefixExpr.guessType(searchContext)
                 if (previousType != Ty.UNKNOWN && !onlyHaveClassInfo(previousType)) {
