@@ -103,7 +103,7 @@ fun resolve(nameExpr: LuaNameExpr, context: SearchContext): PsiElement? {
 }
 
 fun multiResolve(ref: LuaNameExpr, context: SearchContext): Array<PsiElement> {
-    val list = mutableListOf<PsiElement>()
+    val list = mutableSetOf<PsiElement>()
     //search local
     val resolveResult = resolveInFile(ref.name, ref, context)
     if (resolveResult != null) {

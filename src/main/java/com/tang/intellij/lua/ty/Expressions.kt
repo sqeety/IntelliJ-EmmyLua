@@ -199,7 +199,7 @@ private fun LuaCallExpr.infer(context: SearchContext): ITy {
 
     var ret: ITy = Ty.UNKNOWN
     val ty = infer(expr, context)//expr.guessType(context)
-    val paramCount = context.paramCount
+    val paramCount = luaCallExpr.argList.size
     TyUnion.each(ty) {
         when (it) {
             is ITyFunction -> {
@@ -410,14 +410,6 @@ private fun LuaIndexExpr.infer(context: SearchContext): ITy {
         val propName = indexExpr.name
         if (propName != null) {
             val prefixType = parentTy ?: indexExpr.guessParentType(context)
-            val nextPsi = indexExpr.nextSibling
-            if (nextPsi != null) {
-                if (nextPsi is LuaListArgs) {
-                    context.paramCount = nextPsi.exprList.size
-                }
-            } else {
-                context.paramCount = 0
-            }
             prefixType.eachTopClass(Processor { clazz ->
                 result = guessFieldType(propName, clazz, context).union(result)
                 true
