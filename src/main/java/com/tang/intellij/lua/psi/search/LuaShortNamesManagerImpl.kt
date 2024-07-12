@@ -60,7 +60,7 @@ class LuaShortNamesManagerImpl : LuaShortNamesManager() {
         visitSuper: Boolean
     ): Boolean {
         if (context.forStub) return true;
-        return LuaClassMemberIndex.process(className, fieldName, context, processor, visitSuper)
+        return LuaClassMemberIndex.process(className, fieldName, context, processor, visitSuper, mutableSetOf())
     }
 
     override fun findAlias(name: String, context: SearchContext): LuaTypeAlias? {

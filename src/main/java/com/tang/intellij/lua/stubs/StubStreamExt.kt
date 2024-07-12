@@ -83,7 +83,7 @@ fun StubOutputStream.writeTyParams(tyParams: Array<TyParameter>) {
     writeByte(tyParams.size)
     tyParams.forEach { parameter ->
         writeName(parameter.name)
-        writeNames(parameter.superClassName)
+        writeNames(parameter.superClassNames)
     }
 }
 

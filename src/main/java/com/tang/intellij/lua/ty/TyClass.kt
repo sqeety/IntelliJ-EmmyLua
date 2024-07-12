@@ -39,7 +39,7 @@ interface ITyClass : ITy {
     val className: String
     val varName: String
     val genericNames: Array<String>
-    var superClassName: Array<String>
+    var superClassNames: Array<String>
     var aliasName: String?
     fun processAlias(processor: Processor<String>): Boolean
     fun lazyInit(searchContext: SearchContext)
@@ -79,7 +79,7 @@ fun ITyClass.isVisibleInScope(project: Project, contextTy: ITy, visibility: Visi
 abstract class TyClass(override val className: String,
                        override var genericNames: Array<String> = emptyArray(),
                        override val varName: String = "",
-                       override var superClassName: Array<String> = emptyArray(),
+                       override var superClassNames: Array<String> = emptyArray(),
 ) : Ty(TyKind.Class), ITyClass {
 
     final override var aliasName: String? = null
@@ -173,14 +173,14 @@ abstract class TyClass(override val className: String,
         if (classDef != null && aliasName == null) {
             val tyClass = classDef.type
             aliasName = tyClass.aliasName
-            superClassName = tyClass.superClassName
+            superClassNames = tyClass.superClassNames
             genericNames = tyClass.genericNames
         }
     }
 
     override fun getSuperClass(context: SearchContext): ITy? {
         lazyInit(context)
-        val clsNames = superClassName
+        val clsNames = superClassNames
         if(clsNames.isNotEmpty()){
             var clsName = clsNames[0]
             var result = getBuiltin(clsName) ?: LuaShortNamesManager.getInstance(context.project).findClass(clsName, context)?.type
@@ -315,9 +315,9 @@ class TyPsiDocClass(tagClass: LuaDocTagClass) : TyClass(tagClass.name) {
                     }
                 }
             }
-            superClassName = supperNames.toTypedArray()
+            superClassNames = supperNames.toTypedArray()
         }else{
-            superClassName = emptyArray()
+            superClassNames = emptyArray()
         }
         val genericTypes = mutableListOf<String>()
         val genericParameters = tagClass.genericParameters
@@ -477,7 +477,7 @@ object TyClassSerializer : TySerializer<ITyClass>() {
         stream.writeName(ty.className)
         stream.writeNames(ty.genericNames)
         stream.writeName(ty.varName)
-        stream.writeNames(ty.superClassName)
+        stream.writeNames(ty.superClassNames)
         stream.writeName(ty.aliasName)
     }
 }

@@ -20,9 +20,7 @@ import com.intellij.psi.stubs.IndexSink
 import com.intellij.psi.stubs.StubElement
 import com.intellij.psi.stubs.StubInputStream
 import com.intellij.psi.stubs.StubOutputStream
-import com.intellij.util.containers.toArray
 import com.intellij.util.io.StringRef
-import com.sun.jna.StringArray
 import com.tang.intellij.lua.comment.psi.LuaDocTagClass
 import com.tang.intellij.lua.comment.psi.impl.LuaDocTagClassImpl
 import com.tang.intellij.lua.psi.LuaElementType
@@ -96,7 +94,7 @@ class LuaDocTagClassType : LuaStubElementType<LuaDocTagClassStub, LuaDocTagClass
         indexSink.occurrence(StubKeys.CLASS, classType.className)
         indexSink.occurrence(StubKeys.SHORT_NAME, classType.className)
 
-        val superClassName = classType.superClassName
+        val superClassName = classType.superClassNames
         if (superClassName.isNotEmpty()) {
             superClassName.forEach{indexSink.occurrence(StubKeys.SUPER_CLASS, it)}
         }

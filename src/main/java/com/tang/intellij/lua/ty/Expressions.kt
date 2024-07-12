@@ -25,7 +25,6 @@ import com.tang.intellij.lua.Constants
 import com.tang.intellij.lua.ext.recursionGuard
 import com.tang.intellij.lua.project.LuaSettings
 import com.tang.intellij.lua.psi.*
-import com.tang.intellij.lua.psi.impl.LuaListArgsImpl
 import com.tang.intellij.lua.psi.impl.LuaNameExprMixin
 import com.tang.intellij.lua.psi.search.LuaShortNamesManager
 import com.tang.intellij.lua.search.GuardType
@@ -139,7 +138,7 @@ fun LuaCallExpr.createSubstitutor(sig: IFunSignature, context: SearchContext): I
             GenericAnalyzer(argTy, varargTy).analyze(map)
         }
         sig.tyParameters.forEach { it ->
-            val superCls = it.superClassName
+            val superCls = it.superClassNames
             if(superCls.isNotEmpty()){
                 superCls.forEach {
                     if (Ty.isInvalid(map[it])) map[it] = Ty.create(it)

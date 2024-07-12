@@ -106,8 +106,7 @@ abstract class LuaShortNamesManager {
         return emptyList()
     }
 
-    @Deprecated("Use processMembers instead.", replaceWith = ReplaceWith("processMembers"))
-    open fun processAllMembers(
+    open fun processMembers(
         type: ITyClass,
         memberName: String,
         context: SearchContext,
@@ -116,8 +115,8 @@ abstract class LuaShortNamesManager {
         if (type is TyParameter)
         {
             var result = true
-            if(type.superClassName.isNotEmpty()){
-                for (it in type.superClassName) {
+            if(type.superClassNames.isNotEmpty()){
+                for (it in type.superClassNames) {
                     result = result && processMembers(it, memberName, context, processor)
                 }
             }
@@ -126,15 +125,6 @@ abstract class LuaShortNamesManager {
         else {
             return processMembers(type.className, memberName, context, processor)
         }
-    }
-
-    open fun processMembers(
-        type: ITyClass,
-        memberName: String,
-        context: SearchContext,
-        processor: Processor<LuaClassMember>
-    ): Boolean {
-        return processAllMembers(type, memberName, context, processor)
     }
 
     open fun processMembers(

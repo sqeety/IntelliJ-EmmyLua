@@ -48,7 +48,7 @@ object TyGenericParamSerializer : TySerializer<TyParameter>() {
 
     override fun serializeTy(ty: TyParameter, stream: StubOutputStream) {
         stream.writeName(ty.name)
-        stream.writeNames(ty.superClassName)
+        stream.writeNames(ty.superClassNames)
     }
 }
 

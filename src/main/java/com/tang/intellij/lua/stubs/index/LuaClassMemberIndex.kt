@@ -36,8 +36,9 @@ import com.tang.intellij.lua.ty.TyParameter
 class LuaClassMemberIndex : IntStubIndexExtension<LuaClassMember>() {
     override fun getKey() = StubKeys.CLASS_MEMBER
 
+    @Deprecated("Deprecated in Java")
     override fun get(s: Int, project: Project, scope: GlobalSearchScope): Collection<LuaClassMember> =
-            StubIndex.getElements(StubKeys.CLASS_MEMBER, s, project, scope, LuaClassMember::class.java)
+            StubIndex.getElements(getKey(), s, project, scope, LuaClassMember::class.java)
 
     companion object {
         val instance = LuaClassMemberIndex()
@@ -60,7 +61,9 @@ class LuaClassMemberIndex : IntStubIndexExtension<LuaClassMember>() {
             return ContainerUtil.process(all, processor)
         }
 
-        fun process(className: String, fieldName: String, context: SearchContext, processor: Processor<LuaClassMember>, deep: Boolean = true): Boolean {
+        fun process(className: String, fieldName: String, context: SearchContext, processor: Processor<LuaClassMember>, deep: Boolean = true, processedList:MutableSet<String>): Boolean {
+            if(!processedList.add(className))
+                return false
             val key = "$className*$fieldName"
             if (!process(key, context, processor))
                 return false
@@ -72,14 +75,14 @@ class LuaClassMemberIndex : IntStubIndexExtension<LuaClassMember>() {
                     // from alias
                     type.lazyInit(context)
                     val notFound = type.processAlias(Processor {
-                        process(it, fieldName, context, processor, false)
+                        process(it, fieldName, context, processor, false, processedList)
                     })
                     if (!notFound)
                         return false
 
                     // from supper
                     return TyClass.processSuperClass(type, context) {
-                        process(it.className, fieldName, context, processor, false)
+                        process(it.className, fieldName, context, processor, false, processedList)
                     }
                 }
             }
@@ -118,14 +121,14 @@ class LuaClassMemberIndex : IntStubIndexExtension<LuaClassMember>() {
             return if (type is TyParameter)
             {
                 var result = true
-                if(type.superClassName.isNotEmpty()){
-                    type.superClassName.forEach {
-                        result = result && process(it, fieldName, context, processor)
+                if(type.superClassNames.isNotEmpty()){
+                    type.superClassNames.forEach {
+                        result = result && process(it, fieldName, context, processor, true, mutableSetOf())
                     }
                 }
                 return result
             }
-            else process(type.className, fieldName, context, processor)
+            else process(type.className, fieldName, context, processor, true, mutableSetOf())
         }
 
         fun processAll(type: ITyClass, context: SearchContext, processor: Processor<LuaClassMember>): Boolean {
@@ -146,7 +149,7 @@ class LuaClassMemberIndex : IntStubIndexExtension<LuaClassMember>() {
                     return@Processor false
                 }
                 true
-            }, deep)
+            }, deep, mutableSetOf())
             return target
         }
 
