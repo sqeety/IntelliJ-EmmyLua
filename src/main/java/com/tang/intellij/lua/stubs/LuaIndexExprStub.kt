@@ -27,10 +27,7 @@ import com.tang.intellij.lua.psi.impl.LuaIndexExprImpl
 import com.tang.intellij.lua.search.SearchContext
 import com.tang.intellij.lua.stubs.index.LuaClassMemberIndex
 import com.tang.intellij.lua.stubs.index.StubKeys
-import com.tang.intellij.lua.ty.ITy
-import com.tang.intellij.lua.ty.ITyClass
-import com.tang.intellij.lua.ty.Ty
-import com.tang.intellij.lua.ty.TyUnion
+import com.tang.intellij.lua.ty.*
 
 /**
 
@@ -67,13 +64,13 @@ class LuaIndexExprType : LuaStubElementType<LuaIndexExprStub, LuaIndexExpr>("IND
         val stat = indexExpr.assignStat
         val docTy = stat?.comment?.docTy
         val classNameSet = mutableSetOf<String>()
-
+        //赋值相关自动添加成员变量在这处理，需要先进行类型猜测。index时类型猜测不会很准备，建议直接通过---@type指定类型
         if (stat != null) {
             val ty = SearchContext.withStub(indexExpr.project, indexExpr.containingFile, Ty.UNKNOWN) {
                 indexExpr.guessParentType(it)
             }
             TyUnion.each(ty) {
-                if (it is ITyClass)
+                if (it is TyLazyClass)
                     classNameSet.add(it.className)
             }
         }
@@ -117,14 +114,16 @@ class LuaIndexExprType : LuaStubElementType<LuaIndexExprStub, LuaIndexExpr>("IND
     }
 
     override fun indexStub(indexStub: LuaIndexExprStub, indexSink: IndexSink) {
-        val fieldName = indexStub.name
-        val classNames = indexStub.classNames
-        if (indexStub.isAssign && classNames.isNotEmpty() && fieldName != null) {
-            classNames.forEach {
-                LuaClassMemberIndex.indexStub(indexSink, it, fieldName)
-            }
+        if (indexStub.isAssign) {
+            val fieldName = indexStub.name
+            val classNames = indexStub.classNames
+            if (classNames.isNotEmpty() && fieldName != null) {
+                classNames.forEach {
+                    LuaClassMemberIndex.indexStub(indexSink, it, fieldName)
+                }
 
-            indexSink.occurrence(StubKeys.SHORT_NAME, fieldName)
+                indexSink.occurrence(StubKeys.SHORT_NAME, fieldName)
+            }
         }
     }
 
