@@ -64,7 +64,7 @@ class LuaIndexExprType : LuaStubElementType<LuaIndexExprStub, LuaIndexExpr>("IND
         val stat = indexExpr.assignStat
         val docTy = stat?.comment?.docTy
         val classNameSet = mutableSetOf<String>()
-        //赋值相关自动添加成员变量在这处理，需要先进行类型猜测。index时类型猜测不会很准备，建议直接通过---@type指定类型
+        //赋值相关自动添加成员变量在这处理，需要先进行类型猜测。index时类型猜测不会很准确，建议直接通过---@type指定类型
         if (stat != null) {
             val ty = SearchContext.withStub(indexExpr.project, indexExpr.containingFile, Ty.UNKNOWN) {
                 indexExpr.guessParentType(it)
