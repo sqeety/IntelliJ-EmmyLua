@@ -73,6 +73,13 @@ class MatchFieldInspection : StrictInspection() {
                 val previousType = o.prefixExpr.guessType(searchContext)
                 if (previousType != Ty.UNKNOWN && !onlyHaveClassInfo(previousType)) {
                     val type = o.guessType(searchContext)
+                    var parent = o.parent
+                    while (parent != null) {
+                        if (parent is LuaVarList) {
+                            return
+                        }
+                        parent = parent.parent
+                    }
                     if (type == Ty.NIL || type == Ty.UNKNOWN) {
                             if(isFunction)
                                 myHolder.registerProblem(o.lastChild, "Unknown function '%s'.".format(o.name))
