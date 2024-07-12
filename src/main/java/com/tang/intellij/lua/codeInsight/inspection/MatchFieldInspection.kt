@@ -81,12 +81,11 @@ class MatchFieldInspection : StrictInspection() {
                         parent = parent.parent
                     }
                     if (type == Ty.NIL || type == Ty.UNKNOWN) {
-                            if(isFunction)
+                        if (o.lastChild != null && o.lastChild.isValid) {
+                            if (isFunction)
                                 myHolder.registerProblem(o.lastChild, "Unknown function '%s'.".format(o.name))
-                            else
-                            {
-                                if (o.lastChild.text != "]") {
-                                    myHolder.registerProblem(o.lastChild, "Unknown field '%s'.".format(o.name))
+                            else {
+                                myHolder.registerProblem(o.lastChild, "Unknown field '%s'.".format(o.name))
                             }
                         }
                     }

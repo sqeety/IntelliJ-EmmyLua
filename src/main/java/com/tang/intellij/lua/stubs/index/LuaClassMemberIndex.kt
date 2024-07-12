@@ -47,11 +47,15 @@ class LuaClassMemberIndex : IntStubIndexExtension<LuaClassMember>() {
                 return false
             val all = instance.get(key.hashCode(), context.project, context.scope)
             if(all.size > 1){
-                val className = key.substring(0, key.indexOf("*"))
-                all.forEach {
-                    if(LuaPsiTreeUtilEx.isClassDefineMember(it, className))
-                        return processor.process(it)
-                }
+                do {
+                    val index = key.indexOf("*")
+                    if(index == -1) break
+                    val className = key.substring(0, key.indexOf("*"))
+                    all.forEach {
+                        if(LuaPsiTreeUtilEx.isClassDefineMember(it, className))
+                            return processor.process(it)
+                    }
+                }while(false)
             }
             return ContainerUtil.process(all, processor)
         }
