@@ -81,11 +81,16 @@ class MatchFieldInspection : StrictInspection() {
                         parent = parent.parent
                     }
                     if (type == Ty.NIL || type == Ty.UNKNOWN) {
-                        if (o.lastChild != null && o.lastChild.isValid) {
+                        val psi = o.lastChild
+                        if (psi != null) {
+                            val nodeType = psi.node.elementType
+                            if(nodeType != LuaTypes.ID) {
+                                return
+                            }
                             if (isFunction)
-                                myHolder.registerProblem(o.lastChild, "Unknown function '%s'.".format(o.name))
+                                myHolder.registerProblem(psi, "Unknown function '%s'.".format(o.name))
                             else {
-                                myHolder.registerProblem(o.lastChild, "Unknown field '%s'.".format(o.name))
+                                myHolder.registerProblem(psi, "Unknown field '%s'.".format(o.name))
                             }
                         }
                     }

@@ -70,7 +70,7 @@ class LuaIndexExprType : LuaStubElementType<LuaIndexExprStub, LuaIndexExpr>("IND
                 indexExpr.guessParentType(it)
             }
             TyUnion.each(ty) {
-                if (it is TyLazyClass)
+                if (it is TySerializedClass)
                     classNameSet.add(it.className)
             }
         }
