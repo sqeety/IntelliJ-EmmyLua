@@ -37,6 +37,7 @@ interface LuaComment : PsiComment, LuaDocPsiElement {
     fun getParamDef(name: String): LuaDocTagParam?
     fun getFieldDef(name: String): LuaDocTagField?
     val tagClass: LuaDocTagClass?
+    val tagPartial: LuaDocTagPartial?
     val tagType: LuaDocTagType?
     val tagReturn: LuaDocTagReturn?
     fun guessType(context: SearchContext): ITy

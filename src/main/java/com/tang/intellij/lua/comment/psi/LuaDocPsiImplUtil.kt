@@ -217,12 +217,16 @@ fun getType(tagType: LuaDocTagType): ITy {
     return tagType.ty?.getType() ?: Ty.UNKNOWN
 }
 
+fun getType(tagType: LuaDocTagPartial): ITy {
+    return tagType.ty?.getType() ?: Ty.UNKNOWN
+}
+
 fun toString(stubElement: StubBasedPsiElement<out StubElement<*>>): String {
-    return "STUB:[" + stubElement.javaClass.simpleName + "]" + "" + stubElement.text.replace("\n", " ");
+    return "STUB:[" + stubElement.javaClass.simpleName + "]" + "" + stubElement.text.replace("\n", " ")
 }
 
 fun toString(stubElement: ASTWrapperPsiElement): String {
-    return "STUB:[" + stubElement.javaClass.simpleName + "]" + "" + stubElement.text.replace("\n", " ");
+    return "STUB:[" + stubElement.javaClass.simpleName + "]" + "" + stubElement.text.replace("\n", " ")
 }
 
 fun getName(tagField: LuaDocTagField): String? {

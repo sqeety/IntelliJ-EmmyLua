@@ -78,7 +78,7 @@ class LuaPlaceholderStub(parent: StubElement<*>?, elementType: LuaStubElementTyp
         }
     }
     override fun toString(): String {
-        return "STUB:[" + javaClass.simpleName + "]";
+        return "STUB:[" + javaClass.simpleName + "]"
     }
 }
 

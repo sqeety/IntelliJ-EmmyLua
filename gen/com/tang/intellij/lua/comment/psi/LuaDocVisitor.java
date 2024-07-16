@@ -127,6 +127,10 @@ public class LuaDocVisitor extends PsiElementVisitor {
     visitTag(o);
   }
 
+  public void visitTagPartial(@NotNull LuaDocTagPartial o) {
+    visitTag(o);
+  }
+
   public void visitTagReturn(@NotNull LuaDocTagReturn o) {
     visitTag(o);
   }

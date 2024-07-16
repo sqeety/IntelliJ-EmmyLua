@@ -16,18 +16,24 @@
 
 package com.tang.intellij.lua.stubs.index
 
-import com.intellij.psi.NavigatablePsiElement
+import com.intellij.psi.stubs.StringStubIndexExtension
 import com.intellij.psi.stubs.StubIndexKey
 import com.tang.intellij.lua.comment.psi.LuaDocTagAlias
-import com.tang.intellij.lua.comment.psi.LuaDocTagClass
 import com.tang.intellij.lua.comment.psi.LuaDocTagPartial
-import com.tang.intellij.lua.psi.LuaClassMember
+import com.tang.intellij.lua.search.SearchContext
 
-object StubKeys {
-    val CLASS_MEMBER = StubIndexKey.createIndexKey<Int, LuaClassMember>("lua.index.class.member")
-    val SHORT_NAME = StubIndexKey.createIndexKey<String, NavigatablePsiElement>("lua.index.short_name")
-    val CLASS = StubIndexKey.createIndexKey<String, LuaDocTagClass>("lua.index.class")
-    val SUPER_CLASS = StubIndexKey.createIndexKey<String, LuaDocTagClass>("lua.index.super_class")
-    val ALIAS = StubIndexKey.createIndexKey<String, LuaDocTagAlias>("lua.index.alias")
-    val PARTIAL = StubIndexKey.createIndexKey<String, LuaDocTagPartial>("lua.index.partial")
+class LuaPartialIndex : StringStubIndexExtension<LuaDocTagPartial>() {
+    companion object {
+        val instance = LuaPartialIndex()
+
+        fun find(name: String, context: SearchContext): LuaDocTagPartial? {
+            if (context.isDumb)
+                return null
+            return instance.get(name, context.project, context.scope)?.firstOrNull()
+        }
+    }
+
+    override fun getKey(): StubIndexKey<String, LuaDocTagPartial> {
+        return StubKeys.PARTIAL
+    }
 }

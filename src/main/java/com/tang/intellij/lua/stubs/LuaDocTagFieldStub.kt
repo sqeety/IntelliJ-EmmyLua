@@ -48,7 +48,7 @@ class LuaDocTagFieldType : LuaStubElementType<LuaDocTagFieldStub, LuaDocTagField
         if (element.classNameRef != null)
             return true
         val comment = LuaCommentUtil.findContainer(element)
-        return comment.tagClass != null
+        return comment.tagClass != null || comment.tagPartial != null
     }
 
     override fun createStub(tagField: LuaDocTagField, stubElement: StubElement<*>): LuaDocTagFieldStub {
@@ -63,6 +63,11 @@ class LuaDocTagFieldType : LuaStubElementType<LuaDocTagFieldStub, LuaDocTagField
             val classDef = comment.tagClass
             if (classDef != null) {
                 className = classDef.name
+            } else {
+                val partialDef = comment.tagPartial
+                if (partialDef != null) {
+                    className = partialDef.type.displayName
+                }
             }
         }
 

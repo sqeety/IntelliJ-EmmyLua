@@ -36,6 +36,7 @@ public interface LuaDocTypes {
   IElementType TAG_LAN = LuaParserDefinitionKt.createDocType("TAG_LAN");
   IElementType TAG_OVERLOAD = LuaParserDefinitionKt.createDocType("TAG_OVERLOAD");
   IElementType TAG_PARAM = LuaParserDefinitionKt.createDocType("TAG_PARAM");
+  IElementType TAG_PARTIAL = LuaParserDefinitionKt.createDocType("TAG_PARTIAL");
   IElementType TAG_RETURN = LuaParserDefinitionKt.createDocType("TAG_RETURN");
   IElementType TAG_SEE = LuaParserDefinitionKt.createDocType("TAG_SEE");
   IElementType TAG_SUPPRESS = LuaParserDefinitionKt.createDocType("TAG_SUPPRESS");
@@ -78,6 +79,7 @@ public interface LuaDocTypes {
   IElementType TAG_NAME_NAME = new LuaDocTokenType("TAG_NAME_NAME");
   IElementType TAG_NAME_OVERLOAD = new LuaDocTokenType("overload");
   IElementType TAG_NAME_PARAM = new LuaDocTokenType("param");
+  IElementType TAG_NAME_PARTIAL = new LuaDocTokenType("partial");
   IElementType TAG_NAME_PRIVATE = new LuaDocTokenType("private");
   IElementType TAG_NAME_PROTECTED = new LuaDocTokenType("protected");
   IElementType TAG_NAME_PUBLIC = new LuaDocTokenType("public");
@@ -171,6 +173,9 @@ public interface LuaDocTypes {
       }
       else if (type == TAG_PARAM) {
         return new LuaDocTagParamImpl(node);
+      }
+      else if (type == TAG_PARTIAL) {
+        return new LuaDocTagPartialImpl(node);
       }
       else if (type == TAG_RETURN) {
         return new LuaDocTagReturnImpl(node);

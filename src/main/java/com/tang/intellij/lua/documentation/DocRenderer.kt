@@ -121,6 +121,9 @@ fun renderComment(sb: StringBuilder, comment: LuaComment?, tyRenderer: ITyRender
         //See
         val seeTags = comment.findTags(LuaDocTagSee::class.java)
         renderTagList(sections, "See", seeTags) { renderSee(sections, it, tyRenderer) }
+        //partial
+        val partialTags = comment.findTags(LuaDocTagPartial::class.java)
+        renderTagList(sections, "partial", partialTags) { renderPartial(sections, it, tyRenderer) }
 
         sb.append(sections.toString())
         sb.append("</table>")
@@ -246,5 +249,11 @@ private fun renderSee(sb: StringBuilder, see: LuaDocTagSee, tyRenderer: ITyRende
         see.id?.let {
             sb.append("#${it.text}")
         }
+    }
+}
+
+private fun renderPartial(sb: StringBuilder, partial: LuaDocTagPartial, tyRenderer: ITyRenderer) {
+    partial.ty?.getType()?.let {
+        renderTy(sb, it, tyRenderer)
     }
 }
