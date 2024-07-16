@@ -163,7 +163,7 @@ assignStat ::= varList '=' exprList {
     implements = [
         "com.tang.intellij.lua.psi.LuaDeclaration"
     ]
-    methods = [assign = 'ASSIGN' varExprList = '/exprList[0]' valueExprList = '/exprList[1]']
+    methods = [assign = 'ASSIGN' varExprList = '/exprList[0]' valueExprList = '/exprList[1]' toString]
     mixin = "com.tang.intellij.lua.psi.impl.LuaStatMixin<com.tang.intellij.lua.stubs.LuaPlaceholderStub>"
     stubClass = "com.tang.intellij.lua.stubs.LuaPlaceholderStub"
 }

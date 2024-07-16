@@ -63,4 +63,10 @@ public class LuaAssignStatImpl extends LuaStatMixin<LuaPlaceholderStub> implemen
     return p1.size() < 2 ? null : p1.get(1);
   }
 
+  @Override
+  @NotNull
+  public String toString() {
+    return LuaPsiImplUtilKt.toString(this);
+  }
+
 }

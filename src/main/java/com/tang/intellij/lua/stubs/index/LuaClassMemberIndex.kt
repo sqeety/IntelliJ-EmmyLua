@@ -36,7 +36,6 @@ import com.tang.intellij.lua.ty.TyParameter
 class LuaClassMemberIndex : IntStubIndexExtension<LuaClassMember>() {
     override fun getKey() = StubKeys.CLASS_MEMBER
 
-    @Deprecated("Deprecated in Java")
     override fun get(s: Int, project: Project, scope: GlobalSearchScope): Collection<LuaClassMember> =
             StubIndex.getElements(getKey(), s, project, scope, LuaClassMember::class.java)
 
