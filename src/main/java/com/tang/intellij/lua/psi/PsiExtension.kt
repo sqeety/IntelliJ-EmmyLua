@@ -354,7 +354,7 @@ val LuaComment.docTy: ITy? get() {
 }
 
 val LuaComment.ty: ITy? get() {
-    val cls = tagClass?.type
+    val cls = tagClass?.type ?: tagPartial?.type
     return cls ?: tagType?.type
 }
 
