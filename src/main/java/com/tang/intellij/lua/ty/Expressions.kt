@@ -278,17 +278,7 @@ private fun LuaNameExpr.infer(context: SearchContext): ITy {
             var maxTimes = 10
             for (element in multiResolve) {
                 val set = getType(context, element)
-                set.each { t ->
-                    if (t.displayName != Constants.WORD_G) {
-                        if (t is TySerializedClass) {
-                            if (t.className != Constants.WORD_G) {
-                                type = type.union(t)
-                            }
-                        } else {
-                            type = type.union(t)
-                        }
-                    }
-                }
+                type = type.union(set)
                 if (--maxTimes == 0)
                     break
             }
