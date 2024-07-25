@@ -195,37 +195,22 @@ object LuaPsiTreeUtilEx {
     }
 
     fun isClassDefineMember(member: LuaClassMember, classDefineName:String):Boolean{
-        val className = getClassDefineName(member)
-        var prev = member.prevSibling
-        while(prev != null) {
-            if(prev is LuaLocalDef) {
-                val localName = prev.nameList?.firstChild?.text
-                if(localName == className){
-                    prev.children.forEach { psiElement ->
-                        if(psiElement is LuaCommentImpl) {
-                            val docTag = psiElement.findTag(LuaDocTagClass::class.java)
-                            if (docTag != null) {
-                                val type = docTag.type
-                                if(type.className == classDefineName) {
-                                    return true;
-                                }
-                            }
-                        }
-                    }
-                    return false
-                }
-            }
-            prev = prev.prevSibling
-        }
-        return false
+        return getClassDefineName(member) == classDefineName
     }
 
     private fun getClassDefineName(member: LuaClassMember):String?{
-        if(member is LuaClassMethodDefImpl){
-            val luaClassMethodName = member.children.find { it is LuaClassMethodNameImpl }
-            val luaName = luaClassMethodName?.firstChild
-            if (luaName is LuaNameExprImpl) {
-                return luaName.text
+        if(member is LuaClassMethodDef){
+            val luaClassMethodName = member.classMethodName
+            val luaName = luaClassMethodName.expr.name
+            var prev = member.prevSibling
+            while(prev != null) {
+                if(prev is LuaLocalDef) {
+                    val localName = prev.nameList?.nameDefList?.get(0)?.name
+                    if(localName == luaName){
+                        return prev.comment?.tagClass?.stub?.className
+                    }
+                }
+                prev = prev.prevSibling
             }
         }
         return null

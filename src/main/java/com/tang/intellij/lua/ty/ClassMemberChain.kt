@@ -16,20 +16,12 @@
 
 package com.tang.intellij.lua.ty
 
-import com.tang.intellij.lua.comment.psi.LuaDocTagClass
-import com.tang.intellij.lua.comment.psi.impl.LuaCommentImpl
-import com.tang.intellij.lua.comment.psi.impl.LuaDocTagClassImpl
-import com.tang.intellij.lua.ext.stubOrPsiParent
 import com.tang.intellij.lua.psi.*
-import com.tang.intellij.lua.psi.impl.LuaClassMethodDefImpl
-import com.tang.intellij.lua.psi.impl.LuaClassMethodNameImpl
-import com.tang.intellij.lua.psi.impl.LuaLocalDefImpl
-import com.tang.intellij.lua.psi.impl.LuaNameExprImpl
-import kotlinx.html.Entities
 
 class ClassMemberChain(val ty: ITyClass, var superChain: Array<ClassMemberChain>) {
     private val members = mutableMapOf<String, LuaClassMember>()
     private val builtinMembers = mutableSetOf<String>()
+
     fun add(member: LuaClassMember) {
         val name = member.name ?: return
         val superExist = findSuperMember(name)

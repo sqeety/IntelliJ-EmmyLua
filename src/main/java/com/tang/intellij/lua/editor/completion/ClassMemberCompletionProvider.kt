@@ -28,6 +28,7 @@ import com.tang.intellij.lua.lang.LuaIcons
 import com.tang.intellij.lua.psi.*
 import com.tang.intellij.lua.search.SearchContext
 import com.tang.intellij.lua.ty.*
+import kotlin.system.measureTimeMillis
 
 enum class MemberCompletionMode {
     Dot,    // self.xxx
@@ -100,10 +101,10 @@ open class ClassMemberCompletionProvider : LuaCompletionProvider() {
                          prefixMatcher: PrefixMatcher,
                          handlerProcessor: HandlerProcessor?) {
         val mode = if (isColon) MemberCompletionMode.Colon else MemberCompletionMode.Dot
-        prefixType.eachTopClass(Processor { luaType ->
+        prefixType.eachTopClass { luaType ->
             addClass(contextTy, luaType, project, mode, completionResultSet, prefixMatcher, handlerProcessor)
             true
-        })
+        }
     }
 
     protected fun addClass(contextTy: ITy,

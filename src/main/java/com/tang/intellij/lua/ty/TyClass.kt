@@ -26,6 +26,7 @@ import com.intellij.util.io.StringRef
 import com.tang.intellij.lua.Constants
 import com.tang.intellij.lua.comment.psi.LuaDocTableDef
 import com.tang.intellij.lua.comment.psi.LuaDocTagClass
+import com.tang.intellij.lua.ext.PerformanceUtil
 import com.tang.intellij.lua.project.LuaSettings
 import com.tang.intellij.lua.psi.*
 import com.tang.intellij.lua.psi.search.LuaClassInheritorsSearch
@@ -130,20 +131,18 @@ abstract class TyClass(override val className: String,
         }
         val chain = ClassMemberChain(this, array)
         val manager = LuaShortNamesManager.getInstance(context.project)
-        val members = manager.getClassMembers(className, context)
+        val members: Collection<LuaClassMember> = manager.getClassMembers(className, context)
         members.forEach { chain.add(it) }
-
-        processAlias(Processor { alias ->
+        processAlias { alias ->
             val classMembers = manager.getClassMembers(alias, context)
             classMembers.forEach { chain.add(it) }
             true
-        })
-
+        }
         return chain
     }
 
     override fun processMembers(context: SearchContext, processor: (ITyClass, LuaClassMember) -> Unit, deep: Boolean) {
-        val chain = getMemberChain(context, HashSet())
+        val chain: ClassMemberChain = getMemberChain(context, HashSet())
         chain.process(deep, processor)
     }
 
