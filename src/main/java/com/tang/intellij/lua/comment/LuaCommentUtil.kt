@@ -28,6 +28,7 @@ import com.tang.intellij.lua.comment.psi.LuaDocPsiElement
 import com.tang.intellij.lua.comment.psi.api.LuaComment
 import com.tang.intellij.lua.psi.*
 import com.tang.intellij.lua.psi.impl.LuaLocalDefImpl
+import io.ktor.util.reflect.*
 
 /**
  *
@@ -52,15 +53,21 @@ object LuaCommentUtil {
 
     fun findComment(element: LuaCommentOwner): LuaComment? {
         val comment = PsiTreeUtil.getChildOfType(element, LuaComment::class.java)
-        if(comment == null && element is LuaLocalDefImpl){
+        if(element is LuaLocalDefImpl){
+            if(comment != null){
+                if(comment.tagClass != null)
+                    return comment
+            }
             var prevElement = element.prevSibling
             while (prevElement != null) {
                 prevElement = when (prevElement) {
                     is LuaComment -> {
-                        return prevElement
+                        if(prevElement.tagClass != null)
+                            return prevElement
+                        prevElement.prevSibling
                     }
 
-                    is PsiComment -> {
+                    is PsiComment->{
                         prevElement.prevSibling
                     }
 
