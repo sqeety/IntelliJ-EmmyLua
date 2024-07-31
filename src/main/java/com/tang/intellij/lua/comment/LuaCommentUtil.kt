@@ -19,10 +19,10 @@ package com.tang.intellij.lua.comment
 import com.intellij.codeInsight.template.Template
 import com.intellij.codeInsight.template.TemplateManager
 import com.intellij.openapi.editor.Editor
+import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
-import com.intellij.psi.TokenType
+import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.util.PsiTreeUtil
-import com.intellij.psi.util.prevLeaf
 import com.intellij.refactoring.suggested.startOffset
 import com.tang.intellij.lua.comment.psi.LuaDocPsiElement
 import com.tang.intellij.lua.comment.psi.api.LuaComment
@@ -53,17 +53,25 @@ object LuaCommentUtil {
     fun findComment(element: LuaCommentOwner): LuaComment? {
         val comment = PsiTreeUtil.getChildOfType(element, LuaComment::class.java)
         if(comment == null && element is LuaLocalDefImpl){
-            var prevLeaf = element.prevLeaf()
-            while (prevLeaf != null && prevLeaf.node.elementType == TokenType.WHITE_SPACE){
-                prevLeaf = prevLeaf.prevLeaf()
-            }
-            var parent = prevLeaf
-            while (parent != null) {
-                if (parent is LuaComment) {
-                    return parent
+            var prevElement = element.prevSibling
+            while (prevElement != null) {
+                prevElement = when (prevElement) {
+                    is LuaComment -> {
+                        return prevElement
+                    }
+
+                    is PsiComment -> {
+                        prevElement.prevSibling
+                    }
+
+                    is PsiWhiteSpace -> {
+                        prevElement.prevSibling
+                    }
+
+                    else -> {
+                        break
+                    }
                 }
-                if(parent is LuaPsiFile) break
-                parent = parent.parent
             }
         }
         return comment
