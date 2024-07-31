@@ -22,13 +22,16 @@ import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.Processor
 import com.tang.intellij.lua.Constants
+import com.tang.intellij.lua.comment.psi.LuaDocTagField
 import com.tang.intellij.lua.ext.recursionGuard
 import com.tang.intellij.lua.project.LuaSettings
 import com.tang.intellij.lua.psi.*
+import com.tang.intellij.lua.psi.impl.LuaAssignStatImpl
 import com.tang.intellij.lua.psi.impl.LuaNameExprMixin
 import com.tang.intellij.lua.psi.search.LuaShortNamesManager
 import com.tang.intellij.lua.search.GuardType
 import com.tang.intellij.lua.search.SearchContext
+import com.tang.intellij.lua.stubs.LuaDocTagTypeType
 
 fun inferExpr(expr: LuaExpr?, context: SearchContext): ITy {
     if (expr == null)
@@ -230,7 +233,7 @@ private fun LuaCallExpr.infer(context: SearchContext): ITy {
             previousTy.each { t ->
                 if (t is ITyGeneric) {
                     val base = t.base
-                    if (base is TyLazyClass) {
+                    if (base is TySerializedClass) {
                         base.lazyInit(context)
                         if (base.genericNames.isNotEmpty()) {
                             for ((index, genericName) in base.genericNames.withIndex()) {
@@ -273,18 +276,6 @@ private fun LuaNameExpr.infer(context: SearchContext): ITy {
     val set = recursionGuard(this, Computable {
         var type:ITy = Ty.UNKNOWN
 
-        context.withRecursionGuard(this, GuardType.GlobalName) {
-            val multiResolve = multiResolve(this, context)
-            var maxTimes = 10
-            for (element in multiResolve) {
-                val set = getType(context, element)
-                type = type.union(set)
-                if (--maxTimes == 0)
-                    break
-            }
-            type
-        }
-
         /**
          * fixme : optimize it.
          * function xx:method()
@@ -294,16 +285,25 @@ private fun LuaNameExpr.infer(context: SearchContext): ITy {
          * https://github.com/EmmyLua/IntelliJ-EmmyLua/issues/93
          * the type of 'self' should be same of 'xx'
          */
-        if (Ty.isInvalid(type)) {
-            if (name == Constants.WORD_SELF) {
-                val methodDef = PsiTreeUtil.getStubOrPsiParentOfType(this, LuaClassMethodDef::class.java)
-                if (methodDef != null && !methodDef.isStatic) {
-                    val methodName = methodDef.classMethodName
-                    val expr = methodName.expr
-                    type = expr.guessType(context)
-                }
+        if (name == Constants.WORD_SELF) {
+            val methodDef = PsiTreeUtil.getStubOrPsiParentOfType(this, LuaClassMethodDef::class.java)
+            if (methodDef != null && !methodDef.isStatic) {
+                val methodName = methodDef.classMethodName
+                val expr = methodName.expr
+                type = expr.guessType(context)
             }
+            return@Computable type
         }
+
+        context.withRecursionGuard(this, GuardType.GlobalName) {
+            val multiResolve = multiResolve(this, context)
+            for (element in multiResolve) {
+                val set = getType(context, element)
+                type = type.union(set)
+            }
+            type
+        }
+
 
         if (Ty.isInvalid(type)) {
             type = getType(context, this)
@@ -417,10 +417,11 @@ private fun LuaIndexExpr.infer(context: SearchContext): ITy {
         val propName = indexExpr.name
         if (propName != null) {
             val prefixType = parentTy ?: indexExpr.guessParentType(context)
-            prefixType.eachTopClass(Processor { clazz ->
+            //这里容易死循环
+            prefixType.eachTopClass { clazz ->
                 result = guessFieldType(propName, clazz, context).union(result)
                 true
-            })
+            }
             //泛型临时处理
             prefixType.each { ty ->
                 if (ty is ITyGeneric)
@@ -459,11 +460,41 @@ private fun guessFieldType(fieldName: String, type: ITyClass, context: SearchCon
         return TyClass.createGlobalType(fieldName)
 
     var set:ITy = Ty.UNKNOWN
+    //这个地方容易死循环
+    LuaShortNamesManager.getInstance(context.project).processMembers(type, fieldName, context) {
+        when (it) {
+            is LuaFuncBodyOwner -> {
+                set = set.union(it.guessType(context))
+            }
+            is LuaDocTagField ->{
+                set = set.union(it.guessType(context))
+            }
+            is LuaTableField->{
+                set = set.union(it.guessType(context))
+            }
+            is LuaIndexExpr ->{
+                val stat = it.assignStat
+                if (stat != null) {
+                    val ty = stat.comment?.docTy
+                    if (ty != null) {
+                        set = set.union(ty)
+                    }else{
+                        if(!context.forStub){
+                            set = set.union(it.guessType(context))
+                        }
+                    }
+                } else {
+                    println("Unrecognized field type $it")
+                }
+            }
 
-    LuaShortNamesManager.getInstance(context.project).processMembers(type, fieldName, context, Processor {
-        set = set.union(it.guessType(context))
-        true
-    })
+            else -> {
+                println("Unrecognized field type $it")
+            }
+        }
+
+        Ty.isInvalid(set)
+    }
 
     return set
 }

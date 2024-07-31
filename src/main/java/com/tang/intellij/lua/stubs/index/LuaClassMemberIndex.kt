@@ -26,6 +26,7 @@ import com.intellij.util.containers.ContainerUtil
 import com.tang.intellij.lua.comment.psi.LuaDocTagField
 import com.tang.intellij.lua.psi.LuaClassMember
 import com.tang.intellij.lua.psi.LuaClassMethod
+import com.tang.intellij.lua.psi.LuaClassMethodDef
 import com.tang.intellij.lua.psi.LuaPsiTreeUtilEx
 import com.tang.intellij.lua.psi.LuaTableField
 import com.tang.intellij.lua.search.SearchContext
@@ -46,18 +47,25 @@ class LuaClassMemberIndex : IntStubIndexExtension<LuaClassMember>() {
             if (context.isDumb)
                 return false
             val all = instance.get(key.hashCode(), context.project, context.scope)
-            if(all.size > 1){
-                do {
-                    val index = key.indexOf("*")
-                    if(index == -1) break
-                    val className = key.substring(0, key.indexOf("*"))
-                    all.forEach {
-                        if(LuaPsiTreeUtilEx.isClassDefineMember(it, className))
-                            return processor.process(it)
+            if(all.isEmpty()) return true
+            do {
+                val index = key.indexOf("*")
+                if (index == -1) break
+                val className = key.substring(0, key.indexOf("*"))
+                //@field 函数直接返回
+                all.forEach {
+                    if (it is LuaDocTagField || it is LuaClassMethodDef || LuaPsiTreeUtilEx.isClassDefineMember(it, className)) {
+                        processor.process(it)
+                        return false
                     }
-                }while(false)
+                }
+            } while (false)
+
+            //多个选择直接全部执行
+            for (member in all) {
+                processor.process(member)
             }
-            return ContainerUtil.process(all, processor)
+            return true
         }
 
         fun process(className: String, fieldName: String, context: SearchContext, processor: Processor<LuaClassMember>, deep: Boolean = true, processedList:MutableSet<String>): Boolean {
@@ -73,9 +81,9 @@ class LuaClassMemberIndex : IntStubIndexExtension<LuaClassMember>() {
                     val type = classDef.type
                     // from alias
                     type.lazyInit(context)
-                    val notFound = type.processAlias(Processor {
+                    val notFound = type.processAlias {
                         process(it, fieldName, context, processor, false, processedList)
-                    })
+                    }
                     if (!notFound)
                         return false
 

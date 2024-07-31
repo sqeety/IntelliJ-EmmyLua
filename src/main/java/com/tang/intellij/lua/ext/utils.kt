@@ -23,8 +23,9 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.util.indexing.FileBasedIndex
 
-fun <T> recursionGuard(key: Any, block: Computable<T>, memoize: Boolean = true): T? =
-    RecursionManager.doPreventingRecursion(key, memoize, block)
+fun <T> recursionGuard(key: Any, block: Computable<T>, memoize: Boolean = true): T? {
+    return RecursionManager.doPreventingRecursion(key, memoize, block)
+}
 
 val PsiFile.fileId get() = FileBasedIndex.getFileId(this.originalFile.virtualFile)
 
