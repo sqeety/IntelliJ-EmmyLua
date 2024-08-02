@@ -20,6 +20,7 @@ import com.intellij.codeInspection.LocalInspectionToolSession
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiFile
+import com.tang.intellij.lua.project.LuaSettings
 import com.tang.intellij.lua.psi.*
 import com.tang.intellij.lua.search.SearchContext
 import com.tang.intellij.lua.ty.*
@@ -88,7 +89,13 @@ class MatchFieldInspection : StrictInspection() {
                                 return
                             }
                             if (isFunction)
-                                myHolder.registerProblem(psi, "Unknown function '%s'.".format(o.name))
+                            {
+                                val funcName = o.name
+                                if (funcName != null) {
+                                    if (!LuaSettings.isConstructorName(funcName))
+                                        myHolder.registerProblem(psi, "Unknown function '%s'.".format(funcName))
+                                }
+                            }
                             else {
                                 myHolder.registerProblem(psi, "Unknown field '%s'.".format(o.name))
                             }
