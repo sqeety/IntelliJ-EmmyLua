@@ -20,6 +20,7 @@ import com.intellij.codeInspection.LocalInspectionToolSession
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiFile
+import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.tang.intellij.lua.project.LuaSettings
 import com.tang.intellij.lua.psi.*
 import com.tang.intellij.lua.search.SearchContext
@@ -62,8 +63,7 @@ class MatchFieldInspection : StrictInspection() {
         session: LocalInspectionToolSession
     ): PsiElementVisitor =
         object : LuaVisitor() {
-            override fun visitIndexExpr(o: LuaIndexExpr) {
-                super.visitIndexExpr(o)
+            fun checkLuaIndexExpr(o:LuaIndexExpr){
                 if(o.lastChild == null) return
                 val searchContext = SearchContext.get(o.project)
                 val nextSibling = o.nextSibling
@@ -71,12 +71,19 @@ class MatchFieldInspection : StrictInspection() {
                 if (nextSibling != null) {
                     isFunction = nextSibling is LuaListArgs
                 }
+
                 val previousType = o.prefixExpr.guessType(searchContext)
                 if (previousType != Ty.UNKNOWN && !onlyHaveClassInfo(previousType)) {
                     val type = o.guessType(searchContext)
                     var parent = o.parent
                     while (parent != null) {
                         if (parent is LuaVarList) {
+                            val next = o.nextSibling
+                            if(next is LeafPsiElement) {
+                                if(next.text == "." || next.text == ":") {
+                                    break
+                                }
+                            }
                             return
                         }
                         parent = parent.parent
@@ -102,6 +109,11 @@ class MatchFieldInspection : StrictInspection() {
                         }
                     }
                 }
+            }
+
+            override fun visitIndexExpr(o: LuaIndexExpr) {
+                super.visitIndexExpr(o)
+                checkLuaIndexExpr(o)
             }
         }
 }
