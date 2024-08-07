@@ -465,10 +465,18 @@ private fun LuaIndexExpr.infer(context: SearchContext): ITy {
         val propName = indexExpr.name
         if (propName != null) {
             val prefixType = parentTy ?: indexExpr.guessParentType(context)
+            prefixType.each { ty ->
+                if (ty is ITyGeneric) {
+                    val base = ty.base
+                    if(base is TyLazyClass) {
+                        base.lazyInit(context)
+                    }
+                }
+            }
             //这里容易死循环
-            prefixType.eachTopClass { clazz ->
+            prefixType.eachTopClass{ clazz ->
                 result = guessFieldType(propName, clazz, context).union(result)
-                true
+                Ty.isInvalid(result)
             }
             //泛型临时处理
             prefixType.each { ty ->
@@ -476,7 +484,6 @@ private fun LuaIndexExpr.infer(context: SearchContext): ITy {
                 {
                     val base = ty.base
                     if(base is TyLazyClass){
-                        base.lazyInit(context)
                         if(base.genericNames.isNotEmpty()){
                             val temp = result
                             for ((index, genericName) in base.genericNames.withIndex()){

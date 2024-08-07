@@ -77,7 +77,7 @@ interface ITy : Comparable<ITy> {
         TyUnion.each(this, fn)
     }
 
-    fun eachTopClass(fn: Processor<ITyClass>)
+    fun eachTopClass(fn: Processor<ITyClass>):Boolean
 
     fun accept(visitor: ITyVisitor)
 
@@ -183,32 +183,44 @@ abstract class Ty(override val kind: TyKind) : ITy {
         return substitutor.substitute(this)
     }
 
-    override fun eachTopClass(fn: Processor<ITyClass>) {
+    override fun eachTopClass(fn: Processor<ITyClass>):Boolean {
         when (this) {
-            is ITyClass -> fn.process(this)
+            is ITyClass -> if(!fn.process(this)){
+                return false
+            }
             is ITyGeneric -> {
-                if(this.base is ITyClass)
+                if(base is ITyClass)
                 {
-                    fn.process(this.base as ITyClass);
+                    val tyClass = this.base as ITyClass
+                    if(!fn.process(tyClass)){
+                        return false
+                    }
+                    val names = tyClass.superClassNames
+                    if(names.isNotEmpty()){
+                        val genericNames = tyClass.genericNames
+                        for ((index, name) in names.withIndex()){
+                            if(genericNames.contains(name)){
+                                val genericTy = (this as ITyGeneric).params[index]
+                                if(!genericTy.eachTopClass(fn)){
+                                    return false
+                                }
+                            }
+                        }
+                    }
                 }
             }
             is TyUnion -> {
-                ContainerUtil.process(getChildTypes()) {
-                    if (it is ITyClass && !fn.process(it))
-                        return@process false
-                    if (it is ITyGeneric)
-                    {
-                        var baseTy = it.base;
-                        if(baseTy is ITyClass && !fn.process(baseTy))
-                            return@process false
-                    }
-                    true
+                val ret = ContainerUtil.process(getChildTypes()) {
+                    it.eachTopClass(fn)
                 }
+                if(!ret) return false
             }
             is TyTuple -> {
-                list.firstOrNull()?.eachTopClass(fn)
+                val ret = list.firstOrNull()?.eachTopClass(fn)
+                if(ret != null && !ret) return false
             }
         }
+        return true
     }
 
     companion object {
