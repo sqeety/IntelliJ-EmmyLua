@@ -32,6 +32,7 @@ import com.tang.intellij.lua.psi.search.LuaShortNamesManager
 import com.tang.intellij.lua.search.GuardType
 import com.tang.intellij.lua.search.SearchContext
 import com.tang.intellij.lua.stubs.LuaDocTagTypeType
+import com.tang.intellij.lua.stubs.index.LuaClassIndex
 
 fun inferExpr(expr: LuaExpr?, context: SearchContext): ITy {
     if (expr == null)
@@ -473,10 +474,29 @@ private fun LuaIndexExpr.infer(context: SearchContext): ITy {
                     }
                 }
             }
-            //这里容易死循环
-            prefixType.eachTopClass{ clazz ->
-                result = guessFieldType(propName, clazz, context).union(result)
+            //这里容易死循环,优先取library
+            val projectTys = mutableSetOf<ITyClass>()
+            prefixType.eachTopClass { clazz ->
+                val classDef = LuaClassIndex.find(clazz.className, context)
+                if (classDef != null) {
+                    if (LuaFileUtil.isStdLibFile(classDef.containingFile.virtualFile, project)) {
+                        result = result.union(guessFieldType(propName, clazz, context))
+                    } else {
+                        projectTys.add(clazz)
+                    }
+                } else {
+                    result = result.union(guessFieldType(propName, clazz, context))
+                }
                 Ty.isInvalid(result)
+            }
+
+            if (Ty.isInvalid(result)) {
+                for (clazz in projectTys) {
+                    result = result.union(guessFieldType(propName, clazz, context))
+                    if (!Ty.isInvalid(result)) {
+                        break
+                    }
+                }
             }
             //泛型临时处理
             prefixType.each { ty ->

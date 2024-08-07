@@ -60,7 +60,12 @@ class LuaClassIndex : StringStubIndexExtension<LuaDocTagClass>() {
 
         fun process(key: String, project: Project, scope: GlobalSearchScope, processor: Processor<LuaDocTagClass>): Boolean {
             val collection = instance.get(key, project, scope)
-            return ContainerUtil.process(collection, processor)
+            for (clazz in collection) {
+                if(!processor.process(clazz)){
+                    return false
+                }
+            }
+            return true
         }
 
         fun processKeys(project: Project, processor: Processor<String>): Boolean {
