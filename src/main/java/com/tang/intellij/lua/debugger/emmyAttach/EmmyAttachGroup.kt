@@ -43,10 +43,15 @@ class EmmyAttachGroup : XAttachPresentationGroup<ProcessInfo> {
         if (map != null) {
             val detail = map[processInfo.pid]
             if (detail != null) {
-                val file = File(detail.path)
-                if (file.exists()) {
-                    val sf = FileSystemView.getFileSystemView()
-                    return sf.getSystemIcon(file)
+                try {
+                    val file = File(detail.path)
+                    if (file.exists()) {
+                        val sf = FileSystemView.getFileSystemView()
+                        val icon = sf.getSystemIcon(file)
+                        return icon
+                    }
+                }catch (e:Exception){
+
                 }
             }
         }
