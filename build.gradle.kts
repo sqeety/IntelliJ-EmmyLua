@@ -42,7 +42,7 @@ data class BuildData(
 //https://www.jetbrains.com/intellij-repository/snapshots
 val buildDataList = listOf(
     BuildData(
-        ideaSDKShortVersion = "241",
+        ideaSDKShortVersion = "242",
         ideaSDKVersion = "242-EAP-SNAPSHOT",
         sinceBuild = "241",
         untilBuild = "243.*",
