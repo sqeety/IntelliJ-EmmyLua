@@ -558,14 +558,23 @@ private fun guessFieldType(fieldName: String, type: ITyClass, context: SearchCon
             is LuaFuncBodyOwner -> {
                 if(selectType != SelectType.OnlyField)
                     set = set.union(it.guessType(context))
+                if(selectType != SelectType.OnlyMethod){
+                    if(!Ty.isInvalid(set)) return@processMembers false
+                }
             }
             is LuaDocTagField ->{
                 if(selectType != SelectType.OnlyMethod)
                     set = set.union(it.guessType(context))
+                if(selectType != SelectType.OnlyField){
+                    if(!Ty.isInvalid(set)) return@processMembers false
+                }
             }
             is LuaTableField->{
                 if(selectType != SelectType.OnlyMethod)
                     set = set.union(it.guessType(context))
+                if(selectType != SelectType.OnlyField){
+                    if(!Ty.isInvalid(set)) return@processMembers false
+                }
             }
             is LuaIndexExpr ->{
                 val stat = it.assignStat
