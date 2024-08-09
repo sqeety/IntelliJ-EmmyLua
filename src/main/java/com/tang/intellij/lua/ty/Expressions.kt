@@ -26,12 +26,10 @@ import com.tang.intellij.lua.comment.psi.LuaDocTagField
 import com.tang.intellij.lua.ext.recursionGuard
 import com.tang.intellij.lua.project.LuaSettings
 import com.tang.intellij.lua.psi.*
-import com.tang.intellij.lua.psi.impl.LuaAssignStatImpl
 import com.tang.intellij.lua.psi.impl.LuaNameExprMixin
 import com.tang.intellij.lua.psi.search.LuaShortNamesManager
 import com.tang.intellij.lua.search.GuardType
 import com.tang.intellij.lua.search.SearchContext
-import com.tang.intellij.lua.stubs.LuaDocTagTypeType
 import com.tang.intellij.lua.stubs.index.LuaClassIndex
 
 fun inferExpr(expr: LuaExpr?, context: SearchContext): ITy {
@@ -383,10 +381,14 @@ private fun getType(context: SearchContext, def: PsiElement): ITy {
                     val defIndex = stat.getIndexFor(def)
                     // foo = { ... }
                     if (Ty.isInvalid(type) || exprList.at(defIndex) is LuaTableExpr) {
-                        val valueTy = context.withIndex(defIndex) {
-                            exprList.guessTypeAt(context)
+                        val expr = exprList.at(defIndex)
+                        if(expr != null)
+                        {
+                            //不推断_G的全局别名。比如A=_G
+                            if(exprList.text != "_G"){
+                                type = type.union(expr.guessType(context))
+                            }
                         }
-                        type = type.union(valueTy)
                     }
                 }
             }
@@ -421,6 +423,12 @@ fun LuaLiteralExpr.infer(): ITy {
         //LuaLiteralKind.Nil -> Ty.NIL
         else -> Ty.UNKNOWN
     }
+}
+
+enum class SelectType {
+    OnlyMethod,
+    OnlyField,
+    Both
 }
 
 private fun LuaIndexExpr.infer(context: SearchContext): ITy {
@@ -466,6 +474,15 @@ private fun LuaIndexExpr.infer(context: SearchContext): ITy {
         val propName = indexExpr.name
         if (propName != null) {
             val prefixType = parentTy ?: indexExpr.guessParentType(context)
+            var selectType = SelectType.Both
+            val nextSibling = indexExpr.nextSibling
+            if(nextSibling != null){
+                if(nextSibling.text == "." || nextSibling.text == ":") {
+                    selectType = SelectType.OnlyField
+                }else if(nextSibling.text == "(") {
+                    selectType = SelectType.OnlyMethod
+                }
+            }
             prefixType.each { ty ->
                 if (ty is ITyGeneric) {
                     val base = ty.base
@@ -480,19 +497,19 @@ private fun LuaIndexExpr.infer(context: SearchContext): ITy {
                 val classDef = LuaClassIndex.find(clazz.className, context)
                 if (classDef != null) {
                     if (LuaFileUtil.isStdLibFile(classDef.containingFile.virtualFile, project)) {
-                        result = result.union(guessFieldType(propName, clazz, context))
+                        result = result.union(guessFieldType(propName, clazz, context, selectType))
                     } else {
                         projectTys.add(clazz)
                     }
                 } else {
-                    result = result.union(guessFieldType(propName, clazz, context))
+                    result = result.union(guessFieldType(propName, clazz, context, selectType))
                 }
                 Ty.isInvalid(result)
             }
 
             if (Ty.isInvalid(result)) {
                 for (clazz in projectTys) {
-                    result = result.union(guessFieldType(propName, clazz, context))
+                    result = result.union(guessFieldType(propName, clazz, context, selectType))
                     if (!Ty.isInvalid(result)) {
                         break
                     }
@@ -529,7 +546,7 @@ private fun LuaIndexExpr.infer(context: SearchContext): ITy {
     return retTy ?: Ty.UNKNOWN
 }
 
-private fun guessFieldType(fieldName: String, type: ITyClass, context: SearchContext): ITy {
+private fun guessFieldType(fieldName: String, type: ITyClass, context: SearchContext, selectType:SelectType): ITy {
     // _G.var = {}  <==>  var = {}
     if (type.className == Constants.WORD_G)
         return TyClass.createGlobalType(fieldName)
@@ -539,13 +556,16 @@ private fun guessFieldType(fieldName: String, type: ITyClass, context: SearchCon
     LuaShortNamesManager.getInstance(context.project).processMembers(type, fieldName, context) {
         when (it) {
             is LuaFuncBodyOwner -> {
-                set = set.union(it.guessType(context))
+                if(selectType != SelectType.OnlyField)
+                    set = set.union(it.guessType(context))
             }
             is LuaDocTagField ->{
-                set = set.union(it.guessType(context))
+                if(selectType != SelectType.OnlyMethod)
+                    set = set.union(it.guessType(context))
             }
             is LuaTableField->{
-                set = set.union(it.guessType(context))
+                if(selectType != SelectType.OnlyMethod)
+                    set = set.union(it.guessType(context))
             }
             is LuaIndexExpr ->{
                 val stat = it.assignStat
@@ -558,17 +578,14 @@ private fun guessFieldType(fieldName: String, type: ITyClass, context: SearchCon
                             set = set.union(it.guessType(context))
                         }
                     }
-                } else {
-                    println("Unrecognized field type $it")
                 }
             }
-
             else -> {
-                println("Unrecognized field type $it")
+
             }
         }
 
-        Ty.isInvalid(set)
+        true
     }
 
     return set

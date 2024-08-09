@@ -52,18 +52,17 @@ class LuaClassMemberIndex : IntStubIndexExtension<LuaClassMember>() {
                 val index = key.indexOf("*")
                 if (index == -1) break
                 val className = key.substring(0, key.indexOf("*"))
-                //@field 函数直接返回
                 all.forEach {
                     if (it is LuaDocTagField || it is LuaClassMethodDef || LuaPsiTreeUtilEx.isClassDefineMember(it, className)) {
-                        processor.process(it)
-                        return false
+                        if(!processor.process(it))
+                            return false
                     }
                 }
             } while (false)
 
             //多个选择直接全部执行
             for (member in all) {
-                processor.process(member)
+                if(!processor.process(member)) return false
             }
             return true
         }
