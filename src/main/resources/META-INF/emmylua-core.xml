@@ -284,11 +284,11 @@
                 language="Lua"
                 implementationClass="com.tang.intellij.lua.codeInsight.inspection.MatchFunctionSignatureInspection"/>
         <localInspection
-                displayName="Match field"
+                displayName="Match member"
                 enabledByDefault="false"
                 groupName="Lua > Lint > Type safety"
                 language="Lua"
-                implementationClass="com.tang.intellij.lua.codeInsight.inspection.MatchFieldInspection"/>
+                implementationClass="com.tang.intellij.lua.codeInsight.inspection.MatchMemberInspection"/>
         <localInspection
                 displayName="Undeclared variable"
                 enabledByDefault="false"

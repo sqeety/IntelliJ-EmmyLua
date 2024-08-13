@@ -64,7 +64,7 @@ class LuaSettings : PersistentStateComponent<LuaSettings> {
     /**
      * (KB)
      */
-    var tooLargerFileThreshold = 1024
+    var tooLargerFileThreshold = 10240
 
     var attachDebugDefaultCharsetName = "UTF-8"
 
@@ -76,6 +76,8 @@ class LuaSettings : PersistentStateComponent<LuaSettings> {
      * Lua language level
      */
     var languageLevel = LuaLanguageLevel.LUA53
+
+    var avoidRecursion = false
 
     override fun getState(): LuaSettings {
         return this

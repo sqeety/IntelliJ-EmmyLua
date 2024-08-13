@@ -23,6 +23,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.ProjectAndLibrariesScope
 import com.tang.intellij.lua.ext.ILuaTypeInfer
+import com.tang.intellij.lua.project.LuaSettings
 import com.tang.intellij.lua.psi.LuaTypeGuessable
 import com.tang.intellij.lua.ty.ITy
 import com.tang.intellij.lua.ty.Ty
@@ -66,11 +67,17 @@ class SearchContext private constructor(val project: Project) {
                 val size = stack.size
                 stack.push(ctx)
                 ctx.myInStack = true
-                val result = try {
-                    action(ctx)
-                } catch (e: Exception) {
-                    defaultValue
+                val result:T
+                if (LuaSettings.instance.avoidRecursion) {
+                    result = try {
+                        action(ctx)
+                    } catch (e: Exception) {
+                        defaultValue
+                    }
+                } else {
+                    result = action(ctx)
                 }
+
                 ctx.myInStack = false
                 stack.pop()
                 assert(size == stack.size)
@@ -108,6 +115,8 @@ class SearchContext private constructor(val project: Project) {
         }
     }
 
+    //解决a = b b = c c = a死循环
+    var guessTextSet = mutableSetOf<String>()
 
     /**
      * 用于有多返回值的索引设定

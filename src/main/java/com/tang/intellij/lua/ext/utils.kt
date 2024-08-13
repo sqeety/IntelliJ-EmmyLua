@@ -22,9 +22,14 @@ import com.intellij.openapi.util.RecursionManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.util.indexing.FileBasedIndex
+import com.tang.intellij.lua.project.LuaSettings
 
 fun <T> recursionGuard(key: Any, block: Computable<T>, memoize: Boolean = true): T? {
-    return RecursionManager.doPreventingRecursion(key, memoize, block)
+    if (LuaSettings.instance.avoidRecursion)
+        return RecursionManager.doPreventingRecursion(key, memoize, block)
+    else {
+        return block.get()
+    }
 }
 
 val PsiFile.fileId get() = FileBasedIndex.getFileId(this.originalFile.virtualFile)

@@ -131,13 +131,16 @@ private fun LuaNameDef.infer(context: SearchContext): ITy {
         val localDef = PsiTreeUtil.getStubOrPsiParentOfType(this, LuaLocalDef::class.java)
         if (localDef != null) {
             //计算 expr 返回类型
-            if (Ty.isInvalid(type) /*&& !context.forStub*/) {
-                val nameList = localDef.nameList
-                val exprList = localDef.exprList
-                if (nameList != null && exprList != null) {
-                    type = context.withIndex(localDef.getIndexFor(this)) {
-                        exprList.guessTypeAt(context)
+            val nameList = localDef.nameList
+            val exprList = localDef.exprList
+            if (nameList != null && exprList != null) {
+                val index = localDef.getIndexFor(this)
+                if(index < nameList.nameDefList.size && index < exprList.exprList.size && nameList.nameDefList[index] != null && exprList.exprList[index] != null)
+                    if(nameList.nameDefList[index].text == exprList.exprList[index].text){
+                        return type
                     }
+                type = context.withIndex(index) {
+                    exprList.guessTypeAt(context)
                 }
             }
 

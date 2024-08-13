@@ -149,27 +149,14 @@ val LuaNameDef.docTy: ITy? get() {
 }
 
 fun LuaAssignStat.getIndexFor(psi: LuaExpr): Int {
-    var idx = 0
-    val stub = valueExprList?.stub
-    if (stub != null) {
-        val children = stub.childrenStubs
-        for (i in 0 until children.size) {
-            if (psi == children[i].psi) {
-                idx = i
-                break
-            }
+    val list = varExprList.exprList
+    for ((index, it) in list.withIndex()){
+        if (it is LuaExpr) {
+            if (it == psi)
+                return index
         }
-    } else {
-        LuaPsiTreeUtilEx.processChildren(this.varExprList, Processor{
-            if (it is LuaExpr) {
-                if (it == psi)
-                    return@Processor false
-                idx++
-            }
-            return@Processor true
-        })
     }
-    return idx
+    return Int.MAX_VALUE
 }
 
 fun LuaAssignStat.getExprAt(index:Int) : LuaExpr? {

@@ -104,10 +104,18 @@ fun resolve(nameExpr: LuaNameExpr, context: SearchContext): PsiElement? {
 
 fun multiResolve(ref: LuaNameExpr, context: SearchContext): Array<PsiElement> {
     val list = mutableSetOf<PsiElement>()
+    var firstPis:PsiElement = ref
+    val assignStat = PsiTreeUtil.getParentOfType(ref, LuaAssignStat::class.java)
+    //避免a=a or {}这种死循环
+    if (assignStat != null) {
+        firstPis = assignStat.firstChild
+    }
     //search local
-    val resolveResult = resolveInFile(ref.name, ref, context)
+    val resolveResult = resolveInFile(ref.name, firstPis, context)
     if (resolveResult != null) {
-        list.add(resolveResult)
+        //避免a=a or {}这种死循环
+        if(resolveResult.text != ref.text)
+            list.add(resolveResult)
     } else {
         val refName = ref.name
         val module = ref.moduleName ?: Constants.WORD_G

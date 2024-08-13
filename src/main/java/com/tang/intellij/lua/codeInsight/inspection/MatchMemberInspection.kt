@@ -26,7 +26,7 @@ import com.tang.intellij.lua.psi.*
 import com.tang.intellij.lua.search.SearchContext
 import com.tang.intellij.lua.ty.*
 
-class MatchFieldInspection : StrictInspection() {
+class MatchMemberInspection : StrictInspection() {
     override fun isAvailableForFile(file: PsiFile): Boolean {
         if (LuaFileUtil.isStdLibFile(file.virtualFile, file.project)) {
             return false
@@ -85,6 +85,9 @@ class MatchFieldInspection : StrictInspection() {
                                 }
                             }
                             return
+                        }
+                        if(parent is LuaClassMethodName){
+                            break
                         }
                         parent = parent.parent
                     }

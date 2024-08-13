@@ -24,6 +24,7 @@ import com.intellij.util.Processor
 import com.tang.intellij.lua.Constants
 import com.tang.intellij.lua.comment.psi.LuaDocTagField
 import com.tang.intellij.lua.ext.recursionGuard
+import com.tang.intellij.lua.ext.stubOrPsiParent
 import com.tang.intellij.lua.project.LuaSettings
 import com.tang.intellij.lua.psi.*
 import com.tang.intellij.lua.psi.impl.LuaNameExprMixin
@@ -31,15 +32,28 @@ import com.tang.intellij.lua.psi.search.LuaShortNamesManager
 import com.tang.intellij.lua.search.GuardType
 import com.tang.intellij.lua.search.SearchContext
 import com.tang.intellij.lua.stubs.index.LuaClassIndex
+import io.ktor.util.reflect.*
 
 fun inferExpr(expr: LuaExpr?, context: SearchContext): ITy {
     if (expr == null)
         return Ty.UNKNOWN
-    if (expr is LuaIndexExpr || expr is LuaNameExpr) {
+    if (expr is LuaNameExpr || expr is LuaIndexExpr) {
         val tree = LuaDeclarationTree.get(expr.containingFile)
         val declaration = tree.find(expr)?.firstDeclaration?.psi
-        if (declaration != expr && declaration is LuaTypeGuessable) {
-            return declaration.guessType(context)
+        if (declaration != null && declaration != expr) {
+            when (declaration) {
+                is LuaNameDef -> {
+                    return declaration.guessType(context)
+                }
+
+                is LuaIndexExpr -> {
+                    return declaration.guessType(context)
+                }
+
+                is LuaTypeGuessable ->{
+                    return declaration.guessType(context)
+                }
+            }
         }
     }
     return inferExprInner(expr, context)
@@ -67,6 +81,7 @@ private fun LuaUnaryExpr.infer(context: SearchContext): ITy {
     return when (operator) {
         LuaTypes.MINUS -> infer(expr, context) // Negative something
         LuaTypes.GETN -> Ty.NUMBER // Table length is a number
+        LuaTypes.NOT -> Ty.BOOLEAN //not
         else -> Ty.UNKNOWN
     }
 }
@@ -88,7 +103,7 @@ private fun LuaBinaryExpr.infer(context: SearchContext): ITy {
             LuaTypes.AND, LuaTypes.OR -> guessAndOrType(this, operator, context)
         //&, <<, |, >>, ~, ^,    +, -, *, /, //, %
             LuaTypes.BIT_AND, LuaTypes.BIT_LTLT, LuaTypes.BIT_OR, LuaTypes.BIT_RTRT, LuaTypes.BIT_TILDE, LuaTypes.EXP,
-            LuaTypes.PLUS, LuaTypes.MINUS, LuaTypes.MULT, LuaTypes.DIV, LuaTypes.DOUBLE_DIV, LuaTypes.MOD -> guessBinaryOpType(this, context)
+            LuaTypes.PLUS, LuaTypes.MINUS, LuaTypes.MULT, LuaTypes.DIV, LuaTypes.DOUBLE_DIV, LuaTypes.MOD -> Ty.NUMBER
             else -> Ty.UNKNOWN
         }
     }
@@ -96,12 +111,29 @@ private fun LuaBinaryExpr.infer(context: SearchContext): ITy {
 
 private fun guessAndOrType(binaryExpr: LuaBinaryExpr, operator: IElementType?, context:SearchContext): ITy {
     val rhs = binaryExpr.right
+    val assignStat = PsiTreeUtil.getParentOfType(binaryExpr, LuaAssignStat::class.java)
     //and
     if (operator == LuaTypes.AND)
+    {
+        if(rhs != null && assignStat != null) {
+            for (expr in assignStat.varExprList.exprList){
+                if(expr.text == rhs.text){
+                    return Ty.UNKNOWN
+                }
+            }
+        }
         return infer(rhs, context)
+    }
 
     //or
     val lhs = binaryExpr.left
+    if(lhs != null && assignStat != null) {
+        for (expr in assignStat.varExprList.exprList){
+            if(expr.text == lhs.text){
+                return infer(rhs, context)
+            }
+        }
+    }
     val lty = infer(lhs, context)
     return if (rhs != null) lty.union(infer(rhs, context)) else lty
 }
@@ -338,8 +370,8 @@ private fun LuaNameExpr.infer(context: SearchContext): ITy {
                 val methodName = methodDef.classMethodName
                 val expr = methodName.expr
                 type = expr.guessType(context)
+                return@Computable type
             }
-            return@Computable type
         }
 
         context.withRecursionGuard(this, GuardType.GlobalName) {
@@ -365,12 +397,12 @@ private fun getType(context: SearchContext, def: PsiElement): ITy {
     when (def) {
         is LuaNameExpr -> {
             //todo stub.module -> ty
-            val stub = def.stub
-            stub?.module?.let {
-                val memberType = createSerializedClass(it).findMemberType(def.name, context)
-                if (memberType != null && !Ty.isInvalid(memberType))
-                    return memberType
-            }
+//            val stub = def.stub
+//            stub?.module?.let {
+//                val memberType = createSerializedClass(it).findMemberType(def.name, context)
+//                if (memberType != null && !Ty.isInvalid(memberType))
+//                    return memberType
+//            }
 
             var type: ITy = def.docTy ?: Ty.UNKNOWN
             //guess from value expr
@@ -385,7 +417,7 @@ private fun getType(context: SearchContext, def: PsiElement): ITy {
                         if(expr != null)
                         {
                             //不推断_G的全局别名。比如A=_G
-                            if(exprList.text != "_G"){
+                            if(exprList.text != Constants.WORD_G){
                                 type = type.union(expr.guessType(context))
                             }
                         }
@@ -465,8 +497,17 @@ private fun LuaIndexExpr.infer(context: SearchContext): ITy {
         var result: ITy = Ty.UNKNOWN
         val assignStat = indexExpr.assignStat
         if (assignStat != null) {
-            result = context.withIndex(assignStat.getIndexFor(indexExpr)) {
+            val index = assignStat.getIndexFor(indexExpr)
+            if(context.guessTextSet.contains(indexExpr.text)) {
+                return@Computable result
+            }
+            context.guessTextSet.add(indexExpr.text)
+            result = context.withIndex(index) {
                 assignStat.valueExprList?.guessTypeAt(context) ?: Ty.UNKNOWN
+            }
+            if(!Ty.isInvalid(result)){
+                context.guessTextSet.remove(indexExpr.text)
+                return@Computable result
             }
         }
 
@@ -474,12 +515,15 @@ private fun LuaIndexExpr.infer(context: SearchContext): ITy {
         val propName = indexExpr.name
         if (propName != null) {
             val prefixType = parentTy ?: indexExpr.guessParentType(context)
+            if(Ty.isInvalid(prefixType)){
+                return@Computable result
+            }
             var selectType = SelectType.Both
             val nextSibling = indexExpr.nextSibling
             if(nextSibling != null){
                 if(nextSibling.text == "." || nextSibling.text == ":") {
                     selectType = SelectType.OnlyField
-                }else if(nextSibling.text == "(") {
+                }else if(nextSibling.text.startsWith("(")) {
                     selectType = SelectType.OnlyMethod
                 }
             }
@@ -509,8 +553,14 @@ private fun LuaIndexExpr.infer(context: SearchContext): ITy {
 
             if (Ty.isInvalid(result)) {
                 for (clazz in projectTys) {
+                    val key = "${clazz.className}**${propName}"
+                    if(context.guessTextSet.contains(key)){
+                        return@Computable result
+                    }
+                    context.guessTextSet.add(key)
                     result = result.union(guessFieldType(propName, clazz, context, selectType))
                     if (!Ty.isInvalid(result)) {
+                        context.guessTextSet.remove(key)
                         break
                     }
                 }
@@ -584,7 +634,14 @@ private fun guessFieldType(fieldName: String, type: ITyClass, context: SearchCon
                         set = set.union(ty)
                     }else{
                         if(!context.forStub){
-                            set = set.union(it.guessType(context))
+                            val index = stat.getIndexFor(it)
+                            val valueExprList = stat.valueExprList
+                            if(valueExprList != null && index < valueExprList.exprList.size){
+                                val expr = valueExprList.exprList[index]
+                                if(!expr.text.startsWith(it.text)){
+                                    set = set.union(expr.guessType(context))
+                                }
+                            }
                         }
                     }
                 }

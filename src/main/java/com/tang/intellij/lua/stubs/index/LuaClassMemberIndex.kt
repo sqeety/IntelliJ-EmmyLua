@@ -46,12 +46,13 @@ class LuaClassMemberIndex : IntStubIndexExtension<LuaClassMember>() {
         private fun process(key: String, context: SearchContext, processor: Processor<LuaClassMember>): Boolean {
             if (context.isDumb)
                 return false
-            val all = instance.get(key.hashCode(), context.project, context.scope)
+            val hashCode = key.hashCode()
+            val all = instance.get(hashCode, context.project, context.scope)
             if(all.isEmpty()) return true
             do {
                 val index = key.indexOf("*")
                 if (index == -1) break
-                val className = key.substring(0, key.indexOf("*"))
+                val className = key.substring(0, index)
                 all.forEach {
                     if (it is LuaDocTagField || it is LuaClassMethodDef || LuaPsiTreeUtilEx.isClassDefineMember(it, className)) {
                         if(!processor.process(it))
@@ -70,7 +71,7 @@ class LuaClassMemberIndex : IntStubIndexExtension<LuaClassMember>() {
         fun process(className: String, fieldName: String, context: SearchContext, processor: Processor<LuaClassMember>, deep: Boolean = true, processedList:MutableSet<String>): Boolean {
             if(!processedList.add(className))
                 return false
-            val key = "$className*$fieldName"
+            val key = "$className**$fieldName"
             if (!process(key, context, processor))
                 return false
 
@@ -161,7 +162,8 @@ class LuaClassMemberIndex : IntStubIndexExtension<LuaClassMember>() {
 
         fun indexStub(indexSink: IndexSink, className: String, memberName: String) {
             indexSink.occurrence(StubKeys.CLASS_MEMBER, className.hashCode())
-            indexSink.occurrence(StubKeys.CLASS_MEMBER, "$className*$memberName".hashCode())
+            val hashCode = "$className**$memberName".hashCode()
+            indexSink.occurrence(StubKeys.CLASS_MEMBER, hashCode)
         }
     }
 }
