@@ -44,10 +44,12 @@ class SearchContext private constructor(val project: Project) {
 
         fun get(project: Project): SearchContext {
             val stack = threadLocal.get()
-            return if (stack.isEmpty()) {
-                SearchContext(project)
+            if (stack.isEmpty()) {
+                return SearchContext(project)
             } else {
-                stack.peek()
+                val ret = stack.peek()
+                ret.guessTextSet.clear()
+                return ret
             }
         }
 

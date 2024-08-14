@@ -620,8 +620,7 @@ private fun guessFieldType(fieldName: String, type: ITyClass, context: SearchCon
                 }
             }
             is LuaTableField->{
-                if(selectType != SelectType.OnlyMethod)
-                    set = set.union(it.guessType(context))
+                set = set.union(it.guessType(context))
                 if(selectType != SelectType.OnlyField){
                     if(!Ty.isInvalid(set)) return@processMembers false
                 }
