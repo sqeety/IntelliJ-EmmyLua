@@ -103,6 +103,9 @@ class LuaClassMemberIndex : IntStubIndexExtension<LuaClassMember>() {
             val key = "$className**$fieldName"
             val classDef = LuaClassIndex.find(className, context)
             if (classDef != null) {
+                if(!processPureField(className, fieldName, context, processor)){
+                    return false
+                }
                 val type = classDef.type
                 //先检查继承数据的字段
                 val notFound = TyClass.processSuperClass(type, context) {
