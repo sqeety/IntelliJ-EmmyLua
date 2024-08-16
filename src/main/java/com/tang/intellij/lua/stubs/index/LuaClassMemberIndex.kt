@@ -22,8 +22,6 @@ import com.intellij.psi.stubs.IndexSink
 import com.intellij.psi.stubs.IntStubIndexExtension
 import com.intellij.psi.stubs.StubIndex
 import com.intellij.util.Processor
-import com.intellij.util.containers.ContainerUtil
-import com.tang.intellij.lua.comment.psi.LuaDocTagClass
 import com.tang.intellij.lua.comment.psi.LuaDocTagField
 import com.tang.intellij.lua.psi.*
 import com.tang.intellij.lua.search.SearchContext
@@ -83,15 +81,38 @@ class LuaClassMemberIndex : IntStubIndexExtension<LuaClassMember>() {
             return true
         }
 
+        private fun processPureField(className: String, fieldName: String, context: SearchContext, processor: Processor<LuaClassMember>): Boolean {
+            if (context.isDumb)
+                return false
+            val key = "$className**$fieldName"
+            val hashCode = key.hashCode()
+            val all = instance.get(hashCode, context.project, context.scope)
+            if (all.isEmpty()) return true
+            all.forEach {
+                if (it is LuaDocTagField) {
+                    if (!processor.process(it))
+                        return false
+                }
+            }
+            return true
+        }
+
         fun process(className: String, fieldName: String, context: SearchContext, processor: Processor<LuaClassMember>, deep: Boolean = true, processedList:MutableSet<String>): Boolean {
             if(!processedList.add(className))
                 return false
             val key = "$className**$fieldName"
+            val classDef = LuaClassIndex.find(className, context)
+            if (classDef != null) {
+                val type = classDef.type
+                //先检查继承数据的字段
+                val notFound = TyClass.processSuperClass(type, context) {
+                    processPureField(it.className, fieldName, context, processor)
+                }
+                if(!notFound) return false
+            }
             if (!process(key, context, processor))
                 return false
-
             if (deep) {
-                val classDef = LuaClassIndex.find(className, context)
                 if (classDef != null) {
                     val type = classDef.type
                     // from alias
@@ -108,6 +129,7 @@ class LuaClassMemberIndex : IntStubIndexExtension<LuaClassMember>() {
                     }
                 }
             }
+
             return true
         }
 

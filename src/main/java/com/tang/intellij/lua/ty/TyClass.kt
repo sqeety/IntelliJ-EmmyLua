@@ -268,29 +268,26 @@ abstract class TyClass(override val className: String,
                 if (cls is ITyClass) {
                     if (!processedName.add(cls.className)) {
                         // todo: Infinite inheritance
-                        return false
+                        return true
                     }
                     if (!processor(cls))
                         return false
                     cur = cls
                     continue
                 } else if (cls is TyUnion) {
-                    var result = true
                     for (childType in cls.getChildTypes()) {
                         if (childType is ITyClass) {
                             if (!processedName.add(childType.className)) {
-                                // todo: Infinite inheritance
-                                continue
+                                return false
                             }
                             if (!processor(childType)) {
-                                continue
+                                return false
                             }
-                            if(processSuperClass(childType, searchContext, processor)){
-                                result = false
+                            if(!processSuperClass(childType, searchContext, processor)){
+                                return false
                             }
                         }
                     }
-                    return result
                 }
                 break
             }

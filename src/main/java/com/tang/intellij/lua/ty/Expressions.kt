@@ -41,6 +41,14 @@ fun inferExpr(expr: LuaExpr?, context: SearchContext): ITy {
         val declaration = tree.find(expr)?.firstDeclaration?.psi
         if (declaration != null && declaration != expr) {
             when (declaration) {
+                is LuaNameDef -> {
+                    return declaration.guessType(context)
+                }
+
+                is LuaIndexExpr -> {
+                    return declaration.guessType(context)
+                }
+
                 is LuaTypeGuessable ->{
                     return declaration.guessType(context)
                 }
@@ -493,21 +501,6 @@ private fun LuaIndexExpr.infer(context: SearchContext): ITy {
         // xxx.yyy = zzz
         //from value
         var result: ITy = Ty.UNKNOWN
-        val assignStat = indexExpr.assignStat
-        if (assignStat != null) {
-            val index = assignStat.getIndexFor(indexExpr)
-            if(context.guessTextSet.contains(indexExpr.text)) {
-                return@Computable result
-            }
-            context.guessTextSet.add(indexExpr.text)
-            result = context.withIndex(index) {
-                assignStat.valueExprList?.guessTypeAt(context) ?: Ty.UNKNOWN
-            }
-            if(!Ty.isInvalid(result)){
-                context.guessTextSet.remove(indexExpr.text)
-                return@Computable result
-            }
-        }
 
         //from other class member
         val propName = indexExpr.name
@@ -589,6 +582,23 @@ private fun LuaIndexExpr.infer(context: SearchContext): ITy {
                     result = result.union(ty.getParamTy(1))
             }
         }
+
+        val assignStat = indexExpr.assignStat
+        if (assignStat != null) {
+            val index = assignStat.getIndexFor(indexExpr)
+            if(context.guessTextSet.contains(indexExpr.text)) {
+                return@Computable result
+            }
+            context.guessTextSet.add(indexExpr.text)
+            result = context.withIndex(index) {
+                assignStat.valueExprList?.guessTypeAt(context) ?: Ty.UNKNOWN
+            }
+            if(!Ty.isInvalid(result)){
+                context.guessTextSet.remove(indexExpr.text)
+                return@Computable result
+            }
+        }
+
         result
     })
 
