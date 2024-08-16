@@ -152,6 +152,7 @@ fun resolve(indexExpr: LuaIndexExpr, context: SearchContext): PsiElement? {
     return resolve(indexExpr, name, context)
 }
 
+//renderdoc使用的这里的数据
 fun resolve(indexExpr: LuaIndexExpr, idString: String, context: SearchContext): PsiElement? {
     val type = indexExpr.guessParentType(context)
     var ret: PsiElement? = null

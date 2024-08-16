@@ -23,6 +23,7 @@ import com.intellij.psi.StubBasedPsiElement
 import com.intellij.psi.stubs.StubElement
 import com.intellij.util.Processor
 import com.tang.intellij.lua.comment.psi.LuaDocTagClass
+import com.tang.intellij.lua.comment.psi.LuaDocTagField
 import com.tang.intellij.lua.comment.psi.impl.LuaCommentImpl
 import com.tang.intellij.lua.psi.impl.LuaClassMethodDefImpl
 import com.tang.intellij.lua.psi.impl.LuaClassMethodNameImpl
@@ -195,24 +196,23 @@ object LuaPsiTreeUtilEx {
     }
 
     fun isClassDefineMember(member: LuaClassMember, classDefineName:String):Boolean{
-        return getClassDefineName(member) == classDefineName
-    }
-
-    private fun getClassDefineName(member: LuaClassMember):String?{
-        if(member is LuaClassMethodDef){
+        //判断是不是在---class内的
+        if (member is LuaClassMethodDef) {
             val luaClassMethodName = member.classMethodName
             val luaName = luaClassMethodName.expr.name
             var prev = member.prevSibling
-            while(prev != null) {
-                if(prev is LuaLocalDef) {
+            while (prev != null) {
+                if (prev is LuaLocalDef) {
                     val localName = prev.nameList?.nameDefList?.get(0)?.name
-                    if(localName == luaName){
-                        return prev.comment?.tagClass?.stub?.className
+                    if (localName == luaName) {
+                        return prev.comment?.tagClass?.stub?.className == classDefineName
                     }
                 }
                 prev = prev.prevSibling
             }
+        } else if (member is LuaDocTagField) {
+            return true
         }
-        return null
+        return false
     }
 }

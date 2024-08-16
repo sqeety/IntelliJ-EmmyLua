@@ -23,12 +23,9 @@ import com.intellij.psi.stubs.IntStubIndexExtension
 import com.intellij.psi.stubs.StubIndex
 import com.intellij.util.Processor
 import com.intellij.util.containers.ContainerUtil
+import com.tang.intellij.lua.comment.psi.LuaDocTagClass
 import com.tang.intellij.lua.comment.psi.LuaDocTagField
-import com.tang.intellij.lua.psi.LuaClassMember
-import com.tang.intellij.lua.psi.LuaClassMethod
-import com.tang.intellij.lua.psi.LuaClassMethodDef
-import com.tang.intellij.lua.psi.LuaPsiTreeUtilEx
-import com.tang.intellij.lua.psi.LuaTableField
+import com.tang.intellij.lua.psi.*
 import com.tang.intellij.lua.search.SearchContext
 import com.tang.intellij.lua.ty.ITyClass
 import com.tang.intellij.lua.ty.TyClass
@@ -52,9 +49,22 @@ class LuaClassMemberIndex : IntStubIndexExtension<LuaClassMember>() {
             do {
                 val index = key.indexOf("*")
                 if (index == -1) break
+                val projectTys = mutableSetOf<LuaClassMember>()
                 val className = key.substring(0, index)
                 all.forEach {
-                    if (it is LuaDocTagField || it is LuaClassMethodDef || LuaPsiTreeUtilEx.isClassDefineMember(it, className)) {
+                    if (LuaFileUtil.isStdLibFile(it.containingFile.virtualFile, it.project)) {
+                        if (it is LuaDocTagField || it is LuaClassMethodDef || LuaPsiTreeUtilEx.isClassDefineMember(it, className))
+                        {
+                            if (!processor.process(it))
+                                return false
+                        }
+                    } else {
+                        projectTys.add(it)
+                    }
+                }
+                projectTys.forEach {
+                    if (it is LuaDocTagField || it is LuaClassMethodDef || LuaPsiTreeUtilEx.isClassDefineMember(it, className))
+                    {
                         if(!processor.process(it))
                             return false
                     }
@@ -141,9 +151,9 @@ class LuaClassMemberIndex : IntStubIndexExtension<LuaClassMember>() {
         fun processAll(type: ITyClass, context: SearchContext, processor: Processor<LuaClassMember>): Boolean {
             if (process(type.className, context, processor)) {
                 type.lazyInit(context)
-                return type.processAlias(Processor {
+                return type.processAlias {
                     process(it, context, processor)
-                })
+                }
             }
             return true
         }

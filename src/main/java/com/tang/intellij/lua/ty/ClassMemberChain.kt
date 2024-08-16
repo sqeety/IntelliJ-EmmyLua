@@ -39,7 +39,7 @@ class ClassMemberChain(val ty: ITyClass, var superChain: Array<ClassMemberChain>
                 if(member.worth > selfExist.worth){
                     members[name] = member
                 }
-                if(!builtinMembers.contains(name)){
+                if(!builtinMembers.contains(name) || LuaFileUtil.isStdLibFile(member.containingFile.virtualFile, member.project)){
                     if(LuaPsiTreeUtilEx.isClassDefineMember(member, ty.className)){
                         builtinMembers.add(name)
                         members[name] = member

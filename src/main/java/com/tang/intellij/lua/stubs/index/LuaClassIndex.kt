@@ -21,9 +21,9 @@ import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.ProjectAndLibrariesScope
 import com.intellij.psi.stubs.StringStubIndexExtension
 import com.intellij.util.Processor
-import com.intellij.util.containers.ContainerUtil
 import com.tang.intellij.lua.comment.psi.LuaDocTagClass
 import com.tang.intellij.lua.lang.LuaLanguage
+import com.tang.intellij.lua.psi.LuaFileUtil
 import com.tang.intellij.lua.search.SearchContext
 
 /**
@@ -49,18 +49,28 @@ class LuaClassIndex : StringStubIndexExtension<LuaDocTagClass>() {
 
         fun find(name: String, project: Project, scope: GlobalSearchScope): LuaDocTagClass? {
             var tagClass: LuaDocTagClass? = null
-            process(name, project, scope, Processor {
-                if(it is LuaDocTagClass){
+            process(name, project, scope) {
+                if (it is LuaDocTagClass) {
                     tagClass = it
                 }
                 false
-            })
+            }
             return tagClass
         }
 
         fun process(key: String, project: Project, scope: GlobalSearchScope, processor: Processor<LuaDocTagClass>): Boolean {
             val collection = instance.get(key, project, scope)
+            val projectTys = mutableSetOf<LuaDocTagClass>()
             for (clazz in collection) {
+                if (LuaFileUtil.isStdLibFile(clazz.containingFile.virtualFile, project)) {
+                    if(!processor.process(clazz)){
+                        return false
+                    }
+                } else {
+                    projectTys.add(clazz)
+                }
+            }
+            for (clazz in projectTys) {
                 if(!processor.process(clazz)){
                     return false
                 }
@@ -72,7 +82,7 @@ class LuaClassIndex : StringStubIndexExtension<LuaDocTagClass>() {
             val scope = ProjectAndLibrariesScope(project)
             val allKeys = instance.getAllKeys(project)
             for (key in allKeys) {
-                val ret = process(key, project, scope, Processor { false })
+                val ret = process(key, project, scope) { false }
                 if (!ret && !processor.process(key))
                     return false
             }

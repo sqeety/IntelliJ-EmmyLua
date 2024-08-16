@@ -22,6 +22,7 @@ import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.Processor
 import com.tang.intellij.lua.Constants
+import com.tang.intellij.lua.comment.psi.LuaDocTableField
 import com.tang.intellij.lua.comment.psi.LuaDocTagField
 import com.tang.intellij.lua.ext.recursionGuard
 import com.tang.intellij.lua.ext.stubOrPsiParent
@@ -42,13 +43,13 @@ fun inferExpr(expr: LuaExpr?, context: SearchContext): ITy {
         val declaration = tree.find(expr)?.firstDeclaration?.psi
         if (declaration != null && declaration != expr) {
             when (declaration) {
-                is LuaNameDef -> {
-                    return declaration.guessType(context)
-                }
-
-                is LuaIndexExpr -> {
-                    return declaration.guessType(context)
-                }
+//                is LuaNameDef -> {
+//                    return declaration.guessType(context)
+//                }
+//
+//                is LuaIndexExpr -> {
+//                    return declaration.guessType(context)
+//                }
 
                 is LuaTypeGuessable ->{
                     return declaration.guessType(context)
@@ -418,7 +419,14 @@ private fun getType(context: SearchContext, def: PsiElement): ITy {
                         {
                             //不推断_G的全局别名。比如A=_G
                             if(exprList.text != Constants.WORD_G){
-                                type = type.union(expr.guessType(context))
+                                if (!context.guessTextSet.contains(exprList.text)) {
+                                    context.guessTextSet.add(exprList.text)
+                                    val ret = expr.guessType(context)
+                                    if (!Ty.isInvalid(ret)) {
+                                        context.guessTextSet.remove(exprList.text)
+                                        type = type.union(ret)
+                                    }
+                                }
                             }
                         }
                     }
@@ -535,6 +543,7 @@ private fun LuaIndexExpr.infer(context: SearchContext): ITy {
                     }
                 }
             }
+
             //这里容易死循环,优先取library
             val projectTys = mutableSetOf<ITyClass>()
             prefixType.eachTopClass { clazz ->
@@ -606,24 +615,31 @@ private fun guessFieldType(fieldName: String, type: ITyClass, context: SearchCon
     LuaShortNamesManager.getInstance(context.project).processMembers(type, fieldName, context) {
         when (it) {
             is LuaFuncBodyOwner -> {
-                if(selectType != SelectType.OnlyField)
-                    set = set.union(it.guessType(context))
-                if(selectType != SelectType.OnlyMethod){
-                    if(!Ty.isInvalid(set)) return@processMembers false
+                if (selectType != SelectType.OnlyField) set = set.union(it.guessType(context))
+                if (selectType == SelectType.OnlyMethod) {
+                    if (!Ty.isInvalid(set)) return@processMembers false
                 }
             }
             is LuaDocTagField ->{
-                if(selectType != SelectType.OnlyMethod)
+                if (selectType != SelectType.OnlyMethod)
                     set = set.union(it.guessType(context))
-                if(selectType != SelectType.OnlyField){
-                    if(!Ty.isInvalid(set)) return@processMembers false
+                else {
+                    val ret = it.guessType(context)
+                    if (ret is TySerializedFunction) {
+                        return@processMembers false
+                    }
                 }
+                if (selectType == SelectType.OnlyField) {
+                    if (!Ty.isInvalid(set)) return@processMembers false
+                }
+            }
+            is LuaDocTableField->{
+                set = set.union(it.guessType(context))
+                if(!Ty.isInvalid(set)) return@processMembers false
             }
             is LuaTableField->{
                 set = set.union(it.guessType(context))
-                if(selectType != SelectType.OnlyField){
-                    if(!Ty.isInvalid(set)) return@processMembers false
-                }
+                if(!Ty.isInvalid(set)) return@processMembers false
             }
             is LuaIndexExpr ->{
                 val stat = it.assignStat
