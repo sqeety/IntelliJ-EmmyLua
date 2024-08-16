@@ -45,35 +45,40 @@ class LuaClassMemberIndex : IntStubIndexExtension<LuaClassMember>() {
                 return false
             val hashCode = key.hashCode()
             val all = instance.get(hashCode, context.project, context.scope)
-            if(all.isEmpty()) return true
-            do {
-                val index = key.indexOf("*")
-                if (index == -1) break
+            if (all.isEmpty()) return true
+            val index = key.indexOf("*")
+            if (index == -1) {
+                //多个选择直接全部执行
+                for (member in all) {
+                    if (!processor.process(member)) return false
+                }
+            } else {
                 val projectTys = mutableSetOf<LuaClassMember>()
                 val className = key.substring(0, index)
+                val leftMembers = mutableSetOf<LuaClassMember>()
                 all.forEach {
                     if (LuaFileUtil.isStdLibFile(it.containingFile.virtualFile, it.project)) {
-                        if (it is LuaDocTagField || it is LuaClassMethodDef || LuaPsiTreeUtilEx.isClassDefineMember(it, className))
-                        {
+                        if (it is LuaDocTagField || it is LuaClassMethodDef || LuaPsiTreeUtilEx.isClassDefineMember(it, className)) {
                             if (!processor.process(it))
                                 return false
+                        } else {
+                            leftMembers.add(it)
                         }
                     } else {
                         projectTys.add(it)
                     }
                 }
                 projectTys.forEach {
-                    if (it is LuaDocTagField || it is LuaClassMethodDef || LuaPsiTreeUtilEx.isClassDefineMember(it, className))
-                    {
-                        if(!processor.process(it))
+                    if (it is LuaDocTagField || it is LuaClassMethodDef || LuaPsiTreeUtilEx.isClassDefineMember(it, className)) {
+                        if (!processor.process(it))
                             return false
+                    } else {
+                        leftMembers.add(it)
                     }
                 }
-            } while (false)
-
-            //多个选择直接全部执行
-            for (member in all) {
-                if(!processor.process(member)) return false
+                for (member in leftMembers) {
+                    if (!processor.process(member)) return false
+                }
             }
             return true
         }

@@ -156,6 +156,9 @@ fun LuaAssignStat.getIndexFor(psi: LuaExpr): Int {
                 return index
         }
     }
+    if(list.size > 0){
+        return list.size - 1
+    }
     return Int.MAX_VALUE
 }
 

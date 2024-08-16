@@ -25,7 +25,6 @@ import com.tang.intellij.lua.Constants
 import com.tang.intellij.lua.comment.psi.LuaDocTableField
 import com.tang.intellij.lua.comment.psi.LuaDocTagField
 import com.tang.intellij.lua.ext.recursionGuard
-import com.tang.intellij.lua.ext.stubOrPsiParent
 import com.tang.intellij.lua.project.LuaSettings
 import com.tang.intellij.lua.psi.*
 import com.tang.intellij.lua.psi.impl.LuaNameExprMixin
@@ -33,7 +32,6 @@ import com.tang.intellij.lua.psi.search.LuaShortNamesManager
 import com.tang.intellij.lua.search.GuardType
 import com.tang.intellij.lua.search.SearchContext
 import com.tang.intellij.lua.stubs.index.LuaClassIndex
-import io.ktor.util.reflect.*
 
 fun inferExpr(expr: LuaExpr?, context: SearchContext): ITy {
     if (expr == null)
@@ -43,14 +41,6 @@ fun inferExpr(expr: LuaExpr?, context: SearchContext): ITy {
         val declaration = tree.find(expr)?.firstDeclaration?.psi
         if (declaration != null && declaration != expr) {
             when (declaration) {
-//                is LuaNameDef -> {
-//                    return declaration.guessType(context)
-//                }
-//
-//                is LuaIndexExpr -> {
-//                    return declaration.guessType(context)
-//                }
-
                 is LuaTypeGuessable ->{
                     return declaration.guessType(context)
                 }
@@ -626,6 +616,7 @@ private fun guessFieldType(fieldName: String, type: ITyClass, context: SearchCon
                 else {
                     val ret = it.guessType(context)
                     if (ret is TySerializedFunction) {
+                        set = set.union(ret)
                         return@processMembers false
                     }
                 }
@@ -650,13 +641,9 @@ private fun guessFieldType(fieldName: String, type: ITyClass, context: SearchCon
                     }else{
                         if(!context.forStub){
                             val index = stat.getIndexFor(it)
-                            val valueExprList = stat.valueExprList
-                            if(valueExprList != null && index < valueExprList.exprList.size){
-                                val expr = valueExprList.exprList[index]
-                                if(!expr.text.startsWith(it.text)){
-                                    set = set.union(expr.guessType(context))
-                                }
-                            }
+                            set = set.union(context.withIndex(index) {
+                                stat.valueExprList?.guessTypeAt(context) ?: Ty.UNKNOWN
+                            })
                         }
                     }
                 }

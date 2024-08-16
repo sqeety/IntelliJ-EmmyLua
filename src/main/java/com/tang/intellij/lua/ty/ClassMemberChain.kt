@@ -44,6 +44,18 @@ class ClassMemberChain(val ty: ITyClass, var superChain: Array<ClassMemberChain>
                         builtinMembers.add(name)
                         members[name] = member
                     }
+                    //如果之前是a=nil，则替换
+                    else {
+                        if(selfExist is LuaIndexExpr){
+                            val assign = selfExist.assignStat
+                            if(assign != null){
+                                val text = assign.valueExprList?.text
+                                if(text == "nil"){
+                                    members[name] = member
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
