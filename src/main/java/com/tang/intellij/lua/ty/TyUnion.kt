@@ -54,9 +54,9 @@ class TyUnion : Ty(TyKind.Union) {
         return super.subTypeOf(other, context, strict) || childSet.any { type -> type.subTypeOf(other, context, strict) }
     }
 
-    override fun substitute(substitutor: ITySubstitutor): ITy {
+    override fun substitute(substitutor: ITySubstitutor, context: SearchContext): ITy {
         val u = TyUnion()
-        childSet.forEach { u.append(it.substitute(substitutor)) }
+        childSet.forEach { u.append(it.substitute(substitutor, context)) }
         return u
     }
 

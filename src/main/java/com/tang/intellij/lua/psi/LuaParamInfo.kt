@@ -21,6 +21,7 @@ import com.intellij.psi.stubs.StubOutputStream
 import com.intellij.util.BitUtil
 import com.intellij.util.io.StringRef
 import com.tang.intellij.lua.Constants
+import com.tang.intellij.lua.search.SearchContext
 import com.tang.intellij.lua.ty.ITy
 import com.tang.intellij.lua.ty.ITyClass
 import com.tang.intellij.lua.ty.ITySubstitutor
@@ -66,11 +67,11 @@ class LuaParamInfo {
             if (value) name = Constants.WORD_SELF
         }
 
-    fun substitute(substitutor: ITySubstitutor): LuaParamInfo {
+    fun substitute(substitutor: ITySubstitutor, context: SearchContext): LuaParamInfo {
         val pi = LuaParamInfo()
         pi.flags = flags
         pi.name = name
-        pi.ty = ty.substitute(substitutor)
+        pi.ty = ty.substitute(substitutor, context)
         return pi
     }
 

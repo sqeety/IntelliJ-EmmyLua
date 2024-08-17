@@ -26,8 +26,8 @@ class TyTuple(val list: List<ITy>) : Ty(TyKind.Tuple) {
         return list.size
     }
 
-    override fun substitute(substitutor: ITySubstitutor): ITy {
-        val list = list.map { it.substitute(substitutor) }
+    override fun substitute(substitutor: ITySubstitutor, context: SearchContext): ITy {
+        val list = list.map { it.substitute(substitutor, context) }
         return TyTuple(list)
     }
 

@@ -58,7 +58,7 @@ class SearchContext private constructor(val project: Project) {
         }
 
         fun infer(psi: LuaTypeGuessable, context: SearchContext): ITy {
-            return with(context, Ty.UNKNOWN) { it.inferAndCache(psi) }
+            return context.inferAndCache(psi)
         }
 
         private fun <T> with(ctx: SearchContext, defaultValue: T, action: (ctx: SearchContext) -> T): T {

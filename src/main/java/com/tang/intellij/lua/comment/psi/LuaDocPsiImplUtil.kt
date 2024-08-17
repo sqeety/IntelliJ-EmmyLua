@@ -123,7 +123,7 @@ fun getType(tagParamDec: LuaDocTagParam): ITy {
     if (type != null) {
         val substitutor = LuaCommentUtil.findContainer(tagParamDec).createSubstitutor()
         if (substitutor != null)
-            return type.substitute(substitutor)
+            return type.substitute(substitutor, SearchContext.get(tagParamDec.project))
     }
     return type ?: Ty.UNKNOWN
 }

@@ -282,7 +282,7 @@ private fun resolveParamType(paramNameDef: LuaParamNameDef, context: SearchConte
             var result: ITy = Ty.UNKNOWN
             TyUnion.each(type) {
                 if (it is ITyFunction) {
-                    val returnTy = it.mainSignature.returnTy
+                    val returnTy = it.mainSignature.guessReturnType(context)
                     if (returnTy is TyTuple) {
                         result = result.union(returnTy.list.getOrElse(paramIndex) { Ty.UNKNOWN })
                     } else if (paramIndex == 0) {

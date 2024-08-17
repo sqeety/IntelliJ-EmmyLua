@@ -38,8 +38,8 @@ class TyArray(override val base: ITy) : Ty(TyKind.Array), ITyArray {
         return super.subTypeOf(other, context, strict) || (other is TyArray && base.subTypeOf(other.base, context, strict)) || other == TABLE
     }
 
-    override fun substitute(substitutor: ITySubstitutor): ITy {
-        return TyArray(base.substitute(substitutor))
+    override fun substitute(substitutor: ITySubstitutor, context: SearchContext): ITy {
+        return TyArray(base.substitute(substitutor, context))
     }
 
     override fun accept(visitor: ITyVisitor) {

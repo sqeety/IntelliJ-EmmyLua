@@ -189,12 +189,12 @@ class LuaCommentImpl(node: ASTNode) : ASTWrapperPsiElement(node), LuaComment {
             return null
 
         return object : TySubstitutor() {
-            override fun substitute(clazz: ITyClass): ITy {
+            override fun substitute(clazz: ITyClass, context: SearchContext): ITy {
                 val base = map[clazz.className]
                 if (base != null) {
                     return TyParameter(clazz.className, arrayOf(base))
                 }
-                return super.substitute(clazz)
+                return super.substitute(clazz, context)
             }
         }
     }

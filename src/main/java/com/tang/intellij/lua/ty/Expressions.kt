@@ -46,7 +46,7 @@ fun inferExpr(expr: LuaExpr?, context: SearchContext): ITy {
                 }
 
                 is LuaIndexExpr -> {
-                    return declaration.guessType(context)
+                    return declaration.infer(context)
                 }
 
                 is LuaTypeGuessable ->{
@@ -180,7 +180,7 @@ fun LuaCallExpr.createSubstitutor(sig: IFunSignature, context: SearchContext): I
 
         }
         return object : TySubstitutor() {
-            override fun substitute(clazz: ITyClass): ITy {
+            override fun substitute(clazz: ITyClass, context: SearchContext): ITy {
                 return map.getOrElse(clazz.className) { clazz }
             }
         }
@@ -190,8 +190,9 @@ fun LuaCallExpr.createSubstitutor(sig: IFunSignature, context: SearchContext): I
 
 private fun LuaCallExpr.getReturnTy(sig: IFunSignature, context: SearchContext): ITy? {
     val substitutor = createSubstitutor(sig, context)
-    var returnTy = if (substitutor != null) sig.returnTy.substitute(substitutor) else sig.returnTy
-    returnTy = returnTy.substitute(TySelfSubstitutor(project, this))
+    val returnGuessTy = sig.guessReturnType(context)
+    var returnTy = if (substitutor != null) returnGuessTy.substitute(substitutor, context) else returnGuessTy
+    returnTy = returnTy.substitute(TySelfSubstitutor(project, this), context)
     return if (returnTy is TyTuple) {
         if (context.guessTuple())
             returnTy
@@ -256,7 +257,7 @@ private fun LuaCallExpr.infer(context: SearchContext): ITy {
     }
     //泛型处理
     if (ty is ITyFunction) {
-        var returnTy = ty.mainSignature.returnTy
+        var returnTy = ty.mainSignature.guessReturnType(context)
         var matchFunc = false
         ty.process(Processor { sig ->
             val targetTy = getReturnTy(sig, context)
@@ -469,140 +470,141 @@ enum class SelectType {
     Both
 }
 
+private fun processClassMember(clazz:ITyClass, propName:String, context:SearchContext, selectType:SelectType):ITy{
+    val key = "${clazz.className}**${propName}"
+    if(context.guessTextSet.contains(key)){
+        return Ty.UNKNOWN
+    }
+    context.guessTextSet.add(key)
+    val result = guessFieldType(propName, clazz, context, selectType)
+    if (!Ty.isInvalid(result)) {
+        context.guessTextSet.remove(key)
+        return result
+    }
+    return Ty.UNKNOWN
+}
+
 private fun LuaIndexExpr.infer(context: SearchContext): ITy {
-    val retTy = recursionGuard(this, Computable {
-        val indexExpr = this
-        var parentTy: ITy? = null
-        // xxx[yyy] as an array element?
-        if (indexExpr.brack) {
-            val tySet = indexExpr.guessParentType(context)
-            var ty: ITy = Ty.UNKNOWN
+    val indexExpr = this
+    var parentTy: ITy? = null
+    // xxx[yyy] as an array element?
+    if (indexExpr.brack) {
+        val tySet = indexExpr.guessParentType(context)
+        var ty: ITy = Ty.UNKNOWN
 
-            // Type[]
-            TyUnion.each(tySet) {
-                if (it is ITyArray) ty = ty.union(it.base)
+        // Type[]
+        TyUnion.each(tySet) {
+            if (it is ITyArray) ty = ty.union(it.base)
+        }
+        if (ty !is TyUnknown) return ty
+
+        // table<number, Type>
+        TyUnion.each(tySet) {
+            if (it is ITyGeneric) ty = ty.union(it.getParamTy(1))
+        }
+        if (ty !is TyUnknown) return ty
+
+        parentTy = tySet
+    }
+
+    //from @type annotation
+    val docTy = indexExpr.docTy
+    if (docTy != null)
+        return docTy
+
+    // xxx.yyy = zzz
+    //from value
+    var result: ITy = Ty.UNKNOWN
+
+    //from other class member
+    val propName = indexExpr.name
+    if (propName != null) {
+        val prefixType = parentTy ?: indexExpr.guessParentType(context)
+        if(Ty.isInvalid(prefixType)){
+            return result
+        }
+        var selectType = SelectType.Both
+        val nextSibling = indexExpr.nextSibling
+        if(nextSibling != null){
+            if(nextSibling.text == "." || nextSibling.text == ":") {
+                selectType = SelectType.OnlyField
+            }else if(nextSibling.text.startsWith("(")) {
+                selectType = SelectType.OnlyMethod
             }
-            if (ty !is TyUnknown) return@Computable ty
-
-            // table<number, Type>
-            TyUnion.each(tySet) {
-                if (it is ITyGeneric) ty = ty.union(it.getParamTy(1))
+        }
+        prefixType.each { ty ->
+            if (ty is ITyGeneric) {
+                val base = ty.base
+                if(base is TyLazyClass) {
+                    base.lazyInit(context)
+                }
             }
-            if (ty !is TyUnknown) return@Computable ty
-
-            parentTy = tySet
         }
 
-        //from @type annotation
-        val docTy = indexExpr.docTy
-        if (docTy != null)
-            return@Computable docTy
-
-        // xxx.yyy = zzz
-        //from value
-        var result: ITy = Ty.UNKNOWN
-
-        //from other class member
-        val propName = indexExpr.name
-        if (propName != null) {
-            val prefixType = parentTy ?: indexExpr.guessParentType(context)
-            if(Ty.isInvalid(prefixType)){
-                return@Computable result
-            }
-            var selectType = SelectType.Both
-            val nextSibling = indexExpr.nextSibling
-            if(nextSibling != null){
-                if(nextSibling.text == "." || nextSibling.text == ":") {
-                    selectType = SelectType.OnlyField
-                }else if(nextSibling.text.startsWith("(")) {
-                    selectType = SelectType.OnlyMethod
-                }
-            }
-            prefixType.each { ty ->
-                if (ty is ITyGeneric) {
-                    val base = ty.base
-                    if(base is TyLazyClass) {
-                        base.lazyInit(context)
-                    }
-                }
-            }
-
-            //这里容易死循环,优先取library
-            val projectTys = mutableSetOf<ITyClass>()
-            prefixType.eachTopClass { clazz ->
-                val classDef = LuaClassIndex.find(clazz.className, context)
-                if (classDef != null) {
-                    if (LuaFileUtil.isStdLibFile(classDef.containingFile.virtualFile, project)) {
-                        result = result.union(guessFieldType(propName, clazz, context, selectType))
-                    } else {
-                        projectTys.add(clazz)
-                    }
+        //这里容易死循环,优先取library
+        val projectTys = mutableSetOf<ITyClass>()
+        prefixType.eachTopClass { clazz ->
+            val classDef = LuaClassIndex.find(clazz.className, context)
+            if (classDef != null) {
+                if (LuaFileUtil.isStdLibFile(classDef.containingFile.virtualFile, project)) {
+                    result = result.union(processClassMember(clazz, propName, context, selectType))
                 } else {
-                    result = result.union(guessFieldType(propName, clazz, context, selectType))
+                    projectTys.add(clazz)
                 }
-                Ty.isInvalid(result)
+            } else {
+                projectTys.add(clazz)
             }
+            Ty.isInvalid(result)
+        }
 
-            if (Ty.isInvalid(result)) {
-                for (clazz in projectTys) {
-                    val key = "${clazz.className}**${propName}"
-                    if(context.guessTextSet.contains(key)){
-                        return@Computable result
-                    }
-                    context.guessTextSet.add(key)
-                    result = result.union(guessFieldType(propName, clazz, context, selectType))
-                    if (!Ty.isInvalid(result)) {
-                        context.guessTextSet.remove(key)
-                        break
-                    }
-                }
+        if (Ty.isInvalid(result)) {
+            for (clazz in projectTys) {
+                result = result.union(processClassMember(clazz, propName, context, selectType))
             }
-            //泛型临时处理
-            prefixType.each { ty ->
-                if (ty is ITyGeneric)
-                {
-                    val base = ty.base
-                    if(base is TyLazyClass){
-                        if(base.genericNames.isNotEmpty()){
-                            val temp = result
-                            for ((index, genericName) in base.genericNames.withIndex()){
-                                temp.each { rt->
-                                    if(rt.displayName == genericName){
-                                        result = result.replace(rt, ty.getParamTy(index))
-                                    }
+        }
+        //泛型临时处理
+        prefixType.each { ty ->
+            if (ty is ITyGeneric)
+            {
+                val base = ty.base
+                if(base is TyLazyClass){
+                    if(base.genericNames.isNotEmpty()){
+                        val temp = result
+                        for ((index, genericName) in base.genericNames.withIndex()){
+                            temp.each { rt->
+                                if(rt.displayName == genericName){
+                                    result = result.replace(rt, ty.getParamTy(index))
                                 }
                             }
                         }
                     }
                 }
             }
-            // table<string, K> -> member type is K
-            prefixType.each { ty ->
-                if (ty is ITyGeneric && ty.getParamTy(0) == Ty.STRING)
-                    result = result.union(ty.getParamTy(1))
-            }
         }
-
-        val assignStat = indexExpr.assignStat
-        if (assignStat != null) {
-            val index = assignStat.getIndexFor(indexExpr)
-            if(context.guessTextSet.contains(indexExpr.text)) {
-                return@Computable result
-            }
-            context.guessTextSet.add(indexExpr.text)
-            result = context.withIndex(index) {
-                assignStat.valueExprList?.guessTypeAt(context) ?: Ty.UNKNOWN
-            }
-            if(!Ty.isInvalid(result)){
-                context.guessTextSet.remove(indexExpr.text)
-                return@Computable result
-            }
+        // table<string, K> -> member type is K
+        prefixType.each { ty ->
+            if (ty is ITyGeneric && ty.getParamTy(0) == Ty.STRING)
+                result = result.union(ty.getParamTy(1))
         }
+    }
 
-        result
-    })
+    val assignStat = indexExpr.assignStat
+    if (assignStat != null) {
+        val index = assignStat.getIndexFor(indexExpr)
+        if(context.guessTextSet.contains(indexExpr.text)) {
+            return result
+        }
+        context.guessTextSet.add(indexExpr.text)
+        result = context.withIndex(index) {
+            assignStat.valueExprList?.guessTypeAt(context) ?: Ty.UNKNOWN
+        }
+        if(!Ty.isInvalid(result)){
+            context.guessTextSet.remove(indexExpr.text)
+            return result
+        }
+    }
 
-    return retTy ?: Ty.UNKNOWN
+    return result
 }
 
 private fun guessFieldType(fieldName: String, type: ITyClass, context: SearchContext, selectType:SelectType): ITy {

@@ -71,7 +71,7 @@ interface ITy : Comparable<ITy> {
 
     fun visitSuper(searchContext: SearchContext, processor: Processor<ITyClass>)
 
-    fun substitute(substitutor: ITySubstitutor): ITy
+    fun substitute(substitutor: ITySubstitutor, context: SearchContext): ITy
 
     fun each(fn: (ITy) -> Unit) {
         TyUnion.each(this, fn)
@@ -179,8 +179,8 @@ abstract class Ty(override val kind: TyKind) : ITy {
         return other.worth.compareTo(worth)
     }
 
-    override fun substitute(substitutor: ITySubstitutor): ITy {
-        return substitutor.substitute(this)
+    override fun substitute(substitutor: ITySubstitutor, context: SearchContext): ITy {
+        return substitutor.substitute(this, context)
     }
 
     override fun eachTopClass(fn: Processor<ITyClass>):Boolean {

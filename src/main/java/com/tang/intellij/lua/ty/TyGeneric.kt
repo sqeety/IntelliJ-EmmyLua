@@ -85,10 +85,10 @@ abstract class TyGeneric : Ty(TyKind.Generic), ITyGeneric {
         visitor.visitGeneric(this)
     }
 
-    override fun substitute(substitutor: ITySubstitutor): ITy {
+    override fun substitute(substitutor: ITySubstitutor, context: SearchContext): ITy {
         return TySerializedGeneric(
-                params.map { it.substitute(substitutor) }.toTypedArray(),
-                base.substitute(substitutor)
+                params.map { it.substitute(substitutor, context) }.toTypedArray(),
+                base.substitute(substitutor, context)
         )
     }
 }

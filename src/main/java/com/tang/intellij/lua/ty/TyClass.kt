@@ -215,8 +215,8 @@ abstract class TyClass(override val className: String,
         }
     }
 
-    override fun substitute(substitutor: ITySubstitutor): ITy {
-        return substitutor.substitute(this)
+    override fun substitute(substitutor: ITySubstitutor, context: SearchContext): ITy {
+        return substitutor.substitute(this, context)
     }
 
     companion object {
@@ -350,7 +350,7 @@ open class TySerializedClass(name: String,
         if (this.isAnonymous || this.isGlobal)
             return this
         val alias = LuaShortNamesManager.getInstance(context.project).findAlias(className, context)
-        return alias?.type?.substitute(aliasSubstitutor) ?: this
+        return alias?.type?.substitute(aliasSubstitutor, context) ?: this
     }
 }
 

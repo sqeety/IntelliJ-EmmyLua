@@ -32,8 +32,9 @@ interface IFunSignature {
     val paramSignature: String
     val tyParameters: Array<TyParameter>
     val varargTy: ITy?
-    fun substitute(substitutor: ITySubstitutor): IFunSignature
+    fun substitute(substitutor: ITySubstitutor, context: SearchContext): IFunSignature
     fun subTypeOf(other: IFunSignature, context: SearchContext, strict: Boolean): Boolean
+    fun guessReturnType(context: SearchContext): ITy
 }
 
 fun IFunSignature.getParamTyEx(callExpr: LuaCallExpr, index: Int): ITy {
@@ -151,11 +152,15 @@ abstract class FunSignatureBase(override val colonCall: Boolean,
         return "(" + list.joinToString(", ") + ")"
     }
 
-    override fun substitute(substitutor: ITySubstitutor): IFunSignature {
-        val list = params.map { it.substitute(substitutor) }
+    override fun guessReturnType(context: SearchContext):ITy{
+        return returnTy
+    }
+
+    override fun substitute(substitutor: ITySubstitutor, context: SearchContext): IFunSignature {
+        val list = params.map { it.substitute(substitutor, context) }
         return FunSignature(colonCall,
-                returnTy.substitute(substitutor),
-                varargTy?.substitute(substitutor),
+                guessReturnType(context).substitute(substitutor, context),
+                varargTy?.substitute(substitutor, context),
                 list.toTypedArray(),
                 tyParameters)
     }
@@ -311,8 +316,8 @@ abstract class TyFunction : Ty(TyKind.Function), ITyFunction {
         return matched
     }
 
-    override fun substitute(substitutor: ITySubstitutor): ITy {
-        return substitutor.substitute(this)
+    override fun substitute(substitutor: ITySubstitutor, context: SearchContext): ITy {
+        return substitutor.substitute(this, context)
     }
 
     override fun accept(visitor: ITyVisitor) {
@@ -332,7 +337,14 @@ class TyPsiFunction(private val colonCall: Boolean, val psi: LuaFuncBodyOwner, f
 
         object : FunSignatureBase(colonCall, psi.params, psi.tyParams) {
             override val returnTy: ITy by lazy {
-                var returnTy = psi.guessReturnType(SearchContext.get(psi.project))
+                guessReturnType(SearchContext.get(psi.project))
+            }
+
+            override val varargTy: ITy?
+                get() = psi.varargType
+
+            override fun guessReturnType(context: SearchContext): ITy {
+                var ty = psi.guessReturnType(context)
                 /**
                  * todo optimize this bug solution
                  * local function test()
@@ -340,15 +352,12 @@ class TyPsiFunction(private val colonCall: Boolean, val psi: LuaFuncBodyOwner, f
                  * end
                  * -- will crash after type `test`
                  */
-                if (returnTy is TyPsiFunction && returnTy.psi == psi) {
-                    returnTy = UNKNOWN
+                if (ty is TyPsiFunction && ty.psi == psi) {
+                    ty = UNKNOWN
                 }
-
-                returnTy
+                return ty
             }
 
-            override val varargTy: ITy?
-                get() = psi.varargType
         }
     }
 

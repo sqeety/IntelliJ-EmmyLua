@@ -23,10 +23,10 @@ import com.tang.intellij.lua.psi.prefixExpr
 import com.tang.intellij.lua.search.SearchContext
 
 interface ITySubstitutor {
-    fun substitute(function: ITyFunction): ITy
-    fun substitute(clazz: ITyClass): ITy
-    fun substitute(generic: ITyGeneric): ITy
-    fun substitute(ty: ITy): ITy
+    fun substitute(function: ITyFunction, context: SearchContext): ITy
+    fun substitute(clazz: ITyClass, context: SearchContext): ITy
+    fun substitute(generic: ITyGeneric, context: SearchContext): ITy
+    fun substitute(ty: ITy, context: SearchContext): ITy
 }
 
 class GenericAnalyzer(arg: ITy, private val par: ITy) : TyVisitor() {
@@ -97,49 +97,49 @@ class GenericAnalyzer(arg: ITy, private val par: ITy) : TyVisitor() {
 }
 
 open class TySubstitutor : ITySubstitutor {
-    override fun substitute(ty: ITy) = ty
+    override fun substitute(ty: ITy, context: SearchContext) = ty
 
-    override fun substitute(clazz: ITyClass): ITy {
+    override fun substitute(clazz: ITyClass, context: SearchContext): ITy {
         return clazz
     }
 
-    override fun substitute(generic: ITyGeneric): ITy {
+    override fun substitute(generic: ITyGeneric, context: SearchContext): ITy {
         return generic
     }
 
-    override fun substitute(function: ITyFunction): ITy {
-        return TySerializedFunction(function.mainSignature.substitute(this),
-                function.signatures.map { it.substitute(this) }.toTypedArray(),
+    override fun substitute(function: ITyFunction, context: SearchContext): ITy {
+        return TySerializedFunction(function.mainSignature.substitute(this, context),
+                function.signatures.map { it.substitute(this, context) }.toTypedArray(),
                 function.flags)
     }
 }
 
-class TyAliasSubstitutor private constructor(val context: SearchContext) : ITySubstitutor {
+class TyAliasSubstitutor private constructor() : ITySubstitutor {
     private val alreadyProcessed = hashSetOf<String>()
 
     companion object {
         fun substitute(ty: ITy, context: SearchContext): ITy {
-            return ty.substitute(TyAliasSubstitutor(context))
+            return ty.substitute(TyAliasSubstitutor(), context)
         }
     }
 
-    override fun substitute(function: ITyFunction): ITy {
-        return TySerializedFunction(function.mainSignature.substitute(this),
-                function.signatures.map { it.substitute(this) }.toTypedArray(),
+    override fun substitute(function: ITyFunction, context: SearchContext): ITy {
+        return TySerializedFunction(function.mainSignature.substitute(this, context),
+                function.signatures.map { it.substitute(this, context) }.toTypedArray(),
                 function.flags)
     }
 
-    override fun substitute(clazz: ITyClass): ITy {
+    override fun substitute(clazz: ITyClass, context: SearchContext): ITy {
         if (!alreadyProcessed.add(clazz.className))
             return clazz
         return clazz.recoverAlias(context, this)
     }
 
-    override fun substitute(generic: ITyGeneric): ITy {
+    override fun substitute(generic: ITyGeneric, context: SearchContext): ITy {
         return generic
     }
 
-    override fun substitute(ty: ITy): ITy {
+    override fun substitute(ty: ITy, context: SearchContext): ITy {
         return ty
     }
 }
@@ -149,10 +149,10 @@ class TySelfSubstitutor(val project: Project, val call: LuaCallExpr?, val self: 
         self ?: (call?.prefixExpr?.guessType(SearchContext.get(project)) ?: Ty.UNKNOWN)
     }
 
-    override fun substitute(clazz: ITyClass): ITy {
+    override fun substitute(clazz: ITyClass, context: SearchContext): ITy {
         if (clazz.className == Constants.WORD_SELF) {
             return selfType
         }
-        return super.substitute(clazz)
+        return super.substitute(clazz, context)
     }
 }
