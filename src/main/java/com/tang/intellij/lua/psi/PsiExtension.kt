@@ -113,8 +113,16 @@ private fun LuaExpr.shouldBeInternal(context: SearchContext): ITy {
 }
 
 fun LuaExpr.shouldBe(context: SearchContext): ITy {
+    if(context.guessTextSet.contains(text)){
+        return Ty.UNKNOWN
+    }
+    context.guessTextSet.add(text)
     val ty = shouldBeInternal(context)
-    return TyAliasSubstitutor.substitute(ty, context)
+    val result = TyAliasSubstitutor.substitute(ty, context)
+    if(!Ty.isInvalid(result)){
+        context.guessTextSet.remove(text)
+    }
+    return result
 }
 
 /**
