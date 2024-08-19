@@ -18,7 +18,6 @@ package com.tang.intellij.lua.stubs
 
 import com.intellij.openapi.util.Computable
 import com.intellij.psi.stubs.StubElement
-import com.tang.intellij.lua.ext.recursionGuard
 import com.tang.intellij.lua.psi.*
 import com.tang.intellij.lua.search.SearchContext
 import com.tang.intellij.lua.ty.*
@@ -36,29 +35,27 @@ interface LuaFuncBodyOwnerStub<T : LuaFuncBodyOwner> : StubElement<T> {
 
     private fun walkStub(stub: StubElement<*>, context: SearchContext): ITy? {
         val psi = stub.psi
-        return recursionGuard(stub, Computable {
-            val ty = when (psi) {
-                is LuaReturnStat -> {
-                    psi.exprList?.guessTypeAt(context)
-                }
-                is LuaDoStat,
-                is LuaWhileStat,
-                is LuaIfStat,
-                is LuaForAStat,
-                is LuaForBStat,
-                is LuaRepeatStat -> {
-                    var ret: ITy? = null
-                    for (childrenStub in stub.childrenStubs) {
-                        ret = walkStub(childrenStub, context)
-                        if (ret != null)
-                            break
-                    }
-                    ret
-                }
-                else -> null
+        val ty = when (psi) {
+            is LuaReturnStat -> {
+                psi.exprList?.guessTypeAt(context)
             }
-            ty
-        })
+            is LuaDoStat,
+            is LuaWhileStat,
+            is LuaIfStat,
+            is LuaForAStat,
+            is LuaForBStat,
+            is LuaRepeatStat -> {
+                var ret: ITy? = null
+                for (childrenStub in stub.childrenStubs) {
+                    ret = walkStub(childrenStub, context)
+                    if (ret != null)
+                        break
+                }
+                ret
+            }
+            else -> null
+        }
+        return ty
     }
 
     fun guessReturnTy(context: SearchContext): ITy {

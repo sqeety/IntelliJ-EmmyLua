@@ -24,7 +24,6 @@ import com.intellij.util.Processor
 import com.tang.intellij.lua.Constants
 import com.tang.intellij.lua.comment.psi.LuaDocTableField
 import com.tang.intellij.lua.comment.psi.LuaDocTagField
-import com.tang.intellij.lua.ext.recursionGuard
 import com.tang.intellij.lua.project.LuaSettings
 import com.tang.intellij.lua.psi.*
 import com.tang.intellij.lua.psi.impl.LuaNameExprMixin
@@ -352,45 +351,38 @@ private fun LuaCallExpr.infer(context: SearchContext): ITy {
 }
 
 private fun LuaNameExpr.infer(context: SearchContext): ITy {
-    val set = recursionGuard(this, Computable {
-        var type:ITy = Ty.UNKNOWN
+    var type:ITy = Ty.UNKNOWN
 
-        /**
-         * fixme : optimize it.
-         * function xx:method()
-         *     self.name = '123'
-         * end
-         *
-         * https://github.com/EmmyLua/IntelliJ-EmmyLua/issues/93
-         * the type of 'self' should be same of 'xx'
-         */
-        if (name == Constants.WORD_SELF) {
-            val methodDef = PsiTreeUtil.getStubOrPsiParentOfType(this, LuaClassMethodDef::class.java)
-            if (methodDef != null && !methodDef.isStatic) {
-                val methodName = methodDef.classMethodName
-                val expr = methodName.expr
-                type = expr.guessType(context)
-                return@Computable type
-            }
+    /**
+     * fixme : optimize it.
+     * function xx:method()
+     *     self.name = '123'
+     * end
+     *
+     * https://github.com/EmmyLua/IntelliJ-EmmyLua/issues/93
+     * the type of 'self' should be same of 'xx'
+     */
+    if (name == Constants.WORD_SELF) {
+        val methodDef = PsiTreeUtil.getStubOrPsiParentOfType(this, LuaClassMethodDef::class.java)
+        if (methodDef != null && !methodDef.isStatic) {
+            val methodName = methodDef.classMethodName
+            val expr = methodName.expr
+            type = expr.guessType(context)
+            return type
         }
+    }
 
-        context.withRecursionGuard(this, GuardType.GlobalName) {
-            val multiResolve = multiResolve(this, context)
-            for (element in multiResolve) {
-                val set = getType(context, element)
-                type = type.union(set)
-            }
-            type
-        }
+    val multiResolve = multiResolve(this, context)
+    for (element in multiResolve) {
+        val set = getType(context, element)
+        type = type.union(set)
+    }
 
 
-        if (Ty.isInvalid(type)) {
-            type = getType(context, this)
-        }
-
-        type
-    })
-    return set ?: Ty.UNKNOWN
+    if (Ty.isInvalid(type)) {
+        type = getType(context, this)
+    }
+    return type
 }
 
 private fun getType(context: SearchContext, def: PsiElement): ITy {

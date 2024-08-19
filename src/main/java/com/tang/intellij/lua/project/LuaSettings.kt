@@ -77,8 +77,6 @@ class LuaSettings : PersistentStateComponent<LuaSettings> {
      */
     var languageLevel = LuaLanguageLevel.LUA53
 
-    var avoidRecursion = false
-
     override fun getState(): LuaSettings {
         return this
     }

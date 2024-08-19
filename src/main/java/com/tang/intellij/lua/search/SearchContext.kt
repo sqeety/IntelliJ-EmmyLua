@@ -61,7 +61,7 @@ class SearchContext private constructor(val project: Project) {
             return context.inferAndCache(psi)
         }
 
-        private fun <T> with(ctx: SearchContext, defaultValue: T, action: (ctx: SearchContext) -> T): T {
+        private fun <T> with(ctx: SearchContext, action: (ctx: SearchContext) -> T): T {
             return if (ctx.myInStack) {
                 action(ctx)
             } else {
@@ -69,17 +69,7 @@ class SearchContext private constructor(val project: Project) {
                 val size = stack.size
                 stack.push(ctx)
                 ctx.myInStack = true
-                val result:T
-                if (LuaSettings.instance.avoidRecursion) {
-                    result = try {
-                        action(ctx)
-                    } catch (e: Exception) {
-                        defaultValue
-                    }
-                } else {
-                    result = action(ctx)
-                }
-
+                val result:T = action(ctx)
                 ctx.myInStack = false
                 stack.pop()
                 assert(size == stack.size)
@@ -93,13 +83,13 @@ class SearchContext private constructor(val project: Project) {
         }
 
         @Suppress("UNUSED_PARAMETER")
-        fun <T> withStub(project: Project, file: PsiFile, defaultValue: T, action: (ctx: SearchContext) -> T): T {
+        fun <T> withStub(project: Project, file: PsiFile, action: (ctx: SearchContext) -> T): T {
             val context = SearchContext(project)
-            return withStub(context, defaultValue, action)
+            return withStub(context, action)
         }
 
-        private fun <T> withStub(ctx: SearchContext, defaultValue: T, action: (ctx: SearchContext) -> T): T {
-            return with(ctx, defaultValue) {
+        private fun <T> withStub(ctx: SearchContext, action: (ctx: SearchContext) -> T): T {
+            return with(ctx) {
                 val dumb = it.myDumb
                 val stub = it.myForStub
                 it.myDumb = true
@@ -162,21 +152,6 @@ class SearchContext private constructor(val project: Project) {
         val ret = action()
         myScope = oriScope
         return ret
-    }
-
-    fun withRecursionGuard(psi: PsiElement, type: GuardType, action: () -> ITy): ITy {
-        myGuardList.forEach {
-            if (it.check(psi, type)) {
-                return Ty.UNKNOWN
-            }
-        }
-        val guard = createGuard(psi, type)
-        if (guard != null)
-            myGuardList.add(guard)
-        val result = action()
-        if (guard != null)
-            myGuardList.remove(guard)
-        return result
     }
 
     private fun inferAndCache(psi: LuaTypeGuessable): ITy {

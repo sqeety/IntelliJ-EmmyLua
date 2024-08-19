@@ -23,7 +23,6 @@ import com.tang.intellij.lua.Constants
 import com.tang.intellij.lua.comment.LuaCommentUtil
 import com.tang.intellij.lua.comment.psi.LuaDocTagField
 import com.tang.intellij.lua.comment.psi.LuaDocTagReturn
-import com.tang.intellij.lua.ext.recursionGuard
 import com.tang.intellij.lua.ext.stubOrPsiParent
 import com.tang.intellij.lua.psi.*
 import com.tang.intellij.lua.search.GuardType
@@ -73,39 +72,37 @@ private fun inferReturnTyInner(owner: LuaFuncBodyOwner, searchContext: SearchCon
     }
 
     //infer from return stat
-    return searchContext.withRecursionGuard(owner, GuardType.RecursionCall) {
-        var type: ITy = Ty.VOID
-        owner.acceptChildren(object : LuaRecursiveVisitor() {
-            override fun visitReturnStat(o: LuaReturnStat) {
-                val guessReturnType = guessReturnType(o, searchContext.index, searchContext)
-                TyUnion.each(guessReturnType) {
-                    /**
-                     * 注意，不能排除anonymous
-                     * local function test()
-                     *      local v = xxx()
-                     *      v.yyy = zzz
-                     *      return v
-                     * end
-                     *
-                     * local r = test()
-                     *
-                     * type of r is an anonymous ty
-                     */
-                    type = type.union(it)
-                }
+    var type: ITy = Ty.VOID
+    owner.acceptChildren(object : LuaRecursiveVisitor() {
+        override fun visitReturnStat(o: LuaReturnStat) {
+            val guessReturnType = guessReturnType(o, searchContext.index, searchContext)
+            TyUnion.each(guessReturnType) {
+                /**
+                 * 注意，不能排除anonymous
+                 * local function test()
+                 *      local v = xxx()
+                 *      v.yyy = zzz
+                 *      return v
+                 * end
+                 *
+                 * local r = test()
+                 *
+                 * type of r is an anonymous ty
+                 */
+                type = type.union(it)
             }
+        }
 
-            override fun visitExprStat(o: LuaExprStat) {}
-            override fun visitLabelStat(o: LuaLabelStat) {}
-            override fun visitAssignStat(o: LuaAssignStat) {}
-            override fun visitGotoStat(o: LuaGotoStat) {}
-            override fun visitClassMethodDef(o: LuaClassMethodDef) {}
-            override fun visitFuncDef(o: LuaFuncDef) {}
-            override fun visitLocalDef(o: LuaLocalDef) {}
-            override fun visitLocalFuncDef(o: LuaLocalFuncDef) {}
-        })
-        type
-    }
+        override fun visitExprStat(o: LuaExprStat) {}
+        override fun visitLabelStat(o: LuaLabelStat) {}
+        override fun visitAssignStat(o: LuaAssignStat) {}
+        override fun visitGotoStat(o: LuaGotoStat) {}
+        override fun visitClassMethodDef(o: LuaClassMethodDef) {}
+        override fun visitFuncDef(o: LuaFuncDef) {}
+        override fun visitLocalDef(o: LuaLocalDef) {}
+        override fun visitLocalFuncDef(o: LuaLocalFuncDef) {}
+    })
+    return type
 }
 
 private fun LuaParamNameDef.infer(context: SearchContext): ITy {
@@ -183,31 +180,28 @@ private fun LuaTableField.infer(context: SearchContext): ITy {
 }
 
 private fun inferFile(file: LuaPsiFile, context: SearchContext): ITy {
-    return recursionGuard(file, Computable {
-        val moduleName = file.moduleName
-        if (moduleName != null)
-            TyLazyClass(moduleName)
-        else {
-            val stub = file.stub
-            if (stub != null) {
-                val statStub = stub.childrenStubs.lastOrNull { it.psi is LuaReturnStat }
-                val stat = statStub?.psi
-                if (stat is LuaReturnStat)
-                    guessReturnType(stat, 0, context)
-                else null
-            } else {
-                val lastChild = file.lastChild
-                var stat: LuaReturnStat? = null
-                LuaPsiTreeUtil.walkTopLevelInFile(lastChild, LuaReturnStat::class.java) {
-                    stat = it
-                    false
-                }
-                if (stat != null)
-                    guessReturnType(stat, 0, context)
-                else null
+    val moduleName = file.moduleName
+    if (moduleName != null)
+        return TyLazyClass(moduleName)
+    else {
+        val stub = file.stub
+        if (stub != null) {
+            val statStub = stub.childrenStubs.lastOrNull { it.psi is LuaReturnStat }
+            val stat = statStub?.psi
+            if (stat is LuaReturnStat)
+                return guessReturnType(stat, 0, context)
+        } else {
+            val lastChild = file.lastChild
+            var stat: LuaReturnStat? = null
+            LuaPsiTreeUtil.walkTopLevelInFile(lastChild, LuaReturnStat::class.java) {
+                stat = it
+                false
             }
+            if (stat != null)
+                return guessReturnType(stat, 0, context)
         }
-    }) ?: Ty.UNKNOWN
+    }
+    return Ty.UNKNOWN
 }
 
 /**
