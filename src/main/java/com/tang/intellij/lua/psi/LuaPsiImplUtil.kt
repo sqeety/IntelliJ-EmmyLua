@@ -367,7 +367,7 @@ fun getVarargTy(owner: LuaFuncBodyOwner): ITy? {
     return null
 }
 
-fun getParams(owner: LuaFuncBodyOwner): Array<LuaParamInfo> {
+fun     getParams(owner: LuaFuncBodyOwner): Array<LuaParamInfo> {
     if (owner is StubBasedPsiElementBase<*>) {
         val stub = owner.stub
         if (stub is LuaFuncBodyOwnerStub<*>) {
@@ -388,8 +388,8 @@ private fun getParamsInner(funcBodyOwner: LuaFuncBodyOwner): Array<LuaParamInfo>
     }
 
     val paramNameList = funcBodyOwner.paramNameDefList
+    val list = mutableListOf<LuaParamInfo>()
     if (paramNameList != null) {
-        val list = mutableListOf<LuaParamInfo>()
         for (i in paramNameList.indices) {
             val paramInfo = LuaParamInfo()
             val paramName = paramNameList[i].text
@@ -403,9 +403,27 @@ private fun getParamsInner(funcBodyOwner: LuaFuncBodyOwner): Array<LuaParamInfo>
             }
             list.add(paramInfo)
         }
-        return list.toTypedArray()
     }
-    return emptyArray()
+
+    val ellipsis = funcBodyOwner.funcBody?.ellipsis
+    if(ellipsis != null){
+        val paramInfo = LuaParamInfo()
+        val paramName = "..."
+        paramInfo.name = paramName
+        if (comment != null) {
+            val paramDef = comment.getParamDef(paramName)
+            if (paramDef != null) {
+                paramInfo.ty = paramDef.type
+            } else {
+                val varargType = funcBodyOwner.varargType
+                if (varargType != null && !Ty.isInvalid(varargType)) {
+                    paramInfo.ty = varargType
+                }
+            }
+        }
+        list.add(paramInfo)
+    }
+    return list.toTypedArray()
 }
 
 fun getParamSignature(funcBodyOwner: LuaFuncBodyOwner): String {

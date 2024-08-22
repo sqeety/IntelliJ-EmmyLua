@@ -378,7 +378,6 @@ private fun LuaNameExpr.infer(context: SearchContext): ITy {
         type = type.union(set)
     }
 
-
     if (Ty.isInvalid(type)) {
         type = getType(context, this)
     }
@@ -431,7 +430,7 @@ private fun getType(context: SearchContext, def: PsiElement): ITy {
             }
             return type
         }
-        is LuaTypeGuessable -> return def.guessType(context)
+        is LuaTypeGuessable -> return def.inferFast(context)
         else -> return Ty.UNKNOWN
     }
 }

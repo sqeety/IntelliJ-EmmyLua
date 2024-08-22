@@ -48,6 +48,11 @@ internal fun inferInner(element: LuaTypeGuessable, context: SearchContext): ITy 
     }
 }
 
+public fun LuaTypeGuessable.inferFast(context: SearchContext): ITy {
+    return SearchContext.infer(this, context)
+}
+
+
 fun inferReturnTy(owner: LuaFuncBodyOwner, searchContext: SearchContext): ITy {
     if (owner is StubBasedPsiElementBase<*>) {
         val stub = owner.stub

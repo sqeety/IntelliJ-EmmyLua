@@ -275,14 +275,14 @@ val LuaFuncBodyOwner.tyParams: Array<TyParameter> get() {
     if (this is LuaCommentOwner) {
         val genericDefList = comment?.findTags(LuaDocGenericDef::class.java)
         genericDefList?.forEach {
-            val itName = it.name;
+            val itName = it.name
             if (itName != null) {
                 val array:Array<String>
                 val nameRef = it.classNameRef
                 if(nameRef != null){
                     array = arrayOf(nameRef.text)
                 }else{
-                    array = emptyArray();
+                    array = emptyArray()
                 }
                 list.add(TyParameter(itName, array))
             }

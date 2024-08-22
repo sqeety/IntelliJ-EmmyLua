@@ -60,7 +60,9 @@ fun IFunSignature.processArgs(thisTy: ITy?, colonStyle: Boolean, processor: (ind
     var index = 0
     var pIndex = 0
     if (colonStyle && !colonCall) {
-        pIndex++
+        val pi = LuaParamInfo.createSelf(thisTy)
+        if (!processor(0, pi)) return
+        index++
     } else if (!colonStyle && colonCall) {
         val pi = LuaParamInfo.createSelf(thisTy)
         if (!processor(index++, pi)) return

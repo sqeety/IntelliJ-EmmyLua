@@ -19,9 +19,6 @@ package com.tang.intellij.lua.editor.Hints
 import com.intellij.codeInsight.hints.*
 import com.intellij.codeInsight.hints.presentation.PresentationFactory
 import com.intellij.find.actions.ShowUsagesAction
-import com.intellij.find.actions.ShowUsagesTable
-import com.intellij.find.impl.UsagePresentation
-import com.intellij.formatting.visualLayer.InlayPresentation
 import com.intellij.lang.Language
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
@@ -31,10 +28,6 @@ import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.util.parentOfType
 import com.intellij.ui.awt.RelativePoint
-import com.intellij.usages.UsageViewManager
-import com.intellij.usages.impl.UsageViewImpl
-import com.tang.intellij.lua.psi.LuaClassMethod
-import com.tang.intellij.lua.psi.LuaClassMethodDef
 import com.tang.intellij.lua.psi.impl.LuaClassMethodDefImpl
 import com.tang.intellij.lua.psi.impl.LuaClassMethodNameImpl
 import java.awt.Point
@@ -45,9 +38,10 @@ import javax.swing.JPanel
 
 class LuaInlayHintsProvider: InlayHintsProvider<NoSettings> {
     override val name: String = "Lua Inlay Hints"
-    override val previewText: String = "exampleMethod(param1, param2)"
-    override val key: SettingsKey<NoSettings> = SettingsKey("Lua.inlay.hints")
-
+    override val previewText: String = "Usages:"
+    override val key: SettingsKey<NoSettings> = SettingsKey("lua.hints.usageCount")
+    override val isVisibleInSettings: Boolean
+            get() = true
     override fun createConfigurable(settings: NoSettings): ImmediateConfigurable = object : ImmediateConfigurable {
         override fun createComponent(listener: ChangeListener): JComponent {
             return JPanel()
@@ -90,7 +84,6 @@ class LuaInlayHintsProvider: InlayHintsProvider<NoSettings> {
             }
         }
     }
-
 
     private fun findUsageCount(project: Project, method: PsiElement): Int {
         val searchScope = GlobalSearchScope.projectScope(project)
