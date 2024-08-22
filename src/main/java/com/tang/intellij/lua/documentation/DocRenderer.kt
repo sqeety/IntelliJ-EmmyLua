@@ -47,9 +47,6 @@ fun renderSignature(sb: StringBuilder, signature: IFunSignature, tyRenderer: ITy
     signature.params.forEach {
         sig.add("${it.name}: ${tyRenderer.render(it.ty)}")
     }
-    signature.varargTy?.let {
-        sig.add("...: ${tyRenderer.render(it)}")
-    }
     sb.append("(${sig.joinToString(", <br>        ")}): ")
     tyRenderer.render(signature.returnTy, sb)
 }

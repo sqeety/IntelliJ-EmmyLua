@@ -127,8 +127,6 @@ class TyFunctionLookupElement(name: String,
             list.add(param.name)
             true
         }
-        if (signature.hasVarargs())
-            list.add("...")
         "$lookupString(${list.joinToString(", ")})"
     }
 
