@@ -28,6 +28,7 @@ import com.tang.intellij.lua.psi.*
 import com.tang.intellij.lua.search.GuardType
 import com.tang.intellij.lua.search.SearchContext
 import com.tang.intellij.lua.stubs.LuaFuncBodyOwnerStub
+import io.ktor.util.reflect.*
 
 fun infer(element: LuaTypeGuessable?, context: SearchContext): ITy {
     if (element == null)
@@ -80,21 +81,27 @@ private fun inferReturnTyInner(owner: LuaFuncBodyOwner, searchContext: SearchCon
     var type: ITy = Ty.VOID
     owner.acceptChildren(object : LuaRecursiveVisitor() {
         override fun visitReturnStat(o: LuaReturnStat) {
-            val guessReturnType = guessReturnType(o, searchContext.index, searchContext)
-            TyUnion.each(guessReturnType) {
-                /**
-                 * 注意，不能排除anonymous
-                 * local function test()
-                 *      local v = xxx()
-                 *      v.yyy = zzz
-                 *      return v
-                 * end
-                 *
-                 * local r = test()
-                 *
-                 * type of r is an anonymous ty
-                 */
-                type = type.union(it)
+            if(!searchContext.guessTextSet.contains(o.text)){
+                searchContext.guessTextSet.add(o.text)
+                val guessReturnType = guessReturnType(o, searchContext.index, searchContext)
+                if(!Ty.isInvalid(guessReturnType)){
+                    searchContext.guessTextSet.remove(o.text)
+                    TyUnion.each(guessReturnType) {
+                        /**
+                         * 注意，不能排除anonymous
+                         * local function test()
+                         *      local v = xxx()
+                         *      v.yyy = zzz
+                         *      return v
+                         * end
+                         *
+                         * local r = test()
+                         *
+                         * type of r is an anonymous ty
+                         */
+                        type = type.union(it)
+                    }
+                }
             }
         }
 
