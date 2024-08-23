@@ -70,10 +70,28 @@ class LuaParameterHintsProvider : InlayParameterHintsProvider {
             // 是否是 inst:method() 被用为 inst.method(self) 形式
             //val isInstanceMethodUsedAsStaticMethod = ty.isColonCall && callExpr.isMethodDotCall
             val sig = ty.findPerfectSignature(callExpr)
+            var processIndex = 0
             sig.processArgs(null, callExpr.isMethodColonCall) { index, paramInfo ->
+                processIndex = index
                 val expr = exprList.getOrNull(index) ?: return@processArgs false
                 list.add(InlayInfo(paramInfo.name, expr.node.startOffset))
                 true
+            }
+            var checkLastIsVararg= false
+            if (sig.params.isNotEmpty()) {
+                val lastParameter = sig.params[sig.params.size - 1]
+                if (lastParameter.name == "...") {
+                    checkLastIsVararg = true
+                }
+            }
+            if(checkLastIsVararg){
+                processIndex++
+                var expr = exprList.getOrNull(processIndex)
+                while(expr != null){
+                    list.add(InlayInfo("...", expr.node.startOffset))
+                    processIndex++
+                    expr = exprList.getOrNull(processIndex)
+                }
             }
         }
         else if (psi is LuaParamNameDef) {
