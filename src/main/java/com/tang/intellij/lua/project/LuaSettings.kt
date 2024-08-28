@@ -34,7 +34,7 @@ class LuaSettings : PersistentStateComponent<LuaSettings> {
     //自定义require函数，参考constructorNames
     var requireLikeFunctionNames: Array<String> = arrayOf("require")
 
-    var constructorNames: Array<String> = arrayOf("new", "get")
+    var constructorNames: Array<String> = arrayOf()
 
     //Doc文档严格模式，对不合法的注解报错
     var isStrictDoc: Boolean = false

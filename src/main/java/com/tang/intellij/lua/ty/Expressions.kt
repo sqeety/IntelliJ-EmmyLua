@@ -21,6 +21,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.Processor
+import com.intellij.util.containers.toArray
 import com.tang.intellij.lua.Constants
 import com.tang.intellij.lua.comment.psi.LuaDocTableField
 import com.tang.intellij.lua.comment.psi.LuaDocTagField
@@ -266,81 +267,46 @@ private fun LuaCallExpr.infer(context: SearchContext): ITy {
             }
             !matchFunc
         })
-        val returnDisplayName = returnTy.displayName
-        var processedReturn = false
-        if (expr is LuaIndexExpr) {
-            val previousTy = expr.guessParentType(context)
-            previousTy.each { t ->
-                if (t is ITyGeneric) {
-                    val base = t.base
-                    if (base is TySerializedClass) {
-                        base.lazyInit(context)
-                        if (base.genericNames.isNotEmpty()) {
-                            for ((index, genericName) in base.genericNames.withIndex()) {
-                                if (returnDisplayName == genericName) {
-                                    ret = ret.replace(ret, t.getParamTy(index))
-                                } else if (returnTy is TySerializedGeneric) {
-                                    processedReturn = true
-                                    val needParams: Array<ITy> = (returnTy as TySerializedGeneric).params
-                                    var dirty = false
-                                    val newParams: Array<ITy> = needParams.copyOf()
-                                    for ((id, needParam) in needParams.withIndex()) {
-                                        if (needParam.displayName == genericName) {
-                                            dirty = true
-                                            newParams[id] = t.getParamTy(index)
-                                        }
-                                    }
-                                    if (dirty) {
-                                        val newType = TySerializedGeneric(newParams, (returnTy as TySerializedGeneric).base)
-                                        ret = ret.replace(ret, newType)
-                                    }
-                                }
-                            }
+        if(ty.mainSignature.isGeneric()){
+            if (returnTy is TySerializedGeneric) {
+                val needParams: Array<ITy> = (returnTy as TySerializedGeneric).params
+                var dirty = false
+                val newParams: Array<ITy> = needParams.copyOf()
+                val genericTys = ty.mainSignature.tyParameters
+                val paramList = luaCallExpr.argList
+                val realGenericTys = mutableMapOf<String, ITy>()
+                //参数里推类型
+                for ((index, param) in ty.mainSignature.params.withIndex()) {
+                    for (genericTy in genericTys) {
+                        if(param.ty.displayName == genericTy.displayName && index < paramList.size){
+                            realGenericTys[genericTy.displayName] = paramList[index].guessType(context)
+                            break
                         }
                     }
                 }
-            }
-            if(!processedReturn && ty.mainSignature.isGeneric()){
-                if (returnTy is TySerializedGeneric) {
-                    val needParams: Array<ITy> = (returnTy as TySerializedGeneric).params
-                    var dirty = false
-                    val newParams: Array<ITy> = needParams.copyOf()
-                    val genericTys = ty.mainSignature.tyParameters
-                    val paramList = luaCallExpr.argList
-                    val realGenericTys = mutableMapOf<String, ITy>()
-                    //参数里推类型
-                    for ((index, param) in ty.mainSignature.params.withIndex()) {
-                        for (genericTy in genericTys) {
-                            if(param.ty.displayName == genericTy.displayName && index < paramList.size){
-                                realGenericTys[genericTy.displayName] = paramList[index].guessType(context)
-                                break
+                //返回的泛型中替换泛型为具体类型
+                for ((id, needParam) in needParams.withIndex()) {
+                    for (genericTy in genericTys){
+                        if (needParam.displayName == genericTy.displayName) {
+                            val findTy = realGenericTys[genericTy.displayName]
+                            if(findTy != null){
+                                newParams[id] = findTy
+                                dirty = true
                             }
+                            break
                         }
                     }
-                    //返回的泛型中替换泛型为具体类型
-                    for ((id, needParam) in needParams.withIndex()) {
-                        for (genericTy in genericTys){
-                            if (needParam.displayName == genericTy.displayName) {
-                                val findTy = realGenericTys[genericTy.displayName]
-                                if(findTy != null){
-                                    newParams[id] = findTy
-                                    dirty = true
-                                }
-                                break
-                            }
-                        }
-                    }
-                    //创建新的函数
-                    if (dirty) {
-                        val newType = TySerializedGeneric(newParams, (returnTy as TySerializedGeneric).base)
-                        ret = ret.replace(ret, newType)
-                    }
+                }
+                //创建新的函数
+                if (dirty) {
+                    val newType = TySerializedGeneric(newParams, (returnTy as TySerializedGeneric).base)
+                    ret = ret.replace(ret, newType)
                 }
             }
         }
     }
     // xxx.new()
-    if (expr is LuaIndexExpr) {
+    if (Ty.isInvalid(ret) && expr is LuaIndexExpr) {
         val fnName = expr.name
         if (fnName != null && LuaSettings.isConstructorName(fnName)) {
             ret = ret.union(expr.guessParentType(context))
@@ -475,6 +441,47 @@ private fun processClassMember(clazz:ITyClass, propName:String, context:SearchCo
     return Ty.UNKNOWN
 }
 
+private fun TySerializedFunction.inferGeneric(genericNames:Array<String>, ty:ITyGeneric):TySerializedFunction{
+    var signature = mainSignature
+    var returnTy = signature.returnTy
+    val params = signature.params
+    val multiParams = mutableListOf<LuaParamInfo>()
+    multiParams.addAll(params)
+    for ((index, genericName) in genericNames.withIndex())
+    {
+        if(returnTy is TySerializedFunction){
+            returnTy = returnTy.inferGeneric(genericNames, ty)
+        }else{
+            if (returnTy.displayName == genericName) {
+                returnTy = ty.getParamTy(index)
+            }
+        }
+        for ((paramIndex, param) in multiParams.withIndex()){
+            val paramTy = param.ty
+            if(paramTy is TySerializedFunction){
+                multiParams[paramIndex] = LuaParamInfo(param.name, paramTy.inferGeneric(genericNames, ty))
+            }else if(paramTy is TySerializedGeneric){
+                for ((genericParamIndex, genericParamTy) in paramTy.params.withIndex()){
+                    if(genericParamTy.displayName == genericName){
+                        val temp = mutableListOf<ITy>()
+                        temp.addAll(paramTy.params)
+                        temp[genericParamIndex] = ty.getParamTy(index)
+                        multiParams[paramIndex] = LuaParamInfo(param.name, TySerializedGeneric(temp.toTypedArray(), paramTy.base))
+                        break
+                    }
+                }
+            }
+            else{
+                if (param.name == genericName) {
+                    multiParams[paramIndex] = LuaParamInfo(param.name, ty.getParamTy(index))
+                }
+            }
+        }
+    }
+    signature = FunSignature(signature.colonCall, returnTy, signature.varargTy, multiParams.toTypedArray())
+    return TySerializedFunction(signature, signatures)
+}
+
 private fun LuaIndexExpr.infer(context: SearchContext): ITy {
     val indexExpr = this
     var parentTy: ITy? = null
@@ -561,13 +568,18 @@ private fun LuaIndexExpr.infer(context: SearchContext): ITy {
                 if(base is TyLazyClass){
                     if(base.genericNames.isNotEmpty()){
                         val temp = result
-                        for ((index, genericName) in base.genericNames.withIndex()){
-                            temp.each { rt->
-                                if(rt.displayName == genericName){
-                                    result = result.replace(rt, ty.getParamTy(index))
+                        temp.each { rt ->
+                            if (rt is TySerializedFunction) {
+                                    result = result.replace(rt, rt.inferGeneric(base.genericNames, ty))
+                                } else {
+                                    for ((index, genericName) in base.genericNames.withIndex()) {
+                                        if (rt.displayName == genericName) {
+                                            result = result.replace(rt, ty.getParamTy(index))
+                                        }
+                                    }
                                 }
+
                             }
-                        }
                     }
                 }
             }
