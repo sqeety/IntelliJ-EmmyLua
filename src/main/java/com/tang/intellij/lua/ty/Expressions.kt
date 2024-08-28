@@ -255,56 +255,7 @@ private fun LuaCallExpr.infer(context: SearchContext): ITy {
             is ITyClass -> ret = ret.union(it)
         }
     }
-    //泛型处理
-    if (ty is ITyFunction) {
-        var returnTy = ty.mainSignature.guessReturnType(context)
-        var matchFunc = false
-        ty.process(Processor { sig ->
-            val targetTy = getReturnTy(sig, context)
-            if (targetTy != null && sig.params.size == paramCount) {
-                matchFunc = true
-                returnTy = targetTy
-            }
-            !matchFunc
-        })
-        if(ty.mainSignature.isGeneric()){
-            if (returnTy is TySerializedGeneric) {
-                val needParams: Array<ITy> = (returnTy as TySerializedGeneric).params
-                var dirty = false
-                val newParams: Array<ITy> = needParams.copyOf()
-                val genericTys = ty.mainSignature.tyParameters
-                val paramList = luaCallExpr.argList
-                val realGenericTys = mutableMapOf<String, ITy>()
-                //参数里推类型
-                for ((index, param) in ty.mainSignature.params.withIndex()) {
-                    for (genericTy in genericTys) {
-                        if(param.ty.displayName == genericTy.displayName && index < paramList.size){
-                            realGenericTys[genericTy.displayName] = paramList[index].guessType(context)
-                            break
-                        }
-                    }
-                }
-                //返回的泛型中替换泛型为具体类型
-                for ((id, needParam) in needParams.withIndex()) {
-                    for (genericTy in genericTys){
-                        if (needParam.displayName == genericTy.displayName) {
-                            val findTy = realGenericTys[genericTy.displayName]
-                            if(findTy != null){
-                                newParams[id] = findTy
-                                dirty = true
-                            }
-                            break
-                        }
-                    }
-                }
-                //创建新的函数
-                if (dirty) {
-                    val newType = TySerializedGeneric(newParams, (returnTy as TySerializedGeneric).base)
-                    ret = ret.replace(ret, newType)
-                }
-            }
-        }
-    }
+
     // xxx.new()
     if (Ty.isInvalid(ret) && expr is LuaIndexExpr) {
         val fnName = expr.name
@@ -441,8 +392,8 @@ private fun processClassMember(clazz:ITyClass, propName:String, context:SearchCo
     return Ty.UNKNOWN
 }
 
-private fun TySerializedFunction.inferGeneric(genericNames:Array<String>, ty:ITyGeneric):TySerializedFunction{
-    var signature = mainSignature
+private fun IFunSignature.inferGeneric(genericNames:Array<String>, ty:ITyGeneric):IFunSignature{
+    var signature = this
     var returnTy = signature.returnTy
     val params = signature.params
     val multiParams = mutableListOf<LuaParamInfo>()
@@ -479,7 +430,18 @@ private fun TySerializedFunction.inferGeneric(genericNames:Array<String>, ty:ITy
         }
     }
     signature = FunSignature(signature.colonCall, returnTy, signature.varargTy, multiParams.toTypedArray())
-    return TySerializedFunction(signature, signatures)
+    return signature
+}
+
+private fun TySerializedFunction.inferGeneric(genericNames:Array<String>, ty:ITyGeneric):TySerializedFunction{
+    if(signatures.isEmpty()){
+        return TySerializedFunction(mainSignature.inferGeneric(genericNames, ty),signatures)
+    }
+    val multiSignatures = mutableListOf<IFunSignature>()
+    for (signature in signatures) {
+        multiSignatures.add(signature.inferGeneric(genericNames, ty))
+    }
+    return TySerializedFunction(mainSignature.inferGeneric(genericNames, ty), multiSignatures.toTypedArray())
 }
 
 private fun LuaIndexExpr.infer(context: SearchContext): ITy {
@@ -565,7 +527,8 @@ private fun LuaIndexExpr.infer(context: SearchContext): ITy {
             if (ty is ITyGeneric)
             {
                 val base = ty.base
-                if(base is TyLazyClass){
+                if(base is TySerializedClass){
+                    base.lazyInit(context)
                     if(base.genericNames.isNotEmpty()){
                         val temp = result
                         temp.each { rt ->
