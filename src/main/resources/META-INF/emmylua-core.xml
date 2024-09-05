@@ -235,6 +235,13 @@
                 groupName="Lua"
                 language="Lua"/>
         <localInspection
+                implementationClass="com.tang.intellij.lua.codeInsight.inspection.DuplicateMethodDeclaration"
+                displayName="Duplicate method"
+                enabledByDefault="true"
+                level="ERROR"
+                groupName="Lua"
+                language="Lua"/>
+        <localInspection
                 implementationClass="com.tang.intellij.lua.codeInsight.inspection.SimplifyLocalAssignment"
                 displayName="Local assign can be simpler"
                 enabledByDefault="true"
