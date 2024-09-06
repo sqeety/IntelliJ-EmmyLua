@@ -36,7 +36,10 @@ class LuaOverridenMethodsSearchExecutor : QueryExecutor<LuaClassMethod, LuaOverr
                 ProgressManager.checkCanceled()
                 val superTypeName = superType.className
                 val superMethod = LuaShortNamesManager.getInstance(project).findMethod(superTypeName, methodName, context)
-                if (superMethod == null) true else processor.process(superMethod)
+                if (superMethod == null) return@processSuperClass true else {
+                    processor.process(superMethod)
+                    return@processSuperClass false
+                }
             }
         }
         return false

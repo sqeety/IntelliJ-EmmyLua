@@ -47,8 +47,8 @@ class DuplicateMethodDeclaration : LocalInspectionTool() {
                 if (!Ty.isInvalid(ty) && ty is TyClass && className != null) {
                     LuaShortNamesManager.getInstance(o.project).processMembers(ty, className, context) { def ->
                         var continueProcess = true
-                        if (def != o) {
-                            if (o.containingFile == def.containingFile) {
+                        if (def != o && def is LuaClassMethodDef) {
+                            if (o.containingFile == def.containingFile && o.classMethodName.expr.guessType(context) == def.classMethodName.expr.guessType(context)) {
                                 val path = def.containingFile?.virtualFile?.canonicalPath
                                 if (path != null) {
                                     holder.registerProblem(

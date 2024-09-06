@@ -199,17 +199,8 @@ object LuaPsiTreeUtilEx {
         //判断是不是在---class内的
         if (member is LuaClassMethodDef) {
             val luaClassMethodName = member.classMethodName
-            val luaName = luaClassMethodName.expr.name
-            var prev = member.prevSibling
-            while (prev != null) {
-                if (prev is LuaLocalDef) {
-                    val localName = prev.nameList?.nameDefList?.get(0)?.name
-                    if (localName == luaName) {
-                        return prev.comment?.tagClass?.stub?.className == classDefineName
-                    }
-                }
-                prev = prev.prevSibling
-            }
+            val luaName = luaClassMethodName.expr.text
+            return luaName == classDefineName
         } else if (member is LuaDocTagField) {
             return true
         }

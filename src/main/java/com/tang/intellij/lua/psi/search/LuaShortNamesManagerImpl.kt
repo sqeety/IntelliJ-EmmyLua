@@ -59,7 +59,7 @@ class LuaShortNamesManagerImpl : LuaShortNamesManager() {
         processor: Processor<LuaClassMember>,
         visitSuper: Boolean
     ): Boolean {
-        if (context.forStub) return true;
+        if (context.forStub) return true
         return LuaClassMemberIndex.process(className, fieldName, context, processor, visitSuper, mutableSetOf())
     }
 
