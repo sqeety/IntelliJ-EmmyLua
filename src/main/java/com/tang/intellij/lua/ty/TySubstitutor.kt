@@ -132,7 +132,7 @@ class TyAliasSubstitutor private constructor() : ITySubstitutor {
     override fun substitute(clazz: ITyClass, context: SearchContext): ITy {
         if (!alreadyProcessed.add(clazz.className))
             return clazz
-        return clazz.recoverAlias(context, this)
+        return clazz.recoverAlias(context, this).union(clazz)
     }
 
     override fun substitute(generic: ITyGeneric, context: SearchContext): ITy {

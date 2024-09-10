@@ -187,9 +187,9 @@ abstract class TyClass(override val className: String,
                 clsName = clsNames[i]
                 val ty = getBuiltin(clsName) ?: LuaShortNamesManager.getInstance(context.project).findClass(clsName, context)?.type
                 if(ty != null){
-                    if(result == null){
+                    if (result == null) {
                         result = ty
-                    }else{
+                    } else {
                         result = result.union(ty)
                     }
                 }
