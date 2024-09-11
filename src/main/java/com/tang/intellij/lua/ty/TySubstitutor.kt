@@ -134,7 +134,7 @@ class TyAliasSubstitutor private constructor() : ITySubstitutor {
     override fun substitute(clazz: ITyClass, context: SearchContext): ITy {
         if (!alreadyProcessed.add(clazz.className))
             return clazz
-        if (clazz is TyLazyClass) {
+        if (clazz is TySerializedClass) {
             val result = LuaClassIndex.find(clazz.className, context)
             if (result != null) {
                 return clazz.recoverAlias(context, this).union(result.type)

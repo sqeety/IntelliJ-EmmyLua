@@ -177,15 +177,27 @@ abstract class TyClass(override val className: String,
         }
     }
 
+    fun GetSuperTy(className: String, context: SearchContext): ITy?{
+        val findClass = LuaShortNamesManager.getInstance(context.project).findClass(className, context)
+        if (findClass != null){
+            return findClass.type
+        }
+        val alias = LuaShortNamesManager.getInstance(context.project).findAlias(className, context)
+        if(alias != null){
+            return alias.type
+        }
+        return null
+    }
+
     override fun getSuperClass(context: SearchContext): ITy? {
         lazyInit(context)
         val clsNames = superClassNames
         if(clsNames.isNotEmpty()){
             var clsName = clsNames[0]
-            var result = getBuiltin(clsName) ?: LuaShortNamesManager.getInstance(context.project).findClass(clsName, context)?.type
+            var result = getBuiltin(clsName) ?: GetSuperTy(clsName, context)
             for (i in 1 until clsNames.size) {
                 clsName = clsNames[i]
-                val ty = getBuiltin(clsName) ?: LuaShortNamesManager.getInstance(context.project).findClass(clsName, context)?.type
+                val ty = getBuiltin(clsName) ?: GetSuperTy(clsName, context)
                 if(ty != null){
                     if (result == null) {
                         result = ty

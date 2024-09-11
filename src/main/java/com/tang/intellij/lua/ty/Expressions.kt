@@ -555,7 +555,7 @@ private fun LuaIndexExpr.infer(context: SearchContext): ITy {
     }
 
     val assignStat = indexExpr.assignStat
-    if (assignStat != null) {
+    if (assignStat != null && Ty.isInvalid(result)) {
         val index = assignStat.getIndexFor(indexExpr)
         if(context.guessTextSet.contains(indexExpr.text)) {
             return result
@@ -617,11 +617,18 @@ private fun guessFieldType(fieldName: String, type: ITyClass, context: SearchCon
                     if (ty != null) {
                         set = set.union(ty)
                     }else{
-                        if(!context.forStub){
+                        val valueExprList = stat.valueExprList
+                        if(valueExprList != null){
+                            //跳过 = nil推导
+                            if(valueExprList.text == Constants.WORD_NIL){
+                                return@processMembers true
+                            }
                             val index = stat.getIndexFor(it)
-                            set = set.union(context.withIndex(index) {
-                                stat.valueExprList?.guessTypeAt(context) ?: Ty.UNKNOWN
-                            })
+                            if(!context.forStub){
+                                set = set.union(context.withIndex(index) {
+                                    valueExprList.guessTypeAt(context) ?: Ty.UNKNOWN
+                                })
+                            }
                         }
                     }
                 }
@@ -633,7 +640,6 @@ private fun guessFieldType(fieldName: String, type: ITyClass, context: SearchCon
 
         true
     }
-
     return set
 }
 

@@ -31,14 +31,7 @@ class LuaShortNamesManagerImpl : LuaShortNamesManager() {
 
     override fun findClass(name: String, context: SearchContext): LuaClass? {
         if (context.forStub) return null
-        var result = LuaClassIndex.find(name, context)
-        if(result == null) {
-            val alias = LuaAliasIndex.find(name, context)
-            if(alias != null) {
-                val aliasTypeName = alias.type.displayName
-                result = LuaClassIndex.find(aliasTypeName, context)
-            }
-        }
+        val result = LuaClassIndex.find(name, context)
         return result
     }
 
