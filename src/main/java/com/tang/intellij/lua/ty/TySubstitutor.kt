@@ -20,7 +20,9 @@ import com.intellij.openapi.project.Project
 import com.tang.intellij.lua.Constants
 import com.tang.intellij.lua.psi.LuaCallExpr
 import com.tang.intellij.lua.psi.prefixExpr
+import com.tang.intellij.lua.psi.search.LuaShortNamesManager
 import com.tang.intellij.lua.search.SearchContext
+import com.tang.intellij.lua.stubs.index.LuaClassIndex
 
 interface ITySubstitutor {
     fun substitute(function: ITyFunction, context: SearchContext): ITy
@@ -132,7 +134,15 @@ class TyAliasSubstitutor private constructor() : ITySubstitutor {
     override fun substitute(clazz: ITyClass, context: SearchContext): ITy {
         if (!alreadyProcessed.add(clazz.className))
             return clazz
-        return clazz.recoverAlias(context, this).union(clazz)
+        if (clazz is TyLazyClass) {
+            val result = LuaClassIndex.find(clazz.className, context)
+            if (result != null) {
+                return clazz.recoverAlias(context, this).union(result.type)
+            }
+            return clazz.recoverAlias(context, this)
+        } else {
+            return clazz.recoverAlias(context, this).union(clazz)
+        }
     }
 
     override fun substitute(generic: ITyGeneric, context: SearchContext): ITy {
