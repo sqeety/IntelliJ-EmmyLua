@@ -321,6 +321,12 @@
                 language="Lua"
                 implementationClass="com.tang.intellij.lua.codeInsight.inspection.GlobalNameCanbeLocal"/>
         <localInspection
+                displayName="Global name strict"
+                enabledByDefault="true"
+                groupName="Lua"
+                language="Lua"
+                implementationClass="com.tang.intellij.lua.codeInsight.inspection.StrictGlobalName"/>
+        <localInspection
                 displayName="Lua deprecation"
                 enabledByDefault="true"
                 groupName="Lua"

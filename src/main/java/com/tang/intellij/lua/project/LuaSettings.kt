@@ -77,6 +77,8 @@ class LuaSettings : PersistentStateComponent<LuaSettings> {
      */
     var languageLevel = LuaLanguageLevel.LUA53
 
+    var strictGlobalNames: Array<String> = arrayOf<String>()
+
     override fun getState(): LuaSettings {
         return this
     }
@@ -102,6 +104,14 @@ class LuaSettings : PersistentStateComponent<LuaSettings> {
         }
         set(value) {
             requireLikeFunctionNames = value.split(";").map { it.trim() }.toTypedArray()
+        }
+
+    var strictGlobalNamesString: String
+        get() {
+            return strictGlobalNames.joinToString(";")
+        }
+        set(value) {
+            strictGlobalNames = value.split(";").map { it.trim() }.toTypedArray()
         }
     companion object {
 
