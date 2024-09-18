@@ -60,6 +60,11 @@ public class EmptyBody extends EmptyBodyBase {
             public void visitWhileStat(@NotNull LuaWhileStat o) {
                 checkBlock(o, holder, LuaTypes.WHILE, "Empty while body", "Remove empty do");
             }
+
+            @Override
+            public void visitClassMethodDef(@NotNull LuaClassMethodDef o) {
+                checkBlock(o, holder, LuaTypes.FUNCTION, "Empty func body", "Remove empty func");
+            }
         };
     }
 
