@@ -257,6 +257,7 @@
                 displayName="Empty body"
                 enabledByDefault="true"
                 groupName="Lua"
+                level="ERROR"
                 language="Lua"
                 implementationClass="com.tang.intellij.lua.codeInsight.inspection.EmptyBody"/>
         <localInspection
@@ -292,9 +293,10 @@
                 implementationClass="com.tang.intellij.lua.codeInsight.inspection.MatchFunctionSignatureInspection"/>
         <localInspection
                 displayName="Match member"
-                enabledByDefault="false"
+                enabledByDefault="true"
                 groupName="Lua > Lint > Type safety"
                 language="Lua"
+                level="ERROR"
                 implementationClass="com.tang.intellij.lua.codeInsight.inspection.MatchMemberInspection"/>
         <localInspection
                 displayName="Undeclared variable"
@@ -316,8 +318,9 @@
                 implementationClass="com.tang.intellij.lua.codeInsight.inspection.AssignTypeInspection"/>
         <localInspection
                 displayName="Global name can be local"
-                enabledByDefault="false"
+                enabledByDefault="true"
                 groupName="Lua"
+                level="ERROR"
                 language="Lua"
                 implementationClass="com.tang.intellij.lua.codeInsight.inspection.GlobalNameCanbeLocal"/>
         <localInspection
@@ -325,6 +328,7 @@
                 enabledByDefault="true"
                 groupName="Lua"
                 language="Lua"
+                level="ERROR"
                 implementationClass="com.tang.intellij.lua.codeInsight.inspection.StrictGlobalName"/>
         <localInspection
                 displayName="Lua deprecation"
@@ -332,7 +336,6 @@
                 groupName="Lua"
                 language="Lua"
                 implementationClass="com.tang.intellij.lua.codeInsight.inspection.LuaDeprecationInspection"/>
-
         <localInspection
                 displayName="Unresolved symbol in emmy doc"
                 enabledByDefault="true"
