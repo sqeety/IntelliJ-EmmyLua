@@ -32,7 +32,7 @@ abstract class EmptyBodyBase extends LocalInspectionTool {
 
     private static Class[] invalidClasses = new Class[] {
             PsiWhiteSpace.class,
-            PsiComment.class,
+            //PsiComment.class,
             LuaLocalFuncDef.class,
             LuaLocalDef.class
     };
