@@ -121,6 +121,9 @@ fun renderComment(sb: StringBuilder, comment: LuaComment?, tyRenderer: ITyRender
         //partial
         val partialTags = comment.findTags(LuaDocTagPartial::class.java)
         renderTagList(sections, "partial", partialTags) { renderPartial(sections, it, tyRenderer) }
+        //refer
+        val referTags = comment.findTags(LuaDocTagRefer::class.java)
+        renderTagList(sections, "refer", referTags) { renderRefer(sections, it, tyRenderer) }
 
         sb.append(sections.toString())
         sb.append("</table>")
@@ -241,9 +244,18 @@ private fun renderTypeDef(sb: StringBuilder, tagType: LuaDocTagType, tyRenderer:
 }
 
 private fun renderSee(sb: StringBuilder, see: LuaDocTagSee, tyRenderer: ITyRenderer) {
-    see.classNameRef?.resolveType()?.let {
+    see.classOrGlobalNameRef?.resolveType()?.let {
         renderTy(sb, it, tyRenderer)
         see.id?.let {
+            sb.append("#${it.text}")
+        }
+    }
+}
+
+private fun renderRefer(sb: StringBuilder, refer: LuaDocTagRefer, tyRenderer: ITyRenderer) {
+    refer.classOrGlobalNameRef?.resolveType()?.let {
+        renderTy(sb, it, tyRenderer)
+        refer.id?.let {
             sb.append("#${it.text}")
         }
     }

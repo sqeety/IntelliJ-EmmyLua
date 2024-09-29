@@ -26,6 +26,10 @@ public class LuaDocVisitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
+  public void visitClassOrGlobalNameRef(@NotNull LuaDocClassOrGlobalNameRef o) {
+    visitPsiElement(o);
+  }
+
   public void visitCommentString(@NotNull LuaDocCommentString o) {
     visitPsiElement(o);
   }
@@ -128,6 +132,10 @@ public class LuaDocVisitor extends PsiElementVisitor {
   }
 
   public void visitTagPartial(@NotNull LuaDocTagPartial o) {
+    visitTag(o);
+  }
+
+  public void visitTagRefer(@NotNull LuaDocTagRefer o) {
     visitTag(o);
   }
 

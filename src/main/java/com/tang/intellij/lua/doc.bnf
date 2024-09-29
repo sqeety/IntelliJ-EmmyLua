@@ -75,6 +75,7 @@
         TAG_NAME_ALIAS = 'alias'
         TAG_NAME_SUPPRESS = 'suppress'
         TAG_NAME_PARTIAL = 'partial'
+        TAG_NAME_REFER = 'refer'
   ]
   implements("tag.*") = [
     "com.tang.intellij.lua.comment.psi.LuaDocTag"
@@ -99,7 +100,8 @@ private doc_item ::= '@' (tag_param
     | tag_def
     | access_modifier
     | tag_generic_list
-    | tag_partial)
+    | tag_partial
+    | tag_refer)
 
 ty ::= union_ty | function_ty | table_ty | generic_ty | arr_ty | general_ty | par_ty | string_literal_ty {
     implements = ['com.tang.intellij.lua.comment.psi.LuaDocType']
@@ -306,7 +308,11 @@ comment_string ::= STRING_BEGIN? STRING? {
     ]
 }
 
-tag_see ::= TAG_NAME_SEE class_name_ref (SHARP ID)? {
+class_or_global_name_ref ::= ID {
+    methods = [getReference resolveType toString getName]
+}
+
+tag_see ::= TAG_NAME_SEE class_or_global_name_ref (SHARP ID)? {
     pin = 1
     methods = [
         getReference
@@ -361,4 +367,13 @@ tag_partial ::= TAG_NAME_PARTIAL ty {
         toString
     ]
     stubClass = "com.tang.intellij.lua.stubs.LuaDocTagPartialStub"
+}
+
+tag_refer ::= TAG_NAME_REFER class_or_global_name_ref SHARP ID {
+    pin = 1
+    methods = [
+        getReference
+        getType
+        getReferPsi
+    ]
 }

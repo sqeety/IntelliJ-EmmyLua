@@ -130,7 +130,7 @@ class LuaDocCompletionContributor : CompletionContributor() {
                 val position = completionParameters.position
                 val seeRefTag = PsiTreeUtil.getParentOfType(position, LuaDocTagSee::class.java)
                 if (seeRefTag != null) {
-                    val classType = seeRefTag.classNameRef?.resolveType() as? ITyClass
+                    val classType = seeRefTag.classOrGlobalNameRef?.resolveType() as? ITyClass
                     val ctx = SearchContext.get(seeRefTag.project)
                     classType?.processMembers(ctx) { _, member ->
                         completionResultSet.addElement(LookupElementBuilder.create(member.name!!).withIcon(LuaIcons.CLASS_FIELD))

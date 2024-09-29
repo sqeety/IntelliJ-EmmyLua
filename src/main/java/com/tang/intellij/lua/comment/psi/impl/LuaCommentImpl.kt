@@ -125,6 +125,18 @@ class LuaCommentImpl(node: ASTNode) : ASTWrapperPsiElement(node), LuaComment {
             return null
         }
 
+    override val tagRefer: LuaDocTagRefer?
+        get() {
+            var element: PsiElement? = firstChild
+            while (element != null) {
+                if (element is LuaDocTagRefer) {
+                    return element
+                }
+                element = element.nextSibling
+            }
+            return null
+        }
+
     override val tagReturn: LuaDocTagReturn?
         get() {
             var element: PsiElement? = firstChild
@@ -157,7 +169,12 @@ class LuaCommentImpl(node: ASTNode) : ASTWrapperPsiElement(node), LuaComment {
         if(partialDef != null)
             return partialDef.type
         val typeDef = tagType
-        return typeDef?.type ?: Ty.UNKNOWN
+        if(typeDef != null)
+            return typeDef.type
+        val referDef = tagRefer
+        if(referDef != null)
+            return referDef.type
+        return Ty.UNKNOWN
     }
 
     override fun isOverride(): Boolean {

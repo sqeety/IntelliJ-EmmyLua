@@ -40,6 +40,7 @@ interface LuaComment : PsiComment, LuaDocPsiElement {
     val tagPartial: LuaDocTagPartial?
     val tagType: LuaDocTagType?
     val tagReturn: LuaDocTagReturn?
+    val tagRefer: LuaDocTagRefer?
     fun guessType(context: SearchContext): ITy
     fun isOverride(): Boolean
     fun createSubstitutor(): ITySubstitutor?

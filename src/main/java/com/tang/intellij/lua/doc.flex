@@ -79,7 +79,6 @@ SINGLE_QUOTED_STRING='([^\\\']|\\\S|\\[\r\n])*'?    //'([^\\'\r\n]|\\[^\r\n])*'?
 %state xGENERIC
 %state xALIAS
 %state xSUPPRESS
-%state xPARTIAL
 %state xDOUBLE_QUOTED_STRING
 %state xSINGLE_QUOTED_STRING
 
@@ -93,7 +92,7 @@ SINGLE_QUOTED_STRING='([^\\\']|\\\S|\\[\r\n])*'?    //'([^\\'\r\n]|\\[^\r\n])*'?
     .                          { yybegin(xCOMMENT_STRING); yypushback(yylength()); }
 }
 
-<xTAG, xTAG_WITH_ID, xTAG_NAME, xPARAM, xTYPE_REF, xCLASS, xCLASS_GENERIC, xCLASS_EXTEND, xFIELD, xFIELD_ID, xCOMMENT_STRING, xGENERIC, xALIAS, xSUPPRESS, xPARTIAL> {
+<xTAG, xTAG_WITH_ID, xTAG_NAME, xPARAM, xTYPE_REF, xCLASS, xCLASS_GENERIC, xCLASS_EXTEND, xFIELD, xFIELD_ID, xCOMMENT_STRING, xGENERIC, xALIAS, xSUPPRESS> {
     {EOL}                      { yybegin(YYINITIAL);return com.intellij.psi.TokenType.WHITE_SPACE;}
     {LINE_WS}+                 { return com.intellij.psi.TokenType.WHITE_SPACE; }
 }
@@ -115,7 +114,8 @@ SINGLE_QUOTED_STRING='([^\\\']|\\\S|\\[\r\n])*'?    //'([^\\'\r\n]|\\[^\r\n])*'?
     "see"                      { yybegin(xTAG); return TAG_NAME_SEE; }
     "alias"                    { yybegin(xALIAS); return TAG_NAME_ALIAS; }
     "suppress"                 { yybegin(xSUPPRESS); return TAG_NAME_SUPPRESS; }
-    "partial"                  { yybegin(xPARTIAL); return TAG_NAME_PARTIAL; }
+    "partial"                  { yybegin(xTAG); return TAG_NAME_PARTIAL; }
+    "refer"                    { yybegin(xTAG); return TAG_NAME_REFER; }
     {ID}                       { yybegin(xCOMMENT_STRING); return TAG_NAME; }
     [^]                        { return com.intellij.psi.TokenType.BAD_CHARACTER; }
 }
@@ -206,11 +206,6 @@ SINGLE_QUOTED_STRING='([^\\\']|\\\S|\\[\r\n])*'?    //'([^\\'\r\n]|\\[^\r\n])*'?
 
 <xCOMMENT_STRING> {
     {STRING}                   { yybegin(YYINITIAL); return STRING; }
-}
-
-<xPARTIAL>{
-    {ID}                       { beginType(); return ID; }
-    [^]                        { yybegin(YYINITIAL); yypushback(yylength()); }
 }
 
 [^]                            { return com.intellij.psi.TokenType.BAD_CHARACTER; }

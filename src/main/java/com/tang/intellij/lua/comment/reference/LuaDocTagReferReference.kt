@@ -22,18 +22,16 @@ import com.intellij.psi.PsiElementResolveResult
 import com.intellij.psi.PsiPolyVariantReferenceBase
 import com.intellij.psi.ResolveResult
 import com.tang.intellij.lua.Constants
-import com.tang.intellij.lua.comment.psi.LuaDocTagSee
+import com.tang.intellij.lua.comment.psi.LuaDocTagRefer
 import com.tang.intellij.lua.psi.LuaElementFactory
 import com.tang.intellij.lua.psi.search.LuaShortNamesManager
 import com.tang.intellij.lua.search.SearchContext
 import com.tang.intellij.lua.ty.ITyClass
-import com.tang.intellij.lua.ty.Ty
-import com.tang.intellij.lua.ty.isGlobal
 
-class LuaDocSeeReference(see: LuaDocTagSee) :
-        PsiPolyVariantReferenceBase<LuaDocTagSee>(see){
+class LuaDocTagReferReference(refer: LuaDocTagRefer) :
+    PsiPolyVariantReferenceBase<LuaDocTagRefer>(refer){
 
-    val id = see.id!!
+    val id = refer.id!!
 
     override fun getRangeInElement(): TextRange {
         val start = id.node.startOffset - myElement.node.startOffset

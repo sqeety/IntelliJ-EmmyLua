@@ -165,6 +165,17 @@ fun resolve(indexExpr: LuaIndexExpr, idString: String, context: SearchContext): 
             return@Processor false
         true
     })
+
+    if(ret is LuaIndexExpr){
+        val assignStat = (ret as LuaIndexExpr).assignStat
+        if(assignStat != null){
+            val referComment = assignStat.comment?.tagRefer
+            if(referComment != null && referComment.referPsi != null){
+                return referComment.referPsi
+            }
+        }
+    }
+
     if (ret == null) {
         val tree = LuaDeclarationTree.get(indexExpr.containingFile)
         val declaration = tree.find(indexExpr)
@@ -172,20 +183,21 @@ fun resolve(indexExpr: LuaIndexExpr, idString: String, context: SearchContext): 
             return declaration.psi
         }
     }
-    if(ret == null){
-        val nameExpr = GetPureFirstChild(indexExpr, context)
-        if(nameExpr != null && isGlobal(nameExpr)){
-            val className = indexExpr.prefixExpr.text
-            if(className.contains(".")){
-                val members = LuaClassMemberIndex.instance.get(className.hashCode(), context.project, context.scope)
-                for (member in members){
-                    if(member.name == indexExpr.name){
-                        return member
-                    }
-                }
-            }
-        }
-    }
+
+//    if(ret == null){
+//        val nameExpr = GetPureFirstChild(indexExpr, context)
+//        if(nameExpr != null && isGlobal(nameExpr)){
+//            val className = indexExpr.prefixExpr.text
+//            if(className.contains(".")){
+//                val members = LuaClassMemberIndex.instance.get(className.hashCode(), context.project, context.scope)
+//                for (member in members){
+//                    if(member.name == indexExpr.name){
+//                        return member
+//                    }
+//                }
+//            }
+//        }
+//    }
     return ret
 }
 

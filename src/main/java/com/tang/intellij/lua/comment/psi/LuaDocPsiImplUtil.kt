@@ -27,18 +27,15 @@ import com.intellij.psi.PsiReference
 import com.intellij.psi.StubBasedPsiElement
 import com.intellij.psi.stubs.StubElement
 import com.intellij.psi.util.PsiTreeUtil
+import com.tang.intellij.lua.Constants
 import com.tang.intellij.lua.comment.LuaCommentUtil
-import com.tang.intellij.lua.comment.psi.impl.LuaDocTagClassImpl
-import com.tang.intellij.lua.comment.psi.impl.LuaDocTagFieldImpl
-import com.tang.intellij.lua.comment.psi.impl.LuaDocTyImpl
-import com.tang.intellij.lua.comment.reference.LuaClassNameReference
-import com.tang.intellij.lua.comment.reference.LuaDocParamNameReference
-import com.tang.intellij.lua.comment.reference.LuaDocSeeReference
+import com.tang.intellij.lua.comment.reference.*
 import com.tang.intellij.lua.psi.LuaClassMember
 import com.tang.intellij.lua.psi.LuaElementFactory
+import com.tang.intellij.lua.psi.LuaTypeGuessable
 import com.tang.intellij.lua.psi.Visibility
+import com.tang.intellij.lua.psi.search.LuaShortNamesManager
 import com.tang.intellij.lua.search.SearchContext
-import com.tang.intellij.lua.stubs.LuaPlaceholderStub
 import com.tang.intellij.lua.ty.*
 import javax.swing.Icon
 
@@ -58,12 +55,24 @@ fun resolveType(nameRef: LuaDocClassNameRef): ITy {
     return Ty.create(nameRef.text)
 }
 
+fun getReference(docClassNameRef: LuaDocClassOrGlobalNameRef): PsiReference {
+    return LuaDocClassOrGlobalNameReference(docClassNameRef)
+}
+
+fun resolveType(nameRef: LuaDocClassOrGlobalNameRef): ITy {
+    return Ty.create(nameRef.text)
+}
+
 fun getName(identifierOwner: PsiNameIdentifierOwner): String? {
     val id = identifierOwner.nameIdentifier
     return id?.text
 }
 
 fun getName(identifierOwner: LuaDocClassNameRef): String? {
+    return identifierOwner.text
+}
+
+fun getName(identifierOwner: LuaDocClassOrGlobalNameRef): String? {
     return identifierOwner.text
 }
 
@@ -308,6 +317,57 @@ fun getType(unionTy: LuaDocUnionTy): ITy {
 fun getReference(see: LuaDocTagSee): PsiReference? {
     if (see.id == null) return null
     return LuaDocSeeReference(see)
+}
+
+fun getReference(refer: LuaDocTagRefer): PsiReference? {
+    if (refer.id == null) return null
+    return LuaDocTagReferReference(refer)
+}
+
+fun getReferPsi(myElement: LuaDocTagRefer): LuaTypeGuessable?{
+    val nameRef = myElement.classOrGlobalNameRef
+    val id = myElement.id
+    var ret:LuaTypeGuessable? = null
+    if(nameRef != null && id != null){
+        val refName = nameRef.name
+        val context = SearchContext.get(myElement.project)
+        if(refName != null){
+            val type = LuaShortNamesManager.getInstance(myElement.project)
+                .findTypeDef(refName, SearchContext.get(myElement.project))
+            if (type == null || type.name == Constants.WORD_G) {
+                if(refName != Constants.WORD_G){
+                    LuaShortNamesManager.getInstance(myElement.project)
+                        .processMembers("$$refName", id.text, context, {
+                            ret = it
+                            false
+                        })
+                }else{
+                    LuaShortNamesManager.getInstance(myElement.project)
+                        .processMembers(refName, id.text, context, {
+                            ret = it
+                            false
+                        })
+                }
+            } else {
+                if(type is ITyClass){
+                    LuaShortNamesManager.getInstance(myElement.project)
+                        .processMembers(type, id.text, context) {
+                            ret = it
+                            false
+                        }
+                }
+            }
+        }
+    }
+    return ret
+}
+
+fun getType(myElement: LuaDocTagRefer): ITy {
+    val psi = getReferPsi(myElement)
+    if(psi != null){
+        return psi.guessType(SearchContext.get(myElement.project))
+    }
+    return Ty.UNKNOWN
 }
 
 fun getType(tbl: LuaDocTableTy): ITy {

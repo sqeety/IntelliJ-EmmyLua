@@ -13,6 +13,7 @@ public interface LuaDocTypes {
   IElementType ARR_TY = LuaParserDefinitionKt.createDocType("ARR_TY");
   IElementType CLASS_NAME_REF = LuaParserDefinitionKt.createDocType("CLASS_NAME_REF");
   IElementType CLASS_NAME_REF_LIST = LuaParserDefinitionKt.createDocType("CLASS_NAME_REF_LIST");
+  IElementType CLASS_OR_GLOBAL_NAME_REF = LuaParserDefinitionKt.createDocType("CLASS_OR_GLOBAL_NAME_REF");
   IElementType COMMENT_STRING = LuaParserDefinitionKt.createDocType("COMMENT_STRING");
   IElementType FUNCTION_PARAM = LuaParserDefinitionKt.createDocType("FUNCTION_PARAM");
   IElementType FUNCTION_TY = LuaParserDefinitionKt.createDocType("FUNCTION_TY");
@@ -37,6 +38,7 @@ public interface LuaDocTypes {
   IElementType TAG_OVERLOAD = LuaParserDefinitionKt.createDocType("TAG_OVERLOAD");
   IElementType TAG_PARAM = LuaParserDefinitionKt.createDocType("TAG_PARAM");
   IElementType TAG_PARTIAL = LuaParserDefinitionKt.createDocType("TAG_PARTIAL");
+  IElementType TAG_REFER = LuaParserDefinitionKt.createDocType("TAG_REFER");
   IElementType TAG_RETURN = LuaParserDefinitionKt.createDocType("TAG_RETURN");
   IElementType TAG_SEE = LuaParserDefinitionKt.createDocType("TAG_SEE");
   IElementType TAG_SUPPRESS = LuaParserDefinitionKt.createDocType("TAG_SUPPRESS");
@@ -83,6 +85,7 @@ public interface LuaDocTypes {
   IElementType TAG_NAME_PRIVATE = new LuaDocTokenType("private");
   IElementType TAG_NAME_PROTECTED = new LuaDocTokenType("protected");
   IElementType TAG_NAME_PUBLIC = new LuaDocTokenType("public");
+  IElementType TAG_NAME_REFER = new LuaDocTokenType("refer");
   IElementType TAG_NAME_RETURN = new LuaDocTokenType("return");
   IElementType TAG_NAME_SEE = new LuaDocTokenType("see");
   IElementType TAG_NAME_SUPPRESS = new LuaDocTokenType("suppress");
@@ -104,6 +107,9 @@ public interface LuaDocTypes {
       }
       else if (type == CLASS_NAME_REF_LIST) {
         return new LuaDocClassNameRefListImpl(node);
+      }
+      else if (type == CLASS_OR_GLOBAL_NAME_REF) {
+        return new LuaDocClassOrGlobalNameRefImpl(node);
       }
       else if (type == COMMENT_STRING) {
         return new LuaDocCommentStringImpl(node);
@@ -176,6 +182,9 @@ public interface LuaDocTypes {
       }
       else if (type == TAG_PARTIAL) {
         return new LuaDocTagPartialImpl(node);
+      }
+      else if (type == TAG_REFER) {
+        return new LuaDocTagReferImpl(node);
       }
       else if (type == TAG_RETURN) {
         return new LuaDocTagReturnImpl(node);
