@@ -27,6 +27,7 @@ import com.intellij.util.Processor
 import com.tang.intellij.lua.lang.LuaIcons
 import com.tang.intellij.lua.psi.*
 import com.tang.intellij.lua.search.SearchContext
+import com.tang.intellij.lua.stubs.index.LuaClassMemberIndex
 import com.tang.intellij.lua.ty.*
 import kotlin.system.measureTimeMillis
 
@@ -62,6 +63,23 @@ open class ClassMemberCompletionProvider : LuaCompletionProvider() {
             if (!Ty.isInvalid(prefixType)) {
                 complete(isColon, project, contextTy, prefixType, completionResultSet, completionResultSet.prefixMatcher, null)
             }
+//            val firstNameExpr = GetPureFirstChild(indexExpr, context)
+//            if(firstNameExpr != null && isGlobal(firstNameExpr)){
+//                val className = indexExpr.prefixExpr.text
+//                if(className.contains(".")){
+//                    val members = LuaClassMemberIndex.instance.get(className.hashCode(), context.project, context.scope)
+//                    for (member in members){
+//                        val memberName =  member.name
+//                        if(memberName != null){
+//                            if(completionResultSet.prefixMatcher.prefixMatches(memberName)){
+//                                this.session?.addWord(memberName)
+//                                val element = LookupElementFactory.createGuessableLookupElement(memberName, member, member.guessType(context), LuaIcons.GLOBAL_VAR)
+//                                completionResultSet.addElement(element)
+//                            }
+//                        }
+//                    }
+//                }
+//            }
             //smart
             val nameExpr = indexExpr.prefixExpr
             if (nameExpr is LuaNameExpr) {

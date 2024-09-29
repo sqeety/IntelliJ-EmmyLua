@@ -32,6 +32,7 @@ import com.tang.intellij.lua.psi.search.LuaShortNamesManager
 import com.tang.intellij.lua.search.GuardType
 import com.tang.intellij.lua.search.SearchContext
 import com.tang.intellij.lua.stubs.index.LuaClassIndex
+import com.tang.intellij.lua.stubs.index.LuaClassMemberIndex
 
 fun inferExpr(expr: LuaExpr?, context: SearchContext): ITy {
     if (expr == null)
@@ -352,12 +353,6 @@ private fun getType(context: SearchContext, def: PsiElement): ITy {
     }
 }
 
-private fun isGlobal(nameExpr: LuaNameExpr):Boolean {
-    val minx = nameExpr as LuaNameExprMixin
-    val gs = minx.greenStub
-    return gs?.isGlobal ?: (resolveLocal(nameExpr, null) == null)
-}
-
 fun LuaLiteralExpr.infer(): ITy {
     return when (this.kind) {
         LuaLiteralKind.Bool -> Ty.BOOLEAN
@@ -480,9 +475,6 @@ private fun LuaIndexExpr.infer(context: SearchContext): ITy {
     val propName = indexExpr.name
     if (propName != null) {
         val prefixType = parentTy ?: indexExpr.guessParentType(context)
-        if(Ty.isInvalid(prefixType)){
-            return result
-        }
         var selectType = SelectType.Both
         val nextSibling = indexExpr.nextSibling
         if(nextSibling != null){
@@ -569,6 +561,21 @@ private fun LuaIndexExpr.infer(context: SearchContext): ITy {
             return result
         }
     }
+
+//    if(Ty.isInvalid(result) && propName != null){
+//        val nameExpr = GetPureFirstChild(this, context)
+//        if(nameExpr != null && isGlobal(nameExpr)){
+//            val className = indexExpr.prefixExpr.text
+//            if(className.contains(".")){
+//                val members = LuaClassMemberIndex.instance.get(className.hashCode(), context.project, context.scope)
+//                for (member in members){
+//                    if(member.name == propName){
+//                        return member.guessType(context)
+//                    }
+//                }
+//            }
+//        }
+//    }
 
     return result
 }

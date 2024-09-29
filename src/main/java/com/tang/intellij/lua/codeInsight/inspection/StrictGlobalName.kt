@@ -29,9 +29,13 @@ class StrictGlobalName: StrictInspection() {
         return object : LuaVisitor() {
             override fun visitNameExpr(o: LuaNameExpr) {
                 val id = o.firstChild
+                var containingFile = o.containingFile
+                if (LuaFileUtil.isStdLibFile(containingFile.virtualFile, o.project)) {
+                    return
+                }
                 val res = resolve(o, SearchContext.get(o.project))
                 if (res != null) { //std api highlighting
-                    val containingFile = res.containingFile
+                    containingFile = res.containingFile
                     if (LuaFileUtil.isStdLibFile(containingFile.virtualFile, o.project)) {
                         return
                     }

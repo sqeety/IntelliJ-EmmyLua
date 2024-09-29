@@ -22,6 +22,7 @@ import com.intellij.psi.stubs.StubInputStream
 import com.intellij.psi.stubs.StubOutputStream
 import com.intellij.util.BitUtil
 import com.intellij.util.io.StringRef
+import com.tang.intellij.lua.project.LuaSettings
 import com.tang.intellij.lua.psi.*
 import com.tang.intellij.lua.psi.impl.LuaIndexExprImpl
 import com.tang.intellij.lua.search.SearchContext
@@ -37,22 +38,6 @@ class LuaIndexExprType : LuaStubElementType<LuaIndexExprStub, LuaIndexExpr>("IND
 
     override fun createPsi(indexStub: LuaIndexExprStub): LuaIndexExpr {
         return LuaIndexExprImpl(indexStub, this)
-    }
-
-    /**
-     * a.b.c => true
-     * a.b().c => false
-     * a().b.c => false
-     */
-    private fun LuaIndexExpr.isPure(): Boolean {
-        var prev = this.prefixExpr
-        while (true) {
-            when (prev) {
-                is LuaNameExpr -> return true
-                is LuaIndexExpr -> prev = prev.prefixExpr
-                else -> return false
-            }
-        }
     }
 
     /*override fun shouldCreateStub(node: ASTNode): Boolean {
@@ -74,6 +59,12 @@ class LuaIndexExprType : LuaStubElementType<LuaIndexExprStub, LuaIndexExpr>("IND
                     classNameSet.add(it.className)
             }
         }
+//        if(classNameSet.isEmpty()){
+//            val nameExpr = GetPureFirstChild(indexExpr, SearchContext.get(indexExpr.project))
+//            if(nameExpr != null && isGlobal(nameExpr)){
+//                classNameSet.add(indexExpr.prefixExpr.text)
+//            }
+//        }
         val visibility = indexExpr.visibility
 
         var flags = BitUtil.set(0, visibility.bitMask, true)

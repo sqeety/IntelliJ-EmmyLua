@@ -22,8 +22,11 @@ import com.intellij.psi.PsiManager
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.Processor
 import com.tang.intellij.lua.Constants
+import com.tang.intellij.lua.psi.impl.LuaNameExprMixin
 import com.tang.intellij.lua.psi.search.LuaShortNamesManager
 import com.tang.intellij.lua.search.SearchContext
+import com.tang.intellij.lua.stubs.index.LuaClassMemberIndex
+import com.tang.intellij.lua.ty.Ty
 
 fun resolveLocal(ref: LuaNameExpr, context: SearchContext? = null) = resolveLocal(ref.name, ref, context)
 
@@ -169,6 +172,20 @@ fun resolve(indexExpr: LuaIndexExpr, idString: String, context: SearchContext): 
             return declaration.psi
         }
     }
+    if(ret == null){
+        val nameExpr = GetPureFirstChild(indexExpr, context)
+        if(nameExpr != null && isGlobal(nameExpr)){
+            val className = indexExpr.prefixExpr.text
+            if(className.contains(".")){
+                val members = LuaClassMemberIndex.instance.get(className.hashCode(), context.project, context.scope)
+                for (member in members){
+                    if(member.name == indexExpr.name){
+                        return member
+                    }
+                }
+            }
+        }
+    }
     return ret
 }
 
@@ -197,4 +214,37 @@ fun resolveRequireFile(pathString: String?, project: Project): LuaPsiFile? {
             return psiFile
     }
     return null
+}
+
+/**
+ * a.b.c => true
+ * a.b().c => false
+ * a().b.c => false
+ */
+fun isPure(indexExpr: LuaIndexExpr): Boolean {
+    var prev = indexExpr.prefixExpr
+    while (true) {
+        when (prev) {
+            is LuaNameExpr -> return true
+            is LuaIndexExpr -> prev = prev.prefixExpr
+            else -> return false
+        }
+    }
+}
+
+fun GetPureFirstChild(indexExpr: LuaIndexExpr, context: SearchContext): LuaNameExpr? {
+    var prev = indexExpr.prefixExpr
+    while (true) {
+        when (prev) {
+            is LuaNameExpr -> return prev
+            is LuaIndexExpr -> prev = prev.prefixExpr
+            else -> return null
+        }
+    }
+}
+
+fun isGlobal(nameExpr: LuaNameExpr):Boolean {
+    val minx = nameExpr as LuaNameExprMixin
+    val gs = minx.greenStub
+    return gs?.isGlobal ?: (resolveLocal(nameExpr, null) == null)
 }
