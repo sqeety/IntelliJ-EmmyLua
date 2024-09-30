@@ -166,12 +166,13 @@ fun resolve(indexExpr: LuaIndexExpr, idString: String, context: SearchContext): 
         true
     })
 
-    if(ret is LuaIndexExpr){
+    if(ret is LuaIndexExpr && ret != indexExpr){
         val assignStat = (ret as LuaIndexExpr).assignStat
         if(assignStat != null){
             val referComment = assignStat.comment?.tagRefer
-            if(referComment != null && referComment.referPsi != null){
-                return referComment.referPsi
+            if(referComment != null){
+                val psi = referComment.referPsi
+                return psi
             }
         }
     }
