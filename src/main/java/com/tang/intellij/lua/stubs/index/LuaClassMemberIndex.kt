@@ -53,17 +53,20 @@ class LuaClassMemberIndex : IntStubIndexExtension<LuaClassMember>() {
             } else {
                 val projectTys = mutableSetOf<LuaClassMember>()
                 val className = key.substring(0, index)
+                var memberName = key.substring(index + 2)
                 val leftMembers = mutableSetOf<LuaClassMember>()
                 all.forEach {
-                    if (LuaFileUtil.isStdLibFile(it.containingFile.virtualFile, it.project)) {
-                        if (it is LuaDocTagField || it is LuaClassMethodDef || LuaPsiTreeUtilEx.isClassDefineMember(it, className)) {
-                            if (!processor.process(it))
-                                return false
+                    if(it.name == memberName){
+                        if (LuaFileUtil.isStdLibFile(it.containingFile.virtualFile, it.project)) {
+                            if (it is LuaDocTagField || it is LuaClassMethodDef || LuaPsiTreeUtilEx.isClassDefineMember(it, className)) {
+                                if (!processor.process(it))
+                                    return false
+                            } else {
+                                leftMembers.add(it)
+                            }
                         } else {
-                            leftMembers.add(it)
+                            projectTys.add(it)
                         }
-                    } else {
-                        projectTys.add(it)
                     }
                 }
                 projectTys.forEach {
