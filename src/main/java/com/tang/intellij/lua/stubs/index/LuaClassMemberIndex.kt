@@ -53,7 +53,7 @@ class LuaClassMemberIndex : IntStubIndexExtension<LuaClassMember>() {
             } else {
                 val projectTys = mutableSetOf<LuaClassMember>()
                 val className = key.substring(0, index)
-                var memberName = key.substring(index + 2)
+                val memberName = key.substring(index + 2)
                 val leftMembers = mutableSetOf<LuaClassMember>()
                 all.forEach {
                     if(it.name == memberName){

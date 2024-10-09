@@ -22,6 +22,7 @@ import com.intellij.psi.PsiElementResolveResult
 import com.intellij.psi.PsiPolyVariantReferenceBase
 import com.intellij.psi.ResolveResult
 import com.tang.intellij.lua.Constants
+import com.tang.intellij.lua.comment.psi.LuaDocTagClass
 import com.tang.intellij.lua.comment.psi.LuaDocTagRefer
 import com.tang.intellij.lua.psi.LuaElementFactory
 import com.tang.intellij.lua.psi.search.LuaShortNamesManager
@@ -70,9 +71,16 @@ class LuaDocTagReferReference(refer: LuaDocTagRefer) :
                             })
                     }
                 } else {
+                    var ty:ITyClass? = null
+
                     if(type is ITyClass){
+                        ty = type
+                    }else if(type is LuaDocTagClass){
+                        ty = type.type
+                    }
+                    if(ty != null){
                         LuaShortNamesManager.getInstance(myElement.project)
-                            .processMembers(type, id.text, context) {
+                            .processMembers(ty, id.text, context) {
                                 list.add(PsiElementResolveResult(it))
                                 true
                             }
