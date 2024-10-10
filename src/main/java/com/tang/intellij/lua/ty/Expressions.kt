@@ -239,10 +239,12 @@ private fun LuaCallExpr.infer(context: SearchContext): ITy {
             is ITyFunction -> {
                 var matchFunc = false
                 it.process(Processor { sig ->
-                    val targetTy = getReturnTy(sig, context)
-                    if (targetTy != null && sig.params.size == paramCount) {
-                        ret = ret.union(targetTy)
-                        matchFunc = true
+                    if (sig.params.size == paramCount){
+                        val targetTy = getReturnTy(sig, context)
+                        if (targetTy != null && !Ty.isInvalid(targetTy)) {
+                            ret = ret.union(targetTy)
+                            matchFunc = true
+                        }
                     }
                     !matchFunc
                 })
