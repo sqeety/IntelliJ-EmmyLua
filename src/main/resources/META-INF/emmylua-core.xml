@@ -257,7 +257,7 @@
                 displayName="Empty body"
                 enabledByDefault="true"
                 groupName="Lua"
-                level="ERROR"
+                level="WARNING"
                 language="Lua"
                 implementationClass="com.tang.intellij.lua.codeInsight.inspection.EmptyBody"/>
         <localInspection
