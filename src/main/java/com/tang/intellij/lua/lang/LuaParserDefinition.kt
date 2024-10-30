@@ -153,7 +153,7 @@ class LuaParserDefinition : ParserDefinition {
                 LuaDocTypes.TAG_NAME_VARARG,
                 LuaDocTypes.TAG_NAME_ALIAS,
                 LuaDocTypes.TAG_NAME_PARTIAL,
-                LuaDocTypes.TAG_REFER
+                LuaDocTypes.TAG_NAME_REFER
         )
         val DOC_KEYWORD_TOKENS = TokenSet.create(
                 LuaDocTypes.FUN,

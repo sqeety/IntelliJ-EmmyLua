@@ -107,14 +107,14 @@ abstract class TyClass(override val className: String,
     }
 
     override fun getMemberChain(context: SearchContext, alreadyProcessed: HashSet<ITy>): ClassMemberChain {
+        alreadyProcessed.add(this)
         val superClazz = getSuperClass(context)
         val array: Array<ClassMemberChain>
         if (superClazz != null) {
             if (alreadyProcessed.contains(superClazz)) {
-                return ClassMemberChain(this, emptyArray())
+                array = emptyArray()
             }
-            alreadyProcessed.add(superClazz)
-            if (superClazz is ITyClass) {
+            else if (superClazz is ITyClass) {
                 array = arrayOf(superClazz.getMemberChain(context, alreadyProcessed))
             } else if (superClazz is TyUnion) {
                 val multiArray = mutableListOf<ClassMemberChain>()

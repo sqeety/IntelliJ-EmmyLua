@@ -141,6 +141,23 @@ class LuaDocCompletionContributor : CompletionContributor() {
             }
         })
 
+        // @refer member completion
+        extend(CompletionType.BASIC, SHOW_REFER_MEMBER, object : CompletionProvider<CompletionParameters>() {
+            override fun addCompletions(completionParameters: CompletionParameters, processingContext: ProcessingContext, completionResultSet: CompletionResultSet) {
+                val position = completionParameters.position
+                val refTag = PsiTreeUtil.getParentOfType(position, LuaDocTagRefer::class.java)
+                if (refTag != null) {
+                    val classType = refTag.classOrGlobalNameRef?.resolveType() as? ITyClass
+                    val ctx = SearchContext.get(refTag.project)
+                    classType?.processMembers(ctx) { _, member ->
+                        completionResultSet.addElement(LookupElementBuilder.create(member.name!!).withIcon(LuaIcons.CLASS_FIELD))
+                        Unit
+                    }
+                }
+                completionResultSet.stopHere()
+            }
+        })
+
         extend(CompletionType.BASIC, SHOW_LAN, object : CompletionProvider<CompletionParameters>() {
             override fun addCompletions(completionParameters: CompletionParameters, processingContext: ProcessingContext, completionResultSet: CompletionResultSet) {
                 Language.getRegisteredLanguages().forEach {
@@ -180,6 +197,9 @@ class LuaDocCompletionContributor : CompletionContributor() {
 
         //@see type#MEMBER
         private val SHOW_SEE_MEMBER = psiElement(LuaDocTypes.ID).inside(LuaDocTagSee::class.java)
+
+        //@refer type#MEMBER
+        private val SHOW_REFER_MEMBER = psiElement(LuaDocTypes.ID).inside(LuaDocTagRefer::class.java)
 
         private val SHOW_LAN = psiElement(LuaDocTypes.ID).inside(LuaDocTagLan::class.java)
 
