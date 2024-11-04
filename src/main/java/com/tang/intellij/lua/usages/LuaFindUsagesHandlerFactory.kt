@@ -63,18 +63,21 @@ class FindMethodUsagesHandler(val methodDef: LuaClassMethod) : FindUsagesHandler
         return collection
     }
 
-    private fun iteratorAllSuper(arr:MutableList<PsiElement>, type:ITyClass, methodName:String, ctx:SearchContext){
+    private fun iteratorAllSuper(arr:MutableList<PsiElement>, type:ITyClass, methodName:String, ctx:SearchContext, processedSet:MutableSet<ITyClass>){
         val superClass = type.getSuperClass(ctx)
         if (superClass is ITyClass) {
+            if(!processedSet.add(superClass)) return
             val superMethod = superClass.findMember(methodName, ctx)
             if (superMethod != null) arr.add(superMethod)
-            iteratorAllSuper(arr, superClass, methodName, ctx)
+            iteratorAllSuper(arr, superClass, methodName, ctx, processedSet)
         }else if(superClass is TyUnion){
             superClass.getChildTypes().forEach {
                 if(it is ITyClass){
-                    val superMethod = it.findMember(methodName, ctx)
-                    if (superMethod != null) arr.add(superMethod)
-                    iteratorAllSuper(arr, it, methodName, ctx)
+                    if(processedSet.add(it)){
+                        val superMethod = it.findMember(methodName, ctx)
+                        if (superMethod != null) arr.add(superMethod)
+                        iteratorAllSuper(arr, it, methodName, ctx, processedSet)
+                    }
                 }
             }
         }
@@ -87,7 +90,9 @@ class FindMethodUsagesHandler(val methodDef: LuaClassMethod) : FindUsagesHandler
         val methodName = methodDef.name
         val parentType = methodDef.guessParentType(ctx) as? ITyClass
         if(parentType != null && methodName != null)
-            iteratorAllSuper(arr, parentType, methodName, ctx)
+        {
+            iteratorAllSuper(arr, parentType, methodName, ctx, mutableSetOf<ITyClass>())
+        }
         return arr.toTypedArray()
     }
 
