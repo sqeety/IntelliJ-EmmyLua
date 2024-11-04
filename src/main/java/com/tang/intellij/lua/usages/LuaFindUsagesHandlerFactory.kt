@@ -98,17 +98,15 @@ class FindMethodUsagesHandler(val methodDef: LuaClassMethod) : FindUsagesHandler
 
     override fun processElementUsages(element: PsiElement, processor: Processor<in UsageInfo>, options: FindUsagesOptions): Boolean {
         if (super.processElementUsages(element, processor, options)) {
-            ApplicationManager.getApplication().runReadAction {
-                val query = LuaOverridingMethodsSearch.search(methodDef)
-                //val query = MergeQuery(LuaOverridingMethodsSearch.search(methodDef), LuaOverridenMethodsSearch.search(methodDef))
-                query.forEach {
-                    val identifier = it.nameIdentifier
-                    if (identifier != null)
-                        processor.process(UsageInfo(identifier))
+            val query = LuaOverridenMethodsSearch.search(methodDef)
+            //val query = MergeQuery(LuaOverridingMethodsSearch.search(methodDef), LuaOverridenMethodsSearch.search(methodDef))
+            query.forEach {
+                val identifier = it.nameIdentifier
+                if (identifier != null)
+                    processor.process(UsageInfo(identifier))
 
-                    ReferencesSearch.search(it, options.searchScope).forEach { ref ->
-                        processor.process(UsageInfo(ref.element))
-                    }
+                ReferencesSearch.search(it, options.searchScope).forEach { ref ->
+                    processor.process(UsageInfo(ref.element))
                 }
             }
         }

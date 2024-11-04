@@ -110,8 +110,9 @@ class LuaClassMemberIndex : IntStubIndexExtension<LuaClassMember>() {
                     return false
                 }
                 val type = classDef.type
+                val copyProcessedList = processedList.toMutableSet()
                 //先检查继承数据的字段
-                val notFound = TyClass.processSuperClass(type, context, processedList) {
+                val notFound = TyClass.processSuperClass(type, context, copyProcessedList) {
                     processPureField(it.className, fieldName, context, processor)
                 }
                 if(!notFound) return false
@@ -130,7 +131,8 @@ class LuaClassMemberIndex : IntStubIndexExtension<LuaClassMember>() {
                         return false
 
                     // from supper
-                    return TyClass.processSuperClass(type, context, processedList) {
+                    val copyProcessedList = processedList.toMutableSet()
+                    return TyClass.processSuperClass(type, context, copyProcessedList) {
                         process(it.className, fieldName, context, processor, false, processedList)
                     }
                 }
