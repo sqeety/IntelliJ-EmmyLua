@@ -222,7 +222,7 @@ abstract class TyClass(override val className: String,
         // Lazy init for superclass
         this.doLazyInit(context)
         // Check if any of the superclasses are type
-        return !processSuperClass(this, context) { superType ->
+        return !processSuperClass(this, context, mutableSetOf()) { superType ->
             superType != other
         }
     }
@@ -272,8 +272,7 @@ abstract class TyClass(override val className: String,
             return g
         }
 
-        fun processSuperClass(start: ITyClass, searchContext: SearchContext, processor: (ITyClass) -> Boolean): Boolean {
-            val processedName = mutableSetOf<String>()
+        fun processSuperClass(start: ITyClass, searchContext: SearchContext, processedName:MutableSet<String>, processor: (ITyClass) -> Boolean): Boolean {
             var cur: ITy? = start
             while (cur != null) {
                 val cls = cur.getSuperClass(searchContext)
@@ -295,7 +294,7 @@ abstract class TyClass(override val className: String,
                             if (!processor(childType)) {
                                 return false
                             }
-                            if(!processSuperClass(childType, searchContext, processor)){
+                            if(!processSuperClass(childType, searchContext, processedName, processor)){
                                 return false
                             }
                         }

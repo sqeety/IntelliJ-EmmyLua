@@ -82,7 +82,7 @@ class LuaDocTagReferReference(refer: LuaDocTagRefer) :
                         LuaShortNamesManager.getInstance(myElement.project)
                             .processMembers(ty, id.text, context) {
                                 list.add(PsiElementResolveResult(it))
-                                true
+                                false
                             }
                     }
                 }

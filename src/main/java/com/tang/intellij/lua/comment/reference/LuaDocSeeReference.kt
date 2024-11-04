@@ -84,7 +84,7 @@ class LuaDocSeeReference(see: LuaDocTagSee) :
                         LuaShortNamesManager.getInstance(myElement.project)
                             .processMembers(ty, id.text, context) {
                                 list.add(PsiElementResolveResult(it))
-                                true
+                                false
                             }
                     }
                 }

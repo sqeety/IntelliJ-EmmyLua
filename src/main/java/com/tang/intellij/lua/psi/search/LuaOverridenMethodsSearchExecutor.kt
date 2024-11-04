@@ -32,7 +32,8 @@ class LuaOverridenMethodsSearchExecutor : QueryExecutor<LuaClassMethod, LuaOverr
         val type = method.guessClassType(context)
         val methodName = method.name
         if (type != null && methodName != null) {
-            TyClass.processSuperClass(type, context) { superType->
+            val processSet = mutableSetOf(type.className)
+            TyClass.processSuperClass(type, context, processSet) { superType->
                 ProgressManager.checkCanceled()
                 val superTypeName = superType.className
                 val superMethod = LuaShortNamesManager.getInstance(project).findMethod(superTypeName, methodName, context)

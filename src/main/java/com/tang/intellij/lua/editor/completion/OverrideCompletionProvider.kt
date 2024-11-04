@@ -49,7 +49,7 @@ class OverrideCompletionProvider : LuaCompletionProvider() {
                 classType.processMembers(context, { _, m ->
                     m.name?.let { memberNameSet.add(it) }
                 }, false)
-                TyClass.processSuperClass(classType, context) { sup ->
+                TyClass.processSuperClass(classType, context, mutableSetOf()) { sup ->
                     addOverrideMethod(completionParameters, completionResultSet, memberNameSet, sup)
                     true
                 }

@@ -498,7 +498,7 @@ fun LuaClassMethod.findOverridingMethod(context: SearchContext): LuaClassMethod?
     val methodName = name ?: return null
     val type = guessClassType(context) ?: return null
     var superMethod: LuaClassMethod? = null
-    TyClass.processSuperClass(type, context) { superType->
+    TyClass.processSuperClass(type, context, mutableSetOf()) { superType->
         ProgressManager.checkCanceled()
         val superTypeName = superType.className
         superMethod = LuaShortNamesManager.getInstance(context.project).findMethod(superTypeName, methodName, context)

@@ -38,11 +38,11 @@ class LuaClassInheritorsSearchExecutor : QueryExecutor<LuaDocTagClass, LuaClassI
             return ret
 
         val processed = mutableListOf<LuaDocTagClass>()
-        LuaSuperClassIndex.process(typeName, searchParameters.project, searchParameters.searchScope, Processor {
+        LuaSuperClassIndex.process(typeName, searchParameters.project, searchParameters.searchScope) {
             processed.add(it)
             ret = processor.process(it)
             ret
-        })
+        }
         if (ret && searchParameters.isDeep) {
             for (def in processed) {
                 ret = processInheritors(searchParameters, def.name, processedNames, processor)
@@ -53,10 +53,6 @@ class LuaClassInheritorsSearchExecutor : QueryExecutor<LuaDocTagClass, LuaClassI
     }
 
     override fun execute(searchParameters: LuaClassInheritorsSearch.SearchParameters, processor: Processor<in LuaDocTagClass>): Boolean {
-        var ref = true
-        DumbService.getInstance(searchParameters.project).runReadActionInSmartMode {
-            ref = processInheritors(searchParameters, searchParameters.typeName, mutableSetOf(), processor)
-        }
-        return ref
+        return processInheritors(searchParameters, searchParameters.typeName, mutableSetOf(), processor)
     }
 }
