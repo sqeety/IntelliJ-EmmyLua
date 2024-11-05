@@ -53,6 +53,10 @@ class LuaClassInheritorsSearchExecutor : QueryExecutor<LuaDocTagClass, LuaClassI
     }
 
     override fun execute(searchParameters: LuaClassInheritorsSearch.SearchParameters, processor: Processor<in LuaDocTagClass>): Boolean {
-        return processInheritors(searchParameters, searchParameters.typeName, mutableSetOf(), processor)
+        var ref = true
+        DumbService.getInstance(searchParameters.project).runReadActionInSmartMode {
+            ref = processInheritors(searchParameters, searchParameters.typeName, mutableSetOf(), processor)
+        }
+        return ref
     }
 }
