@@ -395,33 +395,30 @@ private fun IFunSignature.inferGeneric(genericNames:Array<String>, ty:ITyGeneric
     val params = signature.params
     val multiParams = mutableListOf<LuaParamInfo>()
     multiParams.addAll(params)
-    for ((index, genericName) in genericNames.withIndex())
-    {
-        if(returnTy is TySerializedFunction){
-            returnTy = returnTy.inferGeneric(genericNames, ty)
-        }else{
+    if (returnTy is TySerializedFunction) {
+        returnTy = returnTy.inferGeneric(genericNames, ty)
+    } else if(returnTy is TySerializedGeneric) {
+        returnTy = returnTy.inferGeneric(genericNames, ty)
+    }else{
+        for ((index, genericName) in genericNames.withIndex()) {
             if (returnTy.displayName == genericName) {
                 returnTy = ty.getParamTy(index)
+                break
             }
         }
-        for ((paramIndex, param) in multiParams.withIndex()){
-            val paramTy = param.ty
-            if(paramTy is TySerializedFunction){
-                multiParams[paramIndex] = LuaParamInfo(param.name, paramTy.inferGeneric(genericNames, ty))
-            }else if(paramTy is TySerializedGeneric){
-                for ((genericParamIndex, genericParamTy) in paramTy.params.withIndex()){
-                    if(genericParamTy.displayName == genericName){
-                        val temp = mutableListOf<ITy>()
-                        temp.addAll(paramTy.params)
-                        temp[genericParamIndex] = ty.getParamTy(index)
-                        multiParams[paramIndex] = LuaParamInfo(param.name, TySerializedGeneric(temp.toTypedArray(), paramTy.base))
-                        break
-                    }
-                }
-            }
-            else{
+    }
+    for ((paramIndex, param) in multiParams.withIndex()){
+        val paramTy = param.ty
+        if(paramTy is TySerializedFunction){
+            multiParams[paramIndex] = LuaParamInfo(param.name, paramTy.inferGeneric(genericNames, ty))
+        }else if(paramTy is TySerializedGeneric){
+            multiParams[paramIndex] = LuaParamInfo(param.name, paramTy.inferGeneric(genericNames, ty))
+        }
+        else{
+            for ((index, genericName) in genericNames.withIndex()) {
                 if (param.name == genericName) {
                     multiParams[paramIndex] = LuaParamInfo(param.name, ty.getParamTy(index))
+                    break
                 }
             }
         }
@@ -439,6 +436,26 @@ private fun TySerializedFunction.inferGeneric(genericNames:Array<String>, ty:ITy
         multiSignatures.add(signature.inferGeneric(genericNames, ty))
     }
     return TySerializedFunction(mainSignature.inferGeneric(genericNames, ty), multiSignatures.toTypedArray())
+}
+
+private fun TySerializedGeneric.inferGeneric(genericNames:Array<String>, ty:ITyGeneric):ITy{
+    val temp = mutableListOf<ITy>()
+    temp.addAll(params)
+    for ((genericParamIndex, genericParamTy) in params.withIndex()){
+        temp[genericParamIndex] = genericParamTy.inferGeneric(genericNames, ty)
+    }
+    return TySerializedGeneric(temp.toTypedArray(), base)
+}
+
+private fun ITy.inferGeneric(genericNames:Array<String>, ty:ITyGeneric):ITy{
+    if(this is TySerializedGeneric){
+        return this.inferGeneric(genericNames, ty)
+    }
+    for ((index, genericName) in genericNames.withIndex())
+        if(displayName == genericName){
+            return ty.getParamTy(index)
+        }
+    return this
 }
 
 private fun LuaIndexExpr.infer(context: SearchContext): ITy {
