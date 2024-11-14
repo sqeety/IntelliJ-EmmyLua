@@ -40,7 +40,7 @@ class SmartCompletionContributor : CompletionContributor() {
                         val lookupElement = LookupElementBuilder.create(it.content)
                                 .withLookupString(it.content)
                                 .withIcon(LuaIcons.STRING_LITERAL)
-                        completionResultSet.addElement(PrioritizedLookupElement.withPriority(lookupElement, 111111999.0))
+                        completionResultSet.addElement(PrioritizedLookupElement.withPriority(lookupElement, 20.0))
                     }
                 }
             }
