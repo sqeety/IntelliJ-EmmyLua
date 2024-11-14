@@ -24,9 +24,11 @@ import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.util.Processor
+import com.tang.intellij.lua.ext.stubOrPsiParent
 import com.tang.intellij.lua.lang.LuaIcons
 import com.tang.intellij.lua.psi.*
 import com.tang.intellij.lua.search.SearchContext
+import com.tang.intellij.lua.stubs.LuaUnaryExprStub
 import com.tang.intellij.lua.stubs.index.LuaClassMemberIndex
 import com.tang.intellij.lua.ty.*
 import kotlin.system.measureTimeMillis
@@ -58,10 +60,27 @@ open class ClassMemberCompletionProvider : LuaCompletionProvider() {
             val isColon = indexExpr.colon != null
             val project = indexExpr.project
             val contextTy = LuaPsiTreeUtil.findContextClass(indexExpr)
+            var matchTy:ITy = Ty.UNKNOWN
+            val assign = indexExpr.assignStat
             val context = SearchContext.get(project)
+            if (assign != null) {
+                val index = assign.getIndexFor(indexExpr)
+                val varExpr = assign.varExprList.getExprAt(index)
+                if (varExpr != null) {
+                    matchTy = varExpr.guessType(context)
+                }
+            } else {
+                val binaryExpr = indexExpr.stubOrPsiParent
+                if (binaryExpr is LuaBinaryExpr) {
+                    val left = binaryExpr.left
+                    if(left != null)
+                        matchTy = left.guessType(context)
+                }
+            }
+
             val prefixType = indexExpr.guessParentType(context)
             if (!Ty.isInvalid(prefixType)) {
-                complete(isColon, project, contextTy, prefixType, completionResultSet, completionResultSet.prefixMatcher, null)
+                complete(isColon, project, contextTy, prefixType, matchTy, completionResultSet, completionResultSet.prefixMatcher, null)
             }
 //            val firstNameExpr = GetPureFirstChild(indexExpr, context)
 //            if(firstNameExpr != null && isGlobal(firstNameExpr)){
@@ -96,7 +115,7 @@ open class ClassMemberCompletionProvider : LuaCompletionProvider() {
                         if (!Ty.isInvalid(prefixType)) {
                             val prefixMatcher = completionResultSet.prefixMatcher
                             val resultSet = completionResultSet.withPrefixMatcher("$prefixName*$postfixName")
-                            complete(isColon, project, contextTy, type, resultSet, prefixMatcher, object : HandlerProcessor() {
+                            complete(isColon, project, contextTy, type, matchTy, resultSet, prefixMatcher, object : HandlerProcessor() {
                                 override fun process(element: LuaLookupElement, member: LuaClassMember, memberTy: ITy?): LookupElement {
                                     element.itemText = txt + colon + element.itemText
                                     element.lookupString = txt + colon + element.lookupString
@@ -115,12 +134,13 @@ open class ClassMemberCompletionProvider : LuaCompletionProvider() {
                          project: Project,
                          contextTy: ITy,
                          prefixType: ITy,
+                         matchTy: ITy,
                          completionResultSet: CompletionResultSet,
                          prefixMatcher: PrefixMatcher,
                          handlerProcessor: HandlerProcessor?) {
         val mode = if (isColon) MemberCompletionMode.Colon else MemberCompletionMode.Dot
         prefixType.eachTopClass { luaType ->
-            addClass(contextTy, luaType, project, mode, completionResultSet, prefixMatcher, handlerProcessor)
+            addClass(contextTy, luaType, project, matchTy, mode, completionResultSet, prefixMatcher, handlerProcessor)
             true
         }
     }
@@ -128,6 +148,7 @@ open class ClassMemberCompletionProvider : LuaCompletionProvider() {
     protected fun addClass(contextTy: ITy,
                            luaType:ITyClass,
                            project: Project,
+                           matchTy: ITy,
                            completionMode:MemberCompletionMode,
                            completionResultSet: CompletionResultSet,
                            prefixMatcher: PrefixMatcher,
@@ -142,6 +163,7 @@ open class ClassMemberCompletionProvider : LuaCompletionProvider() {
                             member,
                             curType,
                             luaType,
+                            matchTy,
                             completionMode,
                             project,
                             handlerProcessor)
@@ -154,6 +176,7 @@ open class ClassMemberCompletionProvider : LuaCompletionProvider() {
                             member: LuaClassMember,
                             thisType: ITyClass,
                             callType: ITyClass,
+                            matchTy: ITy,
                             completionMode: MemberCompletionMode,
                             project: Project,
                             handlerProcessor: HandlerProcessor?) {
@@ -166,7 +189,13 @@ open class ClassMemberCompletionProvider : LuaCompletionProvider() {
                 addFunction(completionResultSet, bold, completionMode != MemberCompletionMode.Dot, className, member, fn, thisType, callType, handlerProcessor)
         } else if (member is LuaClassField) {
             if (completionMode != MemberCompletionMode.Colon)
-                addField(completionResultSet, bold, className, member, type, handlerProcessor)
+            {
+                var priority = 0.0
+                if(!Ty.isInvalid(matchTy) && matchTy.displayName == type.displayName){
+                    priority = 99999.0
+                }
+                addField(completionResultSet, bold, className, member, type, handlerProcessor, priority)
+            }
         }
     }
 
@@ -175,12 +204,16 @@ open class ClassMemberCompletionProvider : LuaCompletionProvider() {
                            clazzName: String,
                            field: LuaClassField,
                            ty:ITy?,
-                           handlerProcessor: HandlerProcessor?) {
+                           handlerProcessor: HandlerProcessor?,
+                           priority:Double = 0.0) {
         val name = field.name
         if (name != null) {
             this.session?.addWord(name)
             val element = LookupElementFactory.createFieldLookupElement(clazzName, name, field, ty, bold)
-            val ele = handlerProcessor?.process(element, field, null) ?: element
+            var ele = handlerProcessor?.process(element, field, null) ?: element
+            if(priority != 0.0){
+                ele = PrioritizedLookupElement.withPriority(ele, priority)
+            }
             completionResultSet.addElement(ele)
         }
     }

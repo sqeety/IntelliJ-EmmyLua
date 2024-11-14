@@ -25,6 +25,7 @@ import com.tang.intellij.lua.psi.guessClassType
 import com.tang.intellij.lua.search.SearchContext
 import com.tang.intellij.lua.ty.ITy
 import com.tang.intellij.lua.ty.ITyFunction
+import com.tang.intellij.lua.ty.Ty
 import com.tang.intellij.lua.ty.isVisibleInScope
 
 /**
@@ -48,6 +49,7 @@ class SuggestSelfMemberProvider : ClassMemberCompletionProvider() {
                                 member,
                                 curType,
                                 type,
+                                Ty.UNKNOWN,
                                 MemberCompletionMode.Colon,
                                 project,
                                 object : HandlerProcessor() {
