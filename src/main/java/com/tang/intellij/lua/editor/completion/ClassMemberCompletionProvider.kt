@@ -192,7 +192,7 @@ open class ClassMemberCompletionProvider : LuaCompletionProvider() {
             {
                 var priority = 0.0
                 if(!Ty.isInvalid(matchTy) && matchTy.displayName == type.displayName){
-                    priority = 99999.0
+                    priority = 111112999.0
                 }
                 addField(completionResultSet, bold, className, member, type, handlerProcessor, priority)
             }
