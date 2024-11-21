@@ -40,7 +40,7 @@ class LuaFileAbsoluteResolver : ILuaFileResolver {
                 if(lastDirectoryName != null){
                     val index = shortUrl.indexOf(lastDirectoryName)
                     val lastIndex = shortUrl.lastIndexOf(lastDirectoryName)
-                    if(index == lastIndex){
+                    if(index == lastIndex && index != -1){
                         val sameDirectory = shortUrl.substring(0, index + lastDirectoryName.length)
                         if(projectBasePath.endsWith(sameDirectory)){
                             basePath = projectBasePath.substring(0, projectBasePath.length - sameDirectory.length)
