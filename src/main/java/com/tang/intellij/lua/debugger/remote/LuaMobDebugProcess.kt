@@ -115,7 +115,6 @@ open class LuaMobDebugProcess(session: XDebugSession) : LuaDebugProcess(session)
     override fun handleResp(client: MobClient, code: Int, data: String?) {
         when (code) {
             202 -> {
-                println("STACK --{maxlevel=0}", LogConsoleType.NORMAL, ConsoleViewContentType.SYSTEM_OUTPUT)
                 runCommand(GetStackCommand())
             }
         }
@@ -130,10 +129,10 @@ open class LuaMobDebugProcess(session: XDebugSession) : LuaDebugProcess(session)
     override fun onConnect(client: MobClient) {
         mobClient = client
         client.printCallback = { s ->
-            println(s, LogConsoleType.NORMAL, ConsoleViewContentType.SYSTEM_OUTPUT)
+            //println(s, LogConsoleType.NORMAL, ConsoleViewContentType.SYSTEM_OUTPUT)
         }
         client.addCommand("DELB * 0")
-        client.addCommand((GetStackCommand()))
+        //client.addCommand((GetStackCommand()))
         sendAllBreakpoints()
     }
 
