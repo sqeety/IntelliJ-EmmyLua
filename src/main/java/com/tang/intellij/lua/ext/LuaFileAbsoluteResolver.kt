@@ -54,9 +54,24 @@ class LuaFileAbsoluteResolver : ILuaFileResolver {
     }
     override fun find(project: Project, shortUrl: String, extNames: Array<String>): VirtualFile? {
         //绝对路径
-        val basePath = getBasePath(project, shortUrl)
+        var formatUrl = shortUrl.replace("\\", "/")
+        val basePath = getBasePath(project, formatUrl)
+        if(formatUrl.startsWith(projectPath)){
+            val index = formatUrl.lastIndexOf(".")
+            if(index != -1){
+                formatUrl = formatUrl.substring(0, index)
+                for (ext in extNames) {
+                    val newUrl = VfsUtil.pathToUrl(formatUrl + ext)
+                    val newFile = VirtualFileManager.getInstance().findFileByUrl(newUrl)
+                    if (newFile != null && !newFile.isDirectory) {
+                        return newFile
+                    }
+                }
+            }
+            return null
+        }
         for (ext in extNames) {
-            val url = VfsUtil.pathToUrl(basePath + shortUrl + ext)
+            val url = VfsUtil.pathToUrl(basePath + formatUrl + ext)
             val file = VirtualFileManager.getInstance().findFileByUrl(url)
             if (file != null && !file.isDirectory) {
                 return file

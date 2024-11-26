@@ -46,6 +46,10 @@ open class DefaultCommand(private val commandline: String, private val requireRe
         }
     }
 
+    override fun toString(): String {
+        return commandline
+    }
+
     override fun isFinished(): Boolean {
         return requireRespLines <= handleLines
     }

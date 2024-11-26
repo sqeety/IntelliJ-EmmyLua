@@ -32,6 +32,7 @@ import java.util.regex.Pattern
 
 class MobClient(private val socketChannel: SocketChannel, private val listener: MobServerListener) {
 
+    public var printCallback: ((String) -> Unit)? = null
     private var isStopped: Boolean = false
     private val commands = LinkedList<DebugCommand>()
     private var currentCommandWaitForResp: DebugCommand? = null
@@ -61,6 +62,7 @@ class MobClient(private val socketChannel: SocketChannel, private val listener: 
                 while (commands.size > 0 && currentCommandWaitForResp == null) {
                     if (currentCommandWaitForResp == null) {
                         command = commands.poll()
+                        printCallback?.invoke("send:" + command.toString())
                         command.debugProcess = listener.process
                         command.write(this)
                         streamWriter!!.write("\n")
@@ -108,6 +110,7 @@ class MobClient(private val socketChannel: SocketChannel, private val listener: 
     }
 
     private fun onResp(data: String) {
+        printCallback?.invoke("receive:$data")
         val cmd = currentCommandWaitForResp
         if (cmd != null) {
             val eat = cmd.handle(data)
