@@ -133,6 +133,7 @@ open class LuaMobDebugProcess(session: XDebugSession) : LuaDebugProcess(session)
         }
         client.addCommand("DELB * 0")
         //client.addCommand((GetStackCommand()))
+        client.addCommand("RUN")
         sendAllBreakpoints()
     }
 
