@@ -19,20 +19,24 @@ package com.tang.intellij.lua.codeInsight;
 import com.intellij.codeInsight.daemon.GutterIconNavigationHandler;
 import com.intellij.codeInsight.daemon.impl.PsiElementListNavigator;
 import com.intellij.ide.util.DefaultPsiElementCellRenderer;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.psi.NavigatablePsiElement;
 import com.intellij.psi.PsiElement;
 import com.intellij.util.Query;
 import org.jetbrains.annotations.Nullable;
+
+import com.intellij.openapi.util.Key;
 
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- *
  * Created by tangzx on 2017/3/30.
  */
 public abstract class LuaLineMarkerNavigator<T extends PsiElement, S extends PsiElement> implements GutterIconNavigationHandler<T> {
+    private static final Key<NavigatablePsiElement[]> MARKERS = new Key<>("LuaLineMarkerNavigator");
+
     @Override
     public void navigate(MouseEvent mouseEvent, T t) {
         final List<NavigatablePsiElement> navElements = new ArrayList<>();
@@ -41,11 +45,16 @@ public abstract class LuaLineMarkerNavigator<T extends PsiElement, S extends Psi
             search.forEach(t1 -> {
                 navElements.add((NavigatablePsiElement) t1);
             });
-            PsiElementListNavigator.openTargets(mouseEvent,
-                    navElements.toArray(new NavigatablePsiElement[0]),
-                    getTitle(t),
-                    null,
-                    new DefaultPsiElementCellRenderer());
+            NavigatablePsiElement[] methods = navElements.toArray(NavigatablePsiElement.EMPTY_NAVIGATABLE_ELEMENT_ARRAY);
+            if (ApplicationManager.getApplication().isUnitTestMode()) {
+                t.putUserData(MARKERS, methods);
+            } else {
+                PsiElementListNavigator.openTargets(mouseEvent,
+                        methods,
+                        getTitle(t),
+                        null,
+                        new DefaultPsiElementCellRenderer());
+            }
         }
     }
 
