@@ -60,23 +60,8 @@ open class ClassMemberCompletionProvider : LuaCompletionProvider() {
             val isColon = indexExpr.colon != null
             val project = indexExpr.project
             val contextTy = LuaPsiTreeUtil.findContextClass(indexExpr)
-            var matchTy:ITy = Ty.UNKNOWN
-            val assign = indexExpr.assignStat
             val context = SearchContext.get(project)
-            if (assign != null) {
-                val index = assign.getIndexFor(indexExpr)
-                val varExpr = assign.varExprList.getExprAt(index)
-                if (varExpr != null) {
-                    matchTy = varExpr.guessType(context)
-                }
-            } else {
-                val binaryExpr = indexExpr.stubOrPsiParent
-                if (binaryExpr is LuaBinaryExpr) {
-                    val left = binaryExpr.left
-                    if(left != null)
-                        matchTy = left.guessType(context)
-                }
-            }
+            val matchTy:ITy = indexExpr.shouldBe(SearchContext.get(indexExpr.project))
 
             val prefixType = indexExpr.guessParentType(context)
             if (!Ty.isInvalid(prefixType)) {
@@ -191,12 +176,38 @@ open class ClassMemberCompletionProvider : LuaCompletionProvider() {
             if (completionMode != MemberCompletionMode.Colon)
             {
                 var priority = 0.0
-                if(!Ty.isInvalid(matchTy) && matchTy.displayName == type.displayName){
-                    priority = 9999.0
+                if(!Ty.isInvalid(matchTy) && isNameInType(matchTy, type)){
+                    priority = 20.0
                 }
                 addField(completionResultSet, bold, className, member, type, handlerProcessor, priority)
             }
         }
+    }
+
+    private fun isNameInType(ty: ITy, find: ITy): Boolean {
+        if (find is TyUnion) {
+            var result = false
+            find.each {
+                if (isNameInType(ty, it)) {
+                    result = true
+                    return@each
+                }
+            }
+            return result
+        } else {
+            if (ty is TyUnion) {
+                var result = false
+                ty.each {
+                    if (isNameInType(it, find)) {
+                        result = true
+                        return@each
+                    }
+                }
+                return result
+            }
+        }
+
+        return ty.displayName == find.displayName
     }
 
     protected fun addField(completionResultSet: CompletionResultSet,
