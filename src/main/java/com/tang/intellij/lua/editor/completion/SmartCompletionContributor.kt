@@ -22,10 +22,9 @@ import com.intellij.patterns.PlatformPatterns
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.ProcessingContext
 import com.tang.intellij.lua.lang.LuaIcons
-import com.tang.intellij.lua.psi.LuaNameExpr
-import com.tang.intellij.lua.psi.LuaTypes
-import com.tang.intellij.lua.psi.shouldBe
+import com.tang.intellij.lua.psi.*
 import com.tang.intellij.lua.search.SearchContext
+import com.tang.intellij.lua.ty.Ty
 import com.tang.intellij.lua.ty.TyStringLiteral
 
 class SmartCompletionContributor : CompletionContributor() {
@@ -34,12 +33,28 @@ class SmartCompletionContributor : CompletionContributor() {
             override fun addCompletions(completionParameters: CompletionParameters, processingContext: ProcessingContext, completionResultSet: CompletionResultSet) {
                 val id = completionParameters.position
                 val expr = PsiTreeUtil.getParentOfType(id, LuaNameExpr::class.java) ?: return
-                val ty = expr.shouldBe(SearchContext.get(expr.project))
+                val context = SearchContext.get(expr.project)
+                var ty = expr.shouldBe(context)
+                //在判断符号和赋值右侧
+                if (Ty.isInvalid(ty)) {
+                    val parent = PsiTreeUtil.getStubOrPsiParent(expr)
+                    if (parent is LuaAssignStat) {
+                        val index = parent.getIndexFor(expr)
+                        val varExpr = parent.varExprList.getExprAt(index)
+                        if (varExpr != null) {
+                            ty = varExpr.guessType(context)
+                        }
+                    } else if (parent is LuaBinaryExpr) {
+                        val left = parent.left
+                        if (left != null)
+                            ty = left.guessType(context)
+                    }
+                }
                 ty.each {
                     if (it is TyStringLiteral) {
                         val lookupElement = LookupElementBuilder.create(it.content)
-                                .withLookupString(it.content)
-                                .withIcon(LuaIcons.STRING_LITERAL)
+                            .withLookupString(it.content)
+                            .withIcon(LuaIcons.STRING_LITERAL)
                         completionResultSet.addElement(PrioritizedLookupElement.withPriority(lookupElement, 20.0))
                     }
                 }
