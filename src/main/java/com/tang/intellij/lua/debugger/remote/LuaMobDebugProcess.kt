@@ -45,6 +45,7 @@ open class LuaMobDebugProcess(session: XDebugSession) : LuaDebugProcess(session)
     private var mobServer: MobServer? = null
     private var mobClient: MobClient? = null
     private var baseDir: String? = null
+    private var showDebug:Boolean = false
 
     override fun getEditorsProvider(): XDebuggerEditorsProvider {
         return editorsProvider
@@ -128,9 +129,10 @@ open class LuaMobDebugProcess(session: XDebugSession) : LuaDebugProcess(session)
 
     override fun onConnect(client: MobClient) {
         mobClient = client
-        client.printCallback = { s ->
-            //println(s, LogConsoleType.NORMAL, ConsoleViewContentType.SYSTEM_OUTPUT)
-        }
+        if(showDebug)
+            client.printCallback = { s ->
+                println(s, LogConsoleType.NORMAL, ConsoleViewContentType.SYSTEM_OUTPUT)
+            }
         client.addCommand("DELB * 0")
         //client.addCommand((GetStackCommand()))
         client.addCommand("RUN")
@@ -159,7 +161,7 @@ open class LuaMobDebugProcess(session: XDebugSession) : LuaDebugProcess(session)
             if (chunkPart.lowercase() != pathPart.lowercase()) {
                 break
             }
-            neq = i
+            neq = i + 1
         }
         val dir = pathParts.takeLast(pathParts.size - neq).reversed().joinToString("/")
         val myBaseDir = this.baseDir
