@@ -23,6 +23,7 @@ import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.psi.util.startOffset
 import com.intellij.refactoring.suggested.startOffset
 import com.tang.intellij.lua.comment.psi.LuaDocPsiElement
 import com.tang.intellij.lua.comment.psi.api.LuaComment
@@ -119,7 +120,7 @@ object LuaCommentUtil {
         var children = file.children
         for (i in children.size - 1 downTo 0 step 1) {
             val child = children[i]
-            if(child.startOffset < psi.startOffset){
+            if(child.textOffset < psi.textOffset){
                 if(child is LuaLocalDef){
                     if(getLocalDefName(child) == findTypeName){
                         return getLocalDefComment(child)
@@ -169,12 +170,48 @@ object LuaCommentUtil {
         return ""
     }
 
+    fun getPsiLineNumber(element: PsiElement): Number {
+        val file = element.containingFile
+        if (file == null) return -1
+        val doc = file.fileDocument
+        if (doc == null) return -1
+
+        return doc.getLineNumber(element.textOffset)
+    }
+
+    fun isCommentLineHasOtherPsi(comment: PsiComment): Boolean {
+        var prevElement = comment.prevSibling
+        var checkLine = getPsiLineNumber(comment)
+        while (prevElement != null) {
+            prevElement = when (prevElement) {
+                is PsiWhiteSpace -> {
+                    prevElement.prevSibling
+                }
+
+                else -> {
+                    if (checkLine == getPsiLineNumber(prevElement)) {
+                        return true
+                    }
+                    break
+                }
+            }
+        }
+        return false
+    }
+
     fun getCommentStr(tableField: LuaTableField): String? {
+        val luaComment = tableField.comment
+        if (luaComment != null) {
+            return luaComment.text.trimStart('-')
+        }
         var prevElement = tableField.prevSibling
         while (prevElement != null) {
             prevElement = when (prevElement) {
                 is PsiComment -> {
-                    return prevElement.text.trimStart('-')
+                    if (!isCommentLineHasOtherPsi(prevElement)) {
+                        return prevElement.text.trimStart('-')
+                    }
+                    break
                 }
 
                 is PsiWhiteSpace -> {
