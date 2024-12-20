@@ -19,12 +19,17 @@ package com.tang.intellij.lua.documentation
 import com.intellij.codeInsight.documentation.DocumentationManagerUtil
 import com.intellij.lang.documentation.AbstractDocumentationProvider
 import com.intellij.lang.documentation.DocumentationProvider
+import com.intellij.openapi.editor.colors.EditorColorsManager
+import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiManager
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.psi.util.prevLeaf
+import com.tang.intellij.lua.comment.LuaCommentUtil
 import com.tang.intellij.lua.comment.psi.LuaDocTagClass
 import com.tang.intellij.lua.comment.psi.LuaDocTagField
 import com.tang.intellij.lua.editor.completion.LuaDocumentationLookupElement
+import com.tang.intellij.lua.highlighting.LuaHighlightingData
 import com.tang.intellij.lua.psi.*
 import com.tang.intellij.lua.search.SearchContext
 import com.tang.intellij.lua.stubs.index.LuaClassIndex
@@ -144,6 +149,21 @@ class LuaDocumentationProvider : AbstractDocumentationProvider(), DocumentationP
 
         //comment content
         when (classMember) {
+            is LuaTableField->{
+                val valueStr = LuaCommentUtil.getLuaTableFieldValue(classMember)
+                if(valueStr.isNotEmpty()){
+                    val colorsManager = EditorColorsManager.getInstance()
+                    val attributes = colorsManager.globalScheme.getAttributes(LuaHighlightingData.INSTANCE_METHOD)
+                    if (attributes.foregroundColor != null) {
+                        val color = attributes.foregroundColor
+                        val foregroundColorStr = String.format("#%02x%02x%02x", color.red, color.green, color.blue)
+                        renderCommentString("  <b>value</b>:<b style=\"color: ${foregroundColorStr};\">", "</b><br />", sb, valueStr)
+                    } else {
+                        renderCommentString("  <b>value</b>:<b>", "</b><br />", sb, valueStr)
+                    }
+                }
+                renderCommentString("  ", null, sb, LuaCommentUtil.getCommentStr(classMember))
+            }
             is LuaCommentOwner -> renderComment(sb, classMember.comment, tyRenderer)
             is LuaDocTagField -> renderCommentString("  ", null, sb, classMember.commentString)
             is LuaIndexExpr -> {

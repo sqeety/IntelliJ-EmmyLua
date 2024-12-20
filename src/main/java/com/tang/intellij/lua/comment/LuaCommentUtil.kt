@@ -28,7 +28,8 @@ import com.tang.intellij.lua.comment.psi.LuaDocPsiElement
 import com.tang.intellij.lua.comment.psi.api.LuaComment
 import com.tang.intellij.lua.psi.*
 import com.tang.intellij.lua.psi.impl.LuaLocalDefImpl
-import io.ktor.util.reflect.*
+import com.tang.intellij.lua.search.SearchContext
+import org.mozilla.javascript.ast.StringLiteral
 
 /**
  *
@@ -153,5 +154,57 @@ object LuaCommentUtil {
 
     fun isComment(psi: PsiElement): Boolean {
         return findComment(psi) != null
+    }
+
+    fun getLuaTableFieldValue(tableField: LuaTableField): String {
+        val exprList = tableField.exprList
+        if (exprList.size == 1) {
+            val expr = exprList[0]
+            when (expr) {
+                is LuaLiteralExpr -> {
+                    return expr.text
+                }
+            }
+        }
+        return ""
+    }
+
+    fun getCommentStr(tableField: LuaTableField): String? {
+        var prevElement = tableField.prevSibling
+        while (prevElement != null) {
+            prevElement = when (prevElement) {
+                is PsiComment -> {
+                    return prevElement.text.trimStart('-')
+                }
+
+                is PsiWhiteSpace -> {
+                    prevElement.prevSibling
+                }
+
+                else -> {
+                    break
+                }
+            }
+        }
+        var nextElement = tableField.nextSibling
+        while (nextElement != null) {
+            nextElement = when (nextElement) {
+                is PsiComment -> {
+                    return nextElement.text.trimStart('-')
+                }
+
+                is PsiWhiteSpace -> {
+                    nextElement.nextSibling
+                }
+
+                is LuaTableFieldSep -> {
+                    nextElement.nextSibling
+                }
+                else -> {
+                    break
+                }
+            }
+        }
+        return null
     }
 }
