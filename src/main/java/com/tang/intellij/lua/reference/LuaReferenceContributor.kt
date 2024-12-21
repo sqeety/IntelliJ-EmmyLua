@@ -60,8 +60,8 @@ class LuaReferenceContributor : PsiReferenceContributor() {
         override fun getReferencesByElement(psiElement: PsiElement, processingContext: ProcessingContext): Array<PsiReference> {
             val expr = psiElement as LuaCallExpr
             val nameRef = expr.expr
-            if (nameRef is LuaNameExpr) {
-                if (LuaSettings.isRequireLikeFunctionName(nameRef.getText())) {
+            if (nameRef is LuaNameExpr || nameRef is LuaIndexExpr) {
+                if (LuaSettings.isRequireLikeFunctionName(nameRef.text)) {
                     return arrayOf(LuaRequireReference(expr))
                 }
             }

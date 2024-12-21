@@ -171,6 +171,13 @@ class LuaCompletionContributor : CompletionContributor() {
 class RequireLikePatternCondition : PatternCondition<PsiElement>("requireLike"){
     override fun accepts(psi: PsiElement, context: ProcessingContext?): Boolean {
         val name = (psi as? PsiNamedElement)?.name
-        return if (name != null) LuaSettings.isRequireLikeFunctionName(name) else false
+        if (name != null) {
+            var result = LuaSettings.isRequireLikeFunctionName(name)
+            if (!result) {
+                val text = psi.text
+                result = LuaSettings.isRequireLikeFunctionName(text)
+            }
+            return result
+        } else return false
     }
 }
