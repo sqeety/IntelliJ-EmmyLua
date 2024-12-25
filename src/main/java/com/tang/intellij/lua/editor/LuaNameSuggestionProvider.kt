@@ -21,6 +21,7 @@ import com.intellij.psi.PsiReference
 import com.intellij.psi.codeStyle.NameUtil
 import com.intellij.psi.codeStyle.SuggestedNameInfo
 import com.intellij.psi.search.searches.ReferencesSearch
+import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.refactoring.rename.NameSuggestionProvider
 import com.intellij.util.Processor
 import com.tang.intellij.lua.lang.LuaLanguage
@@ -101,10 +102,62 @@ class LuaNameSuggestionProvider : NameSuggestionProvider {
         }
     }
 
+    private fun getNames(expr: LuaExpr?, set: MutableSet<String>) {
+        if(expr == null) return
+        when (expr) {
+            is LuaCallExpr -> {
+                return getNames(expr.expr, set)
+            }
+
+            is LuaIndexExpr -> {
+                val id = expr.id?.text
+                if (id != null) {
+                    val strings = NameUtil.getSuggestionsByName(id, "", "", false, true, false)
+                    set.addAll(strings)
+                }
+
+            }
+        }
+    }
+
+    private fun getName(str:String, set: MutableSet<String>)
+    {
+        for ((index, ch) in str.withIndex()) {
+            if (ch.isLetter()) {
+                if (ch.isUpperCase()) {
+                    set.add(str.substring(0, index) + ch.lowercase() + str.substring(index + 1))
+                } else {
+                    set.add(str.substring(0, index) + ch.uppercase() + str.substring(index + 1))
+                }
+                break
+            }
+        }
+    }
+
     override fun getSuggestedNames(psi: PsiElement, nameSuggestionContext: PsiElement?, set: MutableSet<String>): SuggestedNameInfo? {
         if (psi.language !is LuaLanguage)
             return null
-
+        when (psi) {
+            is LuaParamNameDef -> {
+                val name = psi.name
+                getName(name, set)
+            }
+            is LuaNameDef -> {
+                val localDef = PsiTreeUtil.getParentOfType(psi, LuaLocalDef::class.java)
+                if (localDef != null) {
+                    val nameDefList = localDef.nameList?.nameDefList
+                    if (nameDefList != null) {
+                        var index = nameDefList.indexOf(psi)
+                        val exprList = localDef.exprList?.exprList
+                        if (exprList != null) {
+                            if(index >= exprList.size) index = exprList.size - 1
+                            val expr = exprList[index]
+                            getNames(expr, set)
+                        }
+                    }
+                }
+            }
+        }
         val search = ReferencesSearch.search(psi, psi.useScope)
         search.forEach { getNames(it, set) }
 

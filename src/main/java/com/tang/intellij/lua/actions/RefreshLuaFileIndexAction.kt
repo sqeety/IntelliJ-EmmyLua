@@ -26,6 +26,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ReadAction
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtil
@@ -40,6 +41,7 @@ class RefreshLuaFileIndexAction : AnAction(), DumbAware {
         val virtualFile: VirtualFile? = e.getData(CommonDataKeys.VIRTUAL_FILE)
 
         if (virtualFile != null && project != null) {
+            FileDocumentManager.getInstance().saveAllDocuments()
             VfsUtil.markDirtyAndRefresh(false, true, true, virtualFile)
             val psiFile = ReadAction.compute<PsiFile?, Throwable> {
                 PsiManager.getInstance(project).findFile(virtualFile)
