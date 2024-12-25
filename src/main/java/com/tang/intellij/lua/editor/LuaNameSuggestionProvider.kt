@@ -28,6 +28,7 @@ import com.tang.intellij.lua.lang.LuaLanguage
 import com.tang.intellij.lua.psi.*
 import com.tang.intellij.lua.search.SearchContext
 import com.tang.intellij.lua.ty.*
+import com.tang.intellij.lua.util.LuaNameUtil
 
 /**
  *
@@ -38,29 +39,6 @@ class LuaNameSuggestionProvider : NameSuggestionProvider {
     companion object {
         fun fixName(oriName: String): String {
             return oriName.replace(".", "")
-        }
-    }
-    
-    private fun collectNames(type: ITy, context: SearchContext, collector: (name: String, suffix: String, preferLonger: Boolean) -> Unit) {
-        when (type) {
-            is ITyClass -> {
-                if (!type.isAnonymous && type !is TyDocTable)
-                    collector(fixName(type.className), "", false)
-                TyClass.processSuperClass(type, context, mutableSetOf()) { superType ->
-                    if (!superType.isAnonymous)
-                        collector(fixName(superType.className), "", false)
-                    true
-                }
-            }
-            is ITyArray -> collectNames(type.base, context) { name, _, _ ->
-                collector(name, "List", false)
-            }
-            is ITyGeneric -> {
-                val paramTy = type.getParamTy(1)
-                collectNames(paramTy, context) { name, _, _ ->
-                    collector(name, "Map", false)
-                }
-            }
         }
     }
 
@@ -102,23 +80,6 @@ class LuaNameSuggestionProvider : NameSuggestionProvider {
         }
     }
 
-    private fun getNames(expr: LuaExpr?, set: MutableSet<String>) {
-        if(expr == null) return
-        when (expr) {
-            is LuaCallExpr -> {
-                return getNames(expr.expr, set)
-            }
-
-            is LuaIndexExpr -> {
-                val id = expr.id?.text
-                if (id != null) {
-                    val strings = NameUtil.getSuggestionsByName(id, "", "", false, true, false)
-                    set.addAll(strings)
-                }
-
-            }
-        }
-    }
 
     private fun getName(str:String, set: MutableSet<String>)
     {
@@ -150,9 +111,9 @@ class LuaNameSuggestionProvider : NameSuggestionProvider {
                         var index = nameDefList.indexOf(psi)
                         val exprList = localDef.exprList?.exprList
                         if (exprList != null) {
-                            if(index >= exprList.size) index = exprList.size - 1
+                            if (index >= exprList.size) index = exprList.size - 1
                             val expr = exprList[index]
-                            getNames(expr, set)
+                            LuaNameUtil.getNames(expr, set)
                         }
                     }
                 }
@@ -168,7 +129,7 @@ class LuaNameSuggestionProvider : NameSuggestionProvider {
                 val names = HashSet<String>()
 
                 TyUnion.each(type) { ty ->
-                    collectNames(ty, context) { name, suffix, preferLonger ->
+                    LuaNameUtil.collectNames(ty, context) { name, suffix, preferLonger ->
                         if (names.add(name)) {
                             val strings = NameUtil.getSuggestionsByName(name, "", suffix, false, preferLonger, false)
                             set.addAll(strings)
