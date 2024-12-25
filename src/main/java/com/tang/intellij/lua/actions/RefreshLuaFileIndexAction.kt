@@ -26,6 +26,7 @@ import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.tang.intellij.lua.psi.LuaFileManager
 
@@ -35,17 +36,16 @@ class RefreshLuaFileIndexAction : AnAction(), DumbAware {
         val virtualFile: VirtualFile? = e.getData(CommonDataKeys.VIRTUAL_FILE)
 
         if (virtualFile != null && project != null) {
-            virtualFile.refresh(true, false) {
-                ApplicationManager.getApplication().invokeLater {
-                    Notifications.Bus.notify(
-                        Notification(
-                            "RefreshLuaFileIndex",
-                            "RefreshLuaFile",
-                            "RefreshLuaFile Success: ${virtualFile.path}",
-                            NotificationType.INFORMATION
-                        )
+            VfsUtil.markDirtyAndRefresh(false, true, true, virtualFile)
+            ApplicationManager.getApplication().invokeLater {
+                Notifications.Bus.notify(
+                    Notification(
+                        "RefreshLuaFileIndex",
+                        "RefreshLuaFile",
+                        "RefreshLuaFile Success: ${virtualFile.path}",
+                        NotificationType.INFORMATION
                     )
-                }
+                )
             }
         }
     }
