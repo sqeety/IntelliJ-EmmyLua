@@ -18,9 +18,7 @@ package com.tang.intellij.lua.util
 
 import com.intellij.psi.codeStyle.NameUtil
 import com.tang.intellij.lua.editor.LuaNameSuggestionProvider.Companion.fixName
-import com.tang.intellij.lua.psi.LuaCallExpr
-import com.tang.intellij.lua.psi.LuaExpr
-import com.tang.intellij.lua.psi.LuaIndexExpr
+import com.tang.intellij.lua.psi.*
 import com.tang.intellij.lua.search.SearchContext
 import com.tang.intellij.lua.ty.*
 
@@ -40,6 +38,10 @@ class LuaNameUtil {
                         set.addAll(strings)
                     }
 
+                }
+                is LuaBinaryExpr ->{
+                    getNames(expr.left, set)
+                    getNames(expr.right, set)
                 }
             }
         }
