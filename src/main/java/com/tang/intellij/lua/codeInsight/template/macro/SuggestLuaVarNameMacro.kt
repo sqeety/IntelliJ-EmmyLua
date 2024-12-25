@@ -104,7 +104,7 @@ class SuggestLuaVarNameMacro : Macro() {
                                 }
                             }
                             for (name in set) {
-                                val strings = NameUtil.getSuggestionsByName(name, "", "", false, true, false)
+                                val strings = NameUtil.getSuggestionsByName(name, "", "", false, false, false)
                                 for (str in strings) {
                                     list.add(LookupElementBuilder.create(str))
                                 }

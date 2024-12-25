@@ -36,7 +36,7 @@ class LuaNameUtil {
                 is LuaIndexExpr -> {
                     val id = expr.id?.text
                     if (id != null) {
-                        val strings = NameUtil.getSuggestionsByName(id, "", "", false, true, false)
+                        val strings = NameUtil.getSuggestionsByName(id, "", "", false, false, false)
                         set.addAll(strings)
                     }
 
