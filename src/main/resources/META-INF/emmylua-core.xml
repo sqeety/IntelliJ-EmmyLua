@@ -377,7 +377,12 @@
                 id="lua.newTutorial">
             <add-to-group group-id="NewGroup" anchor="after" relative-to-action="lua.newFile"/>
         </action>
-
+        <action
+                id="com.tang.intellij.lua.actions.RefreshLuaFileIndexAction"
+                class="com.tang.intellij.lua.actions.RefreshLuaFileIndexAction"
+                text="Refresh Lua Index">
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+        </action>
     </actions>
 
     <extensionPoints>
