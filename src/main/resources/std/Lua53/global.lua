@@ -318,7 +318,7 @@ function setmetatable(table, metatable) end
 ---@overload fun(e:string):any
 ---@param e string
 ---@param base number
----@return any
+---@return number
 function tonumber(e, base) end
 
 ---
