@@ -17,7 +17,7 @@
 package com.tang.intellij.lua.ty
 
 import com.intellij.extapi.psi.StubBasedPsiElementBase
-import com.intellij.openapi.util.Computable
+import com.intellij.openapi.roots.impl.ProjectFileIndexFacade
 import com.intellij.psi.util.PsiTreeUtil
 import com.tang.intellij.lua.Constants
 import com.tang.intellij.lua.comment.LuaCommentUtil
@@ -25,10 +25,8 @@ import com.tang.intellij.lua.comment.psi.LuaDocTagField
 import com.tang.intellij.lua.comment.psi.LuaDocTagReturn
 import com.tang.intellij.lua.ext.stubOrPsiParent
 import com.tang.intellij.lua.psi.*
-import com.tang.intellij.lua.search.GuardType
 import com.tang.intellij.lua.search.SearchContext
 import com.tang.intellij.lua.stubs.LuaFuncBodyOwnerStub
-import io.ktor.util.reflect.*
 
 fun infer(element: LuaTypeGuessable?, context: SearchContext): ITy {
     if (element == null)
@@ -192,6 +190,8 @@ private fun LuaTableField.infer(context: SearchContext): ITy {
 }
 
 private fun inferFile(file: LuaPsiFile, context: SearchContext): ITy {
+    if (!file.isValid) return Ty.UNKNOWN
+    if (!ProjectFileIndexFacade.getInstance(file.project).isInContent(file.virtualFile)) return Ty.UNKNOWN
     val moduleName = file.moduleName
     if (moduleName != null)
         return TyLazyClass(moduleName)
