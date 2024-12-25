@@ -26,7 +26,6 @@ import com.tang.intellij.lua.project.LuaSettings
 import com.tang.intellij.lua.psi.*
 import com.tang.intellij.lua.search.SearchContext
 import com.tang.intellij.lua.ty.*
-import org.luaj.vm2.Lua
 
 class MatchMemberInspection : StrictInspection() {
     override fun isAvailableForFile(file: PsiFile): Boolean {
