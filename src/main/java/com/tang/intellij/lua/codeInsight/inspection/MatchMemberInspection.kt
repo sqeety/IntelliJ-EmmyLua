@@ -21,10 +21,12 @@ import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiFile
 import com.intellij.psi.impl.source.tree.LeafPsiElement
+import com.intellij.psi.util.PsiTreeUtil
 import com.tang.intellij.lua.project.LuaSettings
 import com.tang.intellij.lua.psi.*
 import com.tang.intellij.lua.search.SearchContext
 import com.tang.intellij.lua.ty.*
+import org.luaj.vm2.Lua
 
 class MatchMemberInspection : StrictInspection() {
     override fun isAvailableForFile(file: PsiFile): Boolean {
@@ -57,12 +59,99 @@ class MatchMemberInspection : StrictInspection() {
         return false
     }
 
+
     override fun buildVisitor(
         myHolder: ProblemsHolder,
         isOnTheFly: Boolean,
         session: LocalInspectionToolSession
     ): PsiElementVisitor =
         object : LuaVisitor() {
+            fun isFieldInCondition(o: LuaIndexExpr): Boolean {
+                val parent = o.parent
+                when (parent) {
+                    is LuaBinaryExpr -> {
+                        return true
+                    }
+
+                    is LuaIfStat -> {
+                        return true
+                    }
+
+                    is LuaWhileStat -> {
+                        return true
+                    }
+                    //if a and a.b and a.b.c then
+                    is LuaIndexExpr ->{
+                        val binaryExpr = PsiTreeUtil.getParentOfType(parent, LuaBinaryExpr::class.java)
+                        if (binaryExpr != null) {
+                            return isBinaryExprContainText(binaryExpr, o.text)
+                        }
+                    }
+                }
+                return false
+            }
+
+            fun isBinaryExprContainText(binaryExpr: LuaBinaryExpr, text: String): Boolean {
+                val left = binaryExpr.left
+                if (left != null) {
+                    if (left is LuaBinaryExpr) {
+                        return isBinaryExprContainText(left, text)
+                    }
+                    if (left.text == text) {
+                        return true
+                    }
+                }
+                val right = binaryExpr.right
+                if (right != null) {
+                    if (right is LuaBinaryExpr) {
+                        return isBinaryExprContainText(right, text)
+                    }
+                    if (right.text == text) {
+                        return true
+                    }
+                }
+                return false
+            }
+
+            fun isMemberAfterCondition(o: LuaIndexExpr): Boolean {
+                val block = PsiTreeUtil.getParentOfType(o, LuaBlock::class.java)
+                if (block != null){
+                    var text = o.text
+                    //if function ,then check field
+                    if (o.colon != null) {
+                        val index = text.lastIndexOf(":")
+                        text = text.substring(0, index) + "." + text.substring(index + 1)
+                    }
+                    var previousPsi = block.prevSibling
+                    while (previousPsi != null) {
+                        when (previousPsi) {
+                            is LuaIndexExpr -> {
+                                if(previousPsi.text == text){
+                                    return true
+                                }
+                                previousPsi = previousPsi.prevSibling
+                            }
+                            is LuaBinaryExpr -> {
+                                if (isBinaryExprContainText(previousPsi, text)) {
+                                    return true
+                                }
+                                previousPsi = previousPsi.prevSibling
+                            }
+                            is LeafPsiElement->{
+                                if (previousPsi.text == "if") return false
+                                if (previousPsi.text == "when") return false
+                                if (previousPsi.text == "elseif") return false
+                                previousPsi = previousPsi.prevSibling
+                            }
+                            else -> {
+                                previousPsi = previousPsi.prevSibling
+                            }
+                        }
+                    }
+                }
+                return false
+            }
+
             fun checkLuaIndexExpr(o:LuaIndexExpr){
                 if(o.lastChild == null) return
                 val searchContext = SearchContext.get(o.project)
@@ -102,12 +191,13 @@ class MatchMemberInspection : StrictInspection() {
                             {
                                 val funcName = o.name
                                 if (funcName != null) {
-                                    if (!LuaSettings.isConstructorName(funcName))
+                                    if (!LuaSettings.isConstructorName(funcName) && !isMemberAfterCondition(o))
                                         myHolder.registerProblem(psi, "Unknown function '%s'.".format(funcName))
                                 }
                             }
                             else {
-                                myHolder.registerProblem(psi, "Unknown field '%s'.".format(o.name))
+                                if (!isFieldInCondition(o) && !isMemberAfterCondition(o))
+                                    myHolder.registerProblem(psi, "Unknown field '%s'.".format(o.name))
                             }
                         }
                     }
