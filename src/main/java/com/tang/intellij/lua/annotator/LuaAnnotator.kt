@@ -22,11 +22,13 @@ import com.intellij.lang.annotation.Annotator
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiElement
+import com.intellij.psi.util.PsiTreeUtil
 import com.tang.intellij.lua.Constants
 import com.tang.intellij.lua.comment.psi.*
 import com.tang.intellij.lua.highlighting.LuaHighlightingData
 import com.tang.intellij.lua.psi.*
 import com.tang.intellij.lua.search.SearchContext
+import com.tang.intellij.lua.ty.TyFunction
 
 /**
  * LuaAnnotator
@@ -225,7 +227,8 @@ class LuaAnnotator : Annotator {
             } else {
                 val id = o.id
                 if (id != null) {
-                    if (o.parent is LuaCallExpr) {
+                    val parent = o.parent
+                    if (parent is LuaCallExpr) {
                         if (o.colon != null) {
                             newInfoAnnotation(id, null) {
                                 it.textAttributes(LuaHighlightingData.INSTANCE_METHOD)
@@ -240,8 +243,21 @@ class LuaAnnotator : Annotator {
                             newAnnotation(HighlightSeverity.ERROR, o, "Arguments expected") {
                             }
                         } else {
-                            newInfoAnnotation(id, null) {
-                                it.textAttributes(LuaHighlightingData.FIELD)
+                            if (parent is LuaListArgs) {
+                                val ty = o.guessType(SearchContext.get(o.project))
+                                if (ty is TyFunction) {
+                                    newInfoAnnotation(id, null) {
+                                        it.textAttributes(LuaHighlightingData.INSTANCE_METHOD)
+                                    }
+                                } else {
+                                    newInfoAnnotation(id, null) {
+                                        it.textAttributes(LuaHighlightingData.FIELD)
+                                    }
+                                }
+                            } else {
+                                newInfoAnnotation(id, null) {
+                                    it.textAttributes(LuaHighlightingData.FIELD)
+                                }
                             }
                         }
                     }
