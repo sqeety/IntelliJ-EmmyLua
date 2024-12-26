@@ -217,7 +217,7 @@ class LuaCommentImpl(node: ASTNode) : ASTWrapperPsiElement(node), LuaComment {
     }
 
     override fun toString(): String {
-        return "STUB:[" + javaClass.simpleName + "]" + "" + text.replace("\n", " ")
+        return "[" + javaClass.simpleName + "]" + "" + text.replace("\n", " ")
     }
 
     fun accept(visitor: LuaVisitor) {
