@@ -34,4 +34,10 @@ public class LuaStatementImpl extends ASTWrapperPsiElement implements LuaStateme
     return LuaPsiImplUtilKt.getComment(this);
   }
 
+  @Override
+  @NotNull
+  public String toString() {
+    return LuaPsiImplUtilKt.toString(this);
+  }
+
 }

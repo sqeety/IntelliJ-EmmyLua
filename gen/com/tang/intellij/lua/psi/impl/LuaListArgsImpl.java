@@ -44,4 +44,10 @@ public class LuaListArgsImpl extends LuaArgsImpl implements LuaListArgs {
     return PsiTreeUtil.getStubChildrenOfTypeAsList(this, LuaExpr.class);
   }
 
+  @Override
+  @NotNull
+  public String toString() {
+    return LuaPsiImplUtilKt.toString(this);
+  }
+
 }

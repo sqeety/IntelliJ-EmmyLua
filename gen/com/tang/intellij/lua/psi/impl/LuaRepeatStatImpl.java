@@ -39,4 +39,10 @@ public class LuaRepeatStatImpl extends LuaStatementImpl implements LuaRepeatStat
     return findChildByType(UNTIL);
   }
 
+  @Override
+  @NotNull
+  public String toString() {
+    return LuaPsiImplUtilKt.toString(this);
+  }
+
 }

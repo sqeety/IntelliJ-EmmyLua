@@ -64,4 +64,10 @@ public class LuaClosureExprImpl extends LuaClosureExprMixin implements LuaClosur
     return LuaPsiImplUtilKt.getParams(this);
   }
 
+  @Override
+  @NotNull
+  public String toString() {
+    return LuaPsiImplUtilKt.toString(this);
+  }
+
 }

@@ -231,11 +231,11 @@ fun getType(tagType: LuaDocTagPartial): ITy {
 }
 
 fun toString(stubElement: StubBasedPsiElement<out StubElement<*>>): String {
-    return "STUB:[" + stubElement.javaClass.simpleName + "]" + "" + stubElement.text.replace("\n", " ")
+    return "[" + stubElement.javaClass.simpleName + "]" + "" + stubElement.text.replace("\n", " ")
 }
 
 fun toString(stubElement: ASTWrapperPsiElement): String {
-    return "STUB:[" + stubElement.javaClass.simpleName + "]" + "" + stubElement.text.replace("\n", " ")
+    return "[" + stubElement.javaClass.simpleName + "]" + "" + stubElement.text.replace("\n", " ")
 }
 
 fun getName(tagField: LuaDocTagField): String? {

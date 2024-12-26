@@ -305,6 +305,7 @@ comment_string ::= STRING_BEGIN? STRING? {
     //pin = 1
     methods = [
         string = "STRING"
+        toString
     ]
 }
 

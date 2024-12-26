@@ -27,4 +27,10 @@ public class LuaBreakStatImpl extends LuaStatementImpl implements LuaBreakStat {
     else super.accept(visitor);
   }
 
+  @Override
+  @NotNull
+  public String toString() {
+    return LuaPsiImplUtilKt.toString(this);
+  }
+
 }

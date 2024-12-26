@@ -33,4 +33,10 @@ public class LuaDocCommentStringImpl extends ASTWrapperPsiElement implements Lua
     return findChildByType(STRING);
   }
 
+  @Override
+  @NotNull
+  public String toString() {
+    return LuaDocPsiImplUtilKt.toString(this);
+  }
+
 }

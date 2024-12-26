@@ -33,4 +33,10 @@ public class LuaWhileStatImpl extends LuaStatementImpl implements LuaWhileStat {
     return PsiTreeUtil.getChildOfType(this, LuaExpr.class);
   }
 
+  @Override
+  @NotNull
+  public String toString() {
+    return LuaPsiImplUtilKt.toString(this);
+  }
+
 }

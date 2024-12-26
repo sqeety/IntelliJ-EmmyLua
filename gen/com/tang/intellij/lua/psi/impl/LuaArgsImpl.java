@@ -38,4 +38,10 @@ public abstract class LuaArgsImpl extends StubBasedPsiElementBase<LuaPlaceholder
     else super.accept(visitor);
   }
 
+  @Override
+  @NotNull
+  public String toString() {
+    return LuaPsiImplUtilKt.toString(this);
+  }
+
 }

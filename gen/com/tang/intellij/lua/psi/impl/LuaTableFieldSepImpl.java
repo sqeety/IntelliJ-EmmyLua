@@ -27,4 +27,10 @@ public class LuaTableFieldSepImpl extends ASTWrapperPsiElement implements LuaTab
     else super.accept(visitor);
   }
 
+  @Override
+  @NotNull
+  public String toString() {
+    return LuaPsiImplUtilKt.toString(this);
+  }
+
 }

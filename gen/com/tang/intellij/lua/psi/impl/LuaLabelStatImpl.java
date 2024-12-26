@@ -56,4 +56,10 @@ public class LuaLabelStatImpl extends LuaStatementImpl implements LuaLabelStat {
     return LuaPsiImplUtilKt.getName(this);
   }
 
+  @Override
+  @NotNull
+  public String toString() {
+    return LuaPsiImplUtilKt.toString(this);
+  }
+
 }

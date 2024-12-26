@@ -27,4 +27,10 @@ public class LuaUnaryOpImpl extends ASTWrapperPsiElement implements LuaUnaryOp {
     else super.accept(visitor);
   }
 
+  @Override
+  @NotNull
+  public String toString() {
+    return LuaPsiImplUtilKt.toString(this);
+  }
+
 }

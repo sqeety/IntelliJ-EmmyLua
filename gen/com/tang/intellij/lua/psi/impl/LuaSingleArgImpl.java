@@ -44,4 +44,10 @@ public class LuaSingleArgImpl extends LuaArgsImpl implements LuaSingleArg {
     return notNullChild(PsiTreeUtil.getStubChildOfType(this, LuaExpr.class));
   }
 
+  @Override
+  @NotNull
+  public String toString() {
+    return LuaPsiImplUtilKt.toString(this);
+  }
+
 }

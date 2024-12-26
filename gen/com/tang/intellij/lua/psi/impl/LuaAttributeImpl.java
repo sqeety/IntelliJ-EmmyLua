@@ -33,4 +33,10 @@ public class LuaAttributeImpl extends ASTWrapperPsiElement implements LuaAttribu
     return findChildByType(ID);
   }
 
+  @Override
+  @NotNull
+  public String toString() {
+    return LuaPsiImplUtilKt.toString(this);
+  }
+
 }

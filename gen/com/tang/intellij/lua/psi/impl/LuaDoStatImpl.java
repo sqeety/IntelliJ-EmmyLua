@@ -37,4 +37,10 @@ public class LuaDoStatImpl extends LuaStatMixin<LuaPlaceholderStub> implements L
     else super.accept(visitor);
   }
 
+  @Override
+  @NotNull
+  public String toString() {
+    return LuaPsiImplUtilKt.toString(this);
+  }
+
 }

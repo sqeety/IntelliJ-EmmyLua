@@ -45,4 +45,10 @@ public class LuaForAStatImpl extends LuaStatementImpl implements LuaForAStat {
     return LuaPsiImplUtilKt.getParamNameDefList(this);
   }
 
+  @Override
+  @NotNull
+  public String toString() {
+    return LuaPsiImplUtilKt.toString(this);
+  }
+
 }

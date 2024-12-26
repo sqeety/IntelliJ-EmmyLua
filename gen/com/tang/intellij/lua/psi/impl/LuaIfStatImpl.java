@@ -43,4 +43,10 @@ public class LuaIfStatImpl extends LuaStatMixin<LuaPlaceholderStub> implements L
     return PsiTreeUtil.getStubChildrenOfTypeAsList(this, LuaExpr.class);
   }
 
+  @Override
+  @NotNull
+  public String toString() {
+    return LuaPsiImplUtilKt.toString(this);
+  }
+
 }

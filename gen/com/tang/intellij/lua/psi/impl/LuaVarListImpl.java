@@ -38,4 +38,10 @@ public class LuaVarListImpl extends LuaExprListImpl implements LuaVarList {
     else super.accept(visitor);
   }
 
+  @Override
+  @NotNull
+  public String toString() {
+    return LuaPsiImplUtilKt.toString(this);
+  }
+
 }

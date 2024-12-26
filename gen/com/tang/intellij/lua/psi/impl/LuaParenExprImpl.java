@@ -44,4 +44,10 @@ public class LuaParenExprImpl extends LuaParenExprMixin implements LuaParenExpr 
     return PsiTreeUtil.getStubChildOfType(this, LuaExpr.class);
   }
 
+  @Override
+  @NotNull
+  public String toString() {
+    return LuaPsiImplUtilKt.toString(this);
+  }
+
 }

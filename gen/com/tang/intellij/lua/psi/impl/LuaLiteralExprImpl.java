@@ -38,4 +38,10 @@ public class LuaLiteralExprImpl extends LuaLiteralExprMixin implements LuaLitera
     else super.accept(visitor);
   }
 
+  @Override
+  @NotNull
+  public String toString() {
+    return LuaPsiImplUtilKt.toString(this);
+  }
+
 }

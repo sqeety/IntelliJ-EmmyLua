@@ -40,4 +40,10 @@ public class LuaGotoStatImpl extends LuaStatementImpl implements LuaGotoStat {
     return LuaPsiImplUtilKt.getReferences(this);
   }
 
+  @Override
+  @NotNull
+  public String toString() {
+    return LuaPsiImplUtilKt.toString(this);
+  }
+
 }

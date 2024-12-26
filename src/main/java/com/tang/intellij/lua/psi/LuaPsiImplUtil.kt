@@ -33,6 +33,7 @@ import com.tang.intellij.lua.comment.psi.LuaDocTagVararg
 import com.tang.intellij.lua.comment.psi.api.LuaComment
 import com.tang.intellij.lua.lang.LuaIcons
 import com.tang.intellij.lua.lang.type.LuaString
+import com.tang.intellij.lua.psi.impl.LuaIndexExprImpl
 import com.tang.intellij.lua.search.SearchContext
 import com.tang.intellij.lua.stubs.LuaClassMemberStub
 import com.tang.intellij.lua.stubs.LuaFuncBodyOwnerStub
@@ -541,13 +542,91 @@ fun getIdExpr(tableField: LuaTableField): LuaExpr? {
     return null
 }
 
-fun toString(stubElement: StubBasedPsiElement<out StubElement<*>>): String {
-    return "STUB:[" + stubElement.javaClass.simpleName + "]" + "" + stubElement.text.replace("\n", " ")
+fun toString(target: LuaArgs): String {
+    return normalToString(target)
 }
 
 fun toString(target: LuaExpr): String {
-    return "STUB:[" + target.javaClass.simpleName + "]" + "" + target.text.replace("\n", " ")
+    return normalToString(target)
 }
+
+fun toString(target: LuaNamedElement): String {
+    return normalToString(target)
+}
+
+fun toString(target: LuaNameExpr): String {
+    return normalToString(target)
+}
+
+fun toString(target: LuaClassField): String {
+    return normalToString(target)
+}
+
+fun toString(target: LuaIndexExprImpl): String {
+    return normalToString(target)
+}
+
+fun toString(target: LuaStatement): String {
+    return normalToString(target)
+}
+
+fun toString(target: LuaClassMethod): String {
+    return normalToString(target)
+}
+
+fun toString(target: LuaExprList): String {
+    return normalToString(target)
+}
+
+fun toString(target: LuaClassMethodDef): String {
+    return normalToString(target)
+}
+
+fun toString(target: LuaForAStat): String {
+    return normalToString(target)
+}
+
+fun toString(target: LuaNameList): String {
+    return normalToString(target)
+}
+
+fun toString(target: LuaTableFieldSep): String {
+    return normalToString(target)
+}
+
+fun toString(target: LuaFuncDef): String {
+    return normalToString(target)
+}
+
+fun toString(target: LuaClassMethodName): String {
+    return normalToString(target)
+}
+
+fun toString(target: LuaUnaryOp): String {
+    return normalToString(target)
+}
+
+fun toString(target: LuaBinaryOp): String {
+    return normalToString(target)
+}
+
+fun toString(target: LuaAttribute): String {
+    return normalToString(target)
+}
+
+fun toString(target: LuaBlock): String {
+    return normalToString(target)
+}
+
+fun toString(target: LuaFuncBody): String {
+    return normalToString(target)
+}
+
+
+private fun normalToString(target: PsiElement): String {
+    return "[" + target.javaClass.simpleName + "]" + "" + target.text.replace("\n", " ")
+}
+
 
 fun getPresentation(nameExpr: LuaNameExpr): ItemPresentation {
     return object : ItemPresentation {

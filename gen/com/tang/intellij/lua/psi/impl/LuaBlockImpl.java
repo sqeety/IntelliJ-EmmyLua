@@ -27,4 +27,10 @@ public class LuaBlockImpl extends ASTWrapperPsiElement implements LuaBlock {
     else super.accept(visitor);
   }
 
+  @Override
+  @NotNull
+  public String toString() {
+    return LuaPsiImplUtilKt.toString(this);
+  }
+
 }

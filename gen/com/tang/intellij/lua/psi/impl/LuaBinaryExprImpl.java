@@ -50,4 +50,10 @@ public class LuaBinaryExprImpl extends LuaBinaryExprMixin implements LuaBinaryEx
     return PsiTreeUtil.getStubChildOfType(this, LuaExpr.class);
   }
 
+  @Override
+  @NotNull
+  public String toString() {
+    return LuaPsiImplUtilKt.toString(this);
+  }
+
 }

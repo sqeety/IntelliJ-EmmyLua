@@ -38,4 +38,10 @@ public class LuaParamNameDefImpl extends LuaNameDefImpl implements LuaParamNameD
     else super.accept(visitor);
   }
 
+  @Override
+  @NotNull
+  public String toString() {
+    return LuaPsiImplUtilKt.toString(this);
+  }
+
 }

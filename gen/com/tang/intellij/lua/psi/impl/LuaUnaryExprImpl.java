@@ -50,4 +50,10 @@ public class LuaUnaryExprImpl extends LuaUnaryExprMixin implements LuaUnaryExpr 
     return notNullChild(PsiTreeUtil.getChildOfType(this, LuaUnaryOp.class));
   }
 
+  @Override
+  @NotNull
+  public String toString() {
+    return LuaPsiImplUtilKt.toString(this);
+  }
+
 }
