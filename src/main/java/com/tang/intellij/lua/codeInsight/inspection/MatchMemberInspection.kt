@@ -33,6 +33,30 @@ class MatchMemberInspection : StrictInspection() {
         return !LuaFileUtil.isStdLibFile(file.virtualFile, file.project)
     }
 
+    fun onlyHaveClassInfo(ty:ITy):Boolean{
+        if(ty is TyLazyClass){
+            return false
+        }
+        if(ty is TySerializedClass){
+            return true
+        }
+        if(ty is TyUnion){
+            var allClass = true
+            ty.each { t->
+                if(t is TyLazyClass)
+                {
+                    allClass = false
+                }
+                else if(t !is TySerializedClass){
+                    allClass = false
+                }
+            }
+            return allClass
+        }
+        return false
+    }
+
+
     override fun buildVisitor(
         myHolder: ProblemsHolder,
         isOnTheFly: Boolean,
@@ -138,39 +162,44 @@ class MatchMemberInspection : StrictInspection() {
                     isFunction = nextSibling is LuaListArgs
                 }
 
-                val type = o.guessType(searchContext)
-                var parent = o.parent
-                while (parent != null) {
-                    if (parent is LuaVarList) {
-                        val next = o.nextSibling
-                        if (next is LeafPsiElement) {
-                            if (next.text == "." || next.text == ":") {
-                                break
+                val previousType = o.prefixExpr.guessType(searchContext)
+                if (previousType != Ty.UNKNOWN && !onlyHaveClassInfo(previousType)) {
+                    val type = o.guessType(searchContext)
+                    var parent = o.parent
+                    while (parent != null) {
+                        if (parent is LuaVarList) {
+                            val next = o.nextSibling
+                            if(next is LeafPsiElement) {
+                                if(next.text == "." || next.text == ":") {
+                                    break
+                                }
                             }
-                        }
-                        return
-                    }
-                    if (parent is LuaClassMethodName) {
-                        break
-                    }
-                    parent = parent.parent
-                }
-                if (type == Ty.NIL || type == Ty.UNKNOWN) {
-                    val psi = o.lastChild
-                    if (psi != null) {
-                        val nodeType = psi.node.elementType
-                        if (nodeType != LuaTypes.ID) {
                             return
                         }
-                        if (isFunction) {
-                            val funcName = o.name
-                            if (funcName != null) {
-                                if (!LuaSettings.isConstructorName(funcName) && !isMemberAfterCondition(o))
-                                    myHolder.registerProblem(psi, "Unknown function '%s'.".format(funcName))
+                        if(parent is LuaClassMethodName){
+                            break
+                        }
+                        parent = parent.parent
+                    }
+                    if (type == Ty.NIL || type == Ty.UNKNOWN) {
+                        val psi = o.lastChild
+                        if (psi != null) {
+                            val nodeType = psi.node.elementType
+                            if(nodeType != LuaTypes.ID) {
+                                return
                             }
-                        } else {
-                            if (!isFieldInCondition(o) && !isMemberAfterCondition(o))
-                                myHolder.registerProblem(psi, "Unknown field '%s'.".format(o.name))
+                            if (isFunction)
+                            {
+                                val funcName = o.name
+                                if (funcName != null) {
+                                    if (!LuaSettings.isConstructorName(funcName) && !isMemberAfterCondition(o))
+                                        myHolder.registerProblem(psi, "Unknown function '%s'.".format(funcName))
+                                }
+                            }
+                            else {
+                                if (!isFieldInCondition(o) && !isMemberAfterCondition(o))
+                                    myHolder.registerProblem(psi, "Unknown field '%s'.".format(o.name))
+                            }
                         }
                     }
                 }
