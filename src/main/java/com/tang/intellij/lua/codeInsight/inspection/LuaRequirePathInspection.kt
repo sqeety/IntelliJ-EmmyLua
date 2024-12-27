@@ -62,22 +62,26 @@ class LuaRequirePathInspection : StrictInspection() {
                                     if (path.startsWith(sourceRoot)) {
                                         val lastIndex = path.lastIndexOf('.')
                                         val fileAbsolutePath = path.substring(sourceRoot.length + 1, lastIndex)
-                                        if (fileAbsolutePath.equals(pathString, ignoreCase = true)) {
-                                            if (!fileAbsolutePath.equals(pathString, ignoreCase = false)) {
+                                        val filePathString = fileAbsolutePath.replace('/', '.')
+                                        if (filePathString.equals(pathString, ignoreCase = true)) {
+                                            if (!filePathString.equals(pathString, ignoreCase = false)) {
                                                 myHolder.registerProblem(
                                                     firstArg,
                                                     "Path '%s' Case not Match '%s'.".format(
                                                         pathString,
-                                                        fileAbsolutePath
+                                                        filePathString
                                                     ),
                                                     object :
                                                         LocalQuickFix {
                                                         override fun getFamilyName(): String {
-                                                            return "Rename to '${fileAbsolutePath}'"
+                                                            return "Rename to '${filePathString}'"
                                                         }
 
                                                         override fun applyFix(p0: Project, p1: ProblemDescriptor) {
-                                                            val newLiteral = LuaElementFactory.createLiteral(o.project, "\"" + fileAbsolutePath + "\"")
+                                                            val newLiteral = LuaElementFactory.createLiteral(
+                                                                o.project,
+                                                                "\"" + filePathString + "\""
+                                                            )
                                                             firstArg.replace(newLiteral)
                                                         }
 
