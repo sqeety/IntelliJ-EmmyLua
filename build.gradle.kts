@@ -39,8 +39,18 @@ data class BuildData(
     val instrumentCodeCompilerVersion: String = ideaSDKVersion
 )
 
+//./gradlew buildPlugin -DIDEA_VER=251
 //https://www.jetbrains.com/intellij-repository/snapshots
 val buildDataList = listOf(
+    BuildData(
+        ideaSDKShortVersion = "251",
+        ideaSDKVersion = "251-EAP-SNAPSHOT",
+        sinceBuild = "251",
+        untilBuild = "251.*",
+        bunch = "212",
+        targetCompatibilityLevel = JavaVersion.VERSION_17,
+        jvmTarget = "17"
+    ),
     BuildData(
         ideaSDKShortVersion = "241",
         ideaSDKVersion = "243-EAP-SNAPSHOT",
