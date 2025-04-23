@@ -39,7 +39,7 @@ data class BuildData(
     val instrumentCodeCompilerVersion: String = ideaSDKVersion
 )
 
-//./gradlew buildPlugin -DIDEA_VER=251
+//./gradlew buildPlugin
 //https://www.jetbrains.com/intellij-repository/snapshots
 val buildDataList = listOf(
     BuildData(
