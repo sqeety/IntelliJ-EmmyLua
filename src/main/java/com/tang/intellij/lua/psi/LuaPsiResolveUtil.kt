@@ -213,8 +213,13 @@ fun resolve(indexExpr: LuaIndexExpr, idString: String, context: SearchContext): 
 fun resolveRequireFile(pathString: String?, project: Project): LuaPsiFile? {
     if (pathString == null)
         return null
-    val fileName = pathString.replace('.', '/')
+    var fileName = pathString
     var f = LuaFileUtil.findFile(project, fileName)
+    if(f == null) {
+        fileName = pathString.replace('.', '/')
+        f = LuaFileUtil.findFile(project, fileName)
+    }
+
 
     // issue #415, support init.lua
     if (f == null || f.isDirectory) {
