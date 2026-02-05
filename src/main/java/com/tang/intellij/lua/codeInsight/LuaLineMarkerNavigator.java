@@ -43,6 +43,7 @@ public abstract class LuaLineMarkerNavigator<T extends PsiElement, S extends Psi
         if (search != null) {
             search.forEach(t1 -> {
                 navElements.add((NavigatablePsiElement) t1);
+                return true;
             });
             NavigatablePsiElement[] methods = navElements.toArray(NavigatablePsiElement.EMPTY_NAVIGATABLE_ELEMENT_ARRAY);
             if (ApplicationManager.getApplication().isUnitTestMode()) {
