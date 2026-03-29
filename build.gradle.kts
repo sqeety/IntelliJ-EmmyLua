@@ -96,37 +96,46 @@ fun getRev(): String {
         commandLine("git", "rev-parse", "HEAD")
     }.standardOutput.asText.get().trim().take(7)
 }
+val debuggerFiles = mapOf(
+    "darwin-arm64.zip" to "https://github.com/EmmyLua/EmmyLuaDebugger/releases/download/${emmyDebuggerVersion}/darwin-arm64.zip",
+    "darwin-x64.zip"   to "https://github.com/EmmyLua/EmmyLuaDebugger/releases/download/${emmyDebuggerVersion}/darwin-x64.zip",
+    "linux-x64.zip"    to "https://github.com/EmmyLua/EmmyLuaDebugger/releases/download/${emmyDebuggerVersion}/linux-x64.zip",
+    "win32-x64.zip"    to "https://github.com/EmmyLua/EmmyLuaDebugger/releases/download/${emmyDebuggerVersion}/win32-x64.zip",
+    "win32-x86.zip"    to "https://github.com/EmmyLua/EmmyLuaDebugger/releases/download/${emmyDebuggerVersion}/win32-x86.zip",
+)
+
+// 过滤掉本地 temp/<version>/ 目录下已存在的文件，只下载缺失的
+val tempDir = "temp/${emmyDebuggerVersion}"
+val missingDebuggerFiles = debuggerFiles.filter { (name, _) ->
+    !file("${tempDir}/${name}").exists()
+}
+
 tasks.register<Download>("downloadEmmyDebugger") {
-    src(
-        arrayOf(
-            "https://github.com/EmmyLua/EmmyLuaDebugger/releases/download/${emmyDebuggerVersion}/darwin-arm64.zip",
-            "https://github.com/EmmyLua/EmmyLuaDebugger/releases/download/${emmyDebuggerVersion}/darwin-x64.zip",
-            "https://github.com/EmmyLua/EmmyLuaDebugger/releases/download/${emmyDebuggerVersion}/linux-x64.zip",
-            "https://github.com/EmmyLua/EmmyLuaDebugger/releases/download/${emmyDebuggerVersion}/win32-x64.zip",
-            "https://github.com/EmmyLua/EmmyLuaDebugger/releases/download/${emmyDebuggerVersion}/win32-x86.zip"
-        )
-    )
-    dest("temp")
+    onlyIf("所有调试器文件本地已存在，跳过下载") {
+        missingDebuggerFiles.isNotEmpty()
+    }
+    src(missingDebuggerFiles.values.toList())
+    dest(tempDir)
 }
 
 tasks.register<Copy>("unzipEmmyDebugger") {
     dependsOn("downloadEmmyDebugger")
-    from(zipTree("temp/win32-x86.zip")) {
+    from(zipTree("${tempDir}/win32-x86.zip")) {
         into("windows/x86")
     }
-    from(zipTree("temp/win32-x64.zip")) {
+    from(zipTree("${tempDir}/win32-x64.zip")) {
         into("windows/x64")
     }
-    from(zipTree("temp/darwin-x64.zip")) {
+    from(zipTree("${tempDir}/darwin-x64.zip")) {
         into("mac/x64")
     }
-    from(zipTree("temp/darwin-arm64.zip")) {
+    from(zipTree("${tempDir}/darwin-arm64.zip")) {
         into("mac/arm64")
     }
-    from(zipTree("temp/linux-x64.zip")) {
+    from(zipTree("${tempDir}/linux-x64.zip")) {
         into("linux")
     }
-    destinationDir = file("temp")
+    destinationDir = file(tempDir)
 }
 
 tasks.register<Copy>("installEmmyDebugger") {
