@@ -74,12 +74,14 @@ class LuaRequireReference internal constructor(callExpr: LuaCallExpr) : PsiRefer
             val path = if (last == -1) name else normalizedPath.substring(0, last) + ch + name
             setPath(path)
         }
+        return myElement
     }
 
     fun setPath(luaPath: String) {
         if (path != null) {
             val normalizedPath = LuaSettings.instance.normalizeRequirePath(luaPath)
             val stat = LuaElementFactory.createWith(myElement.project, "require $quot$normalizedPath$quot") as LuaExprStat
+            val stringArg = (stat.expr as? LuaCallExpr)?.firstStringArg
             if (stringArg != null)
                 path.replace(stringArg)
         }

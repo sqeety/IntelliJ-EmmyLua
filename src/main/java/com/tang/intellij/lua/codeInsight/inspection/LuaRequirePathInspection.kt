@@ -23,7 +23,6 @@ import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiFile
-import com.intellij.openapi.util.io.FileUtil
 import com.tang.intellij.lua.project.LuaSettings
 import com.tang.intellij.lua.project.LuaSourceRootManager
 import com.tang.intellij.lua.psi.*
@@ -63,14 +62,15 @@ class LuaRequirePathInspection : StrictInspection() {
                     return
                 }
 
-                val path = file.virtualFile.toString()
+                val virtualFile = file.virtualFile
+                val path = virtualFile.toString()
                 for (sourceRoot in LuaSourceRootManager.getInstance(o.project).getSourceRootUrls()) {
                     if (!path.startsWith(sourceRoot)) {
                         continue
                     }
 
-                    val extension = FileUtil.getExtension(path)
-                    val fileAbsolutePath = path.substring(sourceRoot.length + 1, path.length - extension.length - 1)
+                    val suffixLength = virtualFile.extension?.length?.plus(1) ?: 0
+                    val fileAbsolutePath = path.substring(sourceRoot.length + 1, path.length - suffixLength)
                     val filePathString = LuaSettings.instance.normalizeRequirePath(fileAbsolutePath)
                     if (!filePathString.equals(pathString, ignoreCase = false)) {
                         myHolder.registerProblem(
