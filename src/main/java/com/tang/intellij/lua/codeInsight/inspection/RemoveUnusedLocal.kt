@@ -16,15 +16,20 @@
 
 package com.tang.intellij.lua.codeInsight.inspection
 
-import com.intellij.codeInspection.*
-import com.intellij.openapi.application.ApplicationManager
+import com.intellij.codeInsight.intention.preview.IntentionPreviewInfo
+import com.intellij.codeInspection.LocalInspectionTool
+import com.intellij.codeInspection.LocalInspectionToolSession
+import com.intellij.codeInspection.LocalQuickFix
+import com.intellij.codeInspection.ProblemDescriptor
+import com.intellij.codeInspection.ProblemHighlightType
+import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.refactoring.RefactoringFactory
-import com.tang.intellij.lua.Constants
 import com.intellij.util.Processor
+import com.tang.intellij.lua.Constants
 import com.tang.intellij.lua.comment.psi.LuaDocPsiElement
 import com.tang.intellij.lua.psi.LuaLocalDef
 import com.tang.intellij.lua.psi.LuaLocalFuncDef
@@ -108,12 +113,14 @@ class RemoveUnusedLocal : LocalInspectionTool() {
     private inner class RenameToUnderlineFix : LocalQuickFix {
         override fun getFamilyName() = "Rename to '${Constants.WORD_UNDERLINE}'"
 
+        override fun generatePreview(project: Project, previewDescriptor: ProblemDescriptor): IntentionPreviewInfo {
+            return IntentionPreviewInfo.EMPTY
+        }
+
         override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
-            ApplicationManager.getApplication().invokeLater {
-                val factory = RefactoringFactory.getInstance(project)
-                val refactoring = factory.createRename(descriptor.psiElement, Constants.WORD_UNDERLINE, false, false)
-                refactoring.run()
-            }
+            val factory = RefactoringFactory.getInstance(project)
+            val refactoring = factory.createRename(descriptor.psiElement, Constants.WORD_UNDERLINE, false, false)
+            refactoring.run()
         }
     }
 
