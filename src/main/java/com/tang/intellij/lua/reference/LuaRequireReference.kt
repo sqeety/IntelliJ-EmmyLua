@@ -21,6 +21,7 @@ import com.intellij.openapi.util.io.FileUtil
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiReferenceBase
 import com.tang.intellij.lua.lang.type.LuaString
+import com.tang.intellij.lua.project.LuaSettings
 import com.tang.intellij.lua.psi.LuaCallExpr
 import com.tang.intellij.lua.psi.LuaExprStat
 import com.tang.intellij.lua.psi.LuaElementFactory
@@ -66,18 +67,19 @@ class LuaRequireReference internal constructor(callExpr: LuaCallExpr) : PsiRefer
 
     override fun handleElementRename(newElementName: String): PsiElement {
         pathString?.let {
+            val normalizedPath = LuaSettings.instance.toFileRequirePath(it)
             val name = FileUtil.getNameWithoutExtension(newElementName)
-            val last = it.lastIndexOf('.')
-            val path = if (last == -1) name else it.substring(0, last) + "." + name
+            val ch = LuaSettings.instance.requirePathSeparatorChar
+            val last = normalizedPath.lastIndexOf(ch)
+            val path = if (last == -1) name else normalizedPath.substring(0, last) + ch + name
             setPath(path)
         }
-        return myElement
     }
 
     fun setPath(luaPath: String) {
         if (path != null) {
-            val stat = LuaElementFactory.createWith(myElement.project, "require $quot$luaPath$quot") as LuaExprStat
-            val stringArg = (stat.expr as? LuaCallExpr)?.firstStringArg
+            val normalizedPath = LuaSettings.instance.normalizeRequirePath(luaPath)
+            val stat = LuaElementFactory.createWith(myElement.project, "require $quot$normalizedPath$quot") as LuaExprStat
             if (stringArg != null)
                 path.replace(stringArg)
         }

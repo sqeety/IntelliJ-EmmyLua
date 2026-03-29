@@ -177,7 +177,6 @@ project(":") {
         implementation("org.luaj:luaj-jse:3.0.1")
         implementation("org.eclipse.mylyn.github:org.eclipse.egit.github.core:2.1.5")
         implementation("com.jgoodies:forms:1.2.1")
-        implementation("org.slf4j:slf4j-nop:2.0.12")
 
         intellijPlatform {
             intellijIdeaUltimate(buildVersionData.ideaSDKVersion)
@@ -211,11 +210,11 @@ project(":") {
 
     tasks.register("bunch") {
         doLast {
-            val rev = getRev()
-            runCommand("git", "reset", "HEAD", "--hard")
-            runCommand("git", "clean", "-d", "-f")
+            //val rev = getRev()
+            //runCommand("git", "reset", "HEAD", "--hard")
+            //runCommand("git", "clean", "-d", "-f")
             runCommand(if (isWin) "bunch/bin/bunch.bat" else "bunch/bin/bunch", "switch", ".", buildVersionData.bunch)
-            runCommand("git", "reset", rev)
+            //runCommand("git", "reset", rev)
         }
     }
     tasks {

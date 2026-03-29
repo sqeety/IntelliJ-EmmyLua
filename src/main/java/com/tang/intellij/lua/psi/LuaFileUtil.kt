@@ -27,6 +27,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.util.SmartList
 import com.tang.intellij.lua.ext.ILuaFileResolver
+import com.tang.intellij.lua.project.LuaSettings
 import com.tang.intellij.lua.project.LuaSourceRootManager
 import java.io.File
 
@@ -148,7 +149,7 @@ object LuaFileUtil {
         if (list.isEmpty())
             return null
         list.reverse()
-        return list.joinToString(".")
+        return LuaSettings.instance.normalizeRequirePath(list.joinToString("."))
     }
 
     fun isStdLibFile(file: VirtualFile, project: Project): Boolean {

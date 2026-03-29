@@ -34,6 +34,8 @@ class LuaSettings : PersistentStateComponent<LuaSettings> {
     //自定义require函数，参考constructorNames
     var requireLikeFunctionNames: Array<String> = arrayOf("require")
 
+    var requirePathSeparator: String = REQUIRE_PATH_SEPARATOR_SLASH
+
     var constructorNames: Array<String> = arrayOf()
 
     //Doc文档严格模式，对不合法的注解报错
@@ -95,9 +97,11 @@ class LuaSettings : PersistentStateComponent<LuaSettings> {
             constructorNames = value.split(";").map { it.trim() }.toTypedArray()
         }
 
-    val attachDebugDefaultCharset: Charset get() {
-        return Charset.forName(attachDebugDefaultCharsetName) ?: Charset.forName("UTF-8")
-    }
+    val attachDebugDefaultCharset: Charset
+        get() {
+            return Charset.forName(attachDebugDefaultCharsetName) ?: Charset.forName("UTF-8")
+        }
+
     var requireLikeFunctionNamesString: String
         get() {
             return requireLikeFunctionNames.joinToString(";")
@@ -113,7 +117,26 @@ class LuaSettings : PersistentStateComponent<LuaSettings> {
         set(value) {
             strictGlobalNames = value.split(";").map { it.trim() }.toTypedArray()
         }
+
+    val requirePathSeparatorChar: Char
+        get() = if (requirePathSeparator == REQUIRE_PATH_SEPARATOR_DOT) '.' else '/'
+
+    fun isRequirePathSeparatorDot(): Boolean {
+        return requirePathSeparator == REQUIRE_PATH_SEPARATOR_DOT
+    }
+
+    fun toFileRequirePath(path: String): String {
+        return path.replace('\\', '/').replace('.', '/')
+    }
+
+    fun normalizeRequirePath(path: String): String {
+        val filePath = toFileRequirePath(path)
+        return if (isRequirePathSeparatorDot()) filePath.replace('/', '.') else filePath
+    }
+
     companion object {
+        const val REQUIRE_PATH_SEPARATOR_SLASH = "/"
+        const val REQUIRE_PATH_SEPARATOR_DOT = "."
 
         val instance: LuaSettings
             get() = ApplicationManager.getApplication().getService(LuaSettings::class.java)

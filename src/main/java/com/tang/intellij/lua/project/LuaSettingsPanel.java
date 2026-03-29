@@ -58,12 +58,14 @@ public class LuaSettingsPanel implements SearchableConfigurable, Configurable.No
     private JComboBox<String> defaultCharset;
     private JComboBox<LuaLanguageLevel> languageLevel;
     private JTextField requireFunctionNames;
+    private JComboBox<String> requirePathSeparator;
     private JTextField tooLargerFileThreshold;
     private JTextField strictGlobalNames;
-
     public LuaSettingsPanel() {
         this.settings = LuaSettings.Companion.getInstance();
         constructorNames.setText(settings.getConstructorNamesString());
+        tooLargerFileThreshold.setDocument(new IntegerDocument());
+        tooLargerFileThreshold.setText(String.valueOf(settings.getTooLargerFileThreshold()));
         strictDoc.setSelected(settings.isStrictDoc());
         smartCloseEnd.setSelected(settings.isSmartCloseEnd());
         showWordsInFile.setSelected(settings.isShowWordsInFile());
@@ -73,8 +75,8 @@ public class LuaSettingsPanel implements SearchableConfigurable, Configurable.No
         additionalRoots.setRoots(settings.getAdditionalSourcesRoot());
         enableGenericCheckBox.setSelected(settings.getEnableGeneric());
         requireFunctionNames.setText(settings.getRequireLikeFunctionNamesString());
-        tooLargerFileThreshold.setDocument(new IntegerDocument());
-        tooLargerFileThreshold.setText(String.valueOf(settings.getTooLargerFileThreshold()));
+        requirePathSeparator.setModel(new DefaultComboBoxModel<>(new String[]{LuaSettings.REQUIRE_PATH_SEPARATOR_SLASH, LuaSettings.REQUIRE_PATH_SEPARATOR_DOT}));
+        requirePathSeparator.setSelectedItem(settings.getRequirePathSeparator());
         strictGlobalNames.setText(settings.getStrictGlobalNamesString());
 
         captureStd.setSelected(settings.getAttachDebugCaptureStd());
@@ -113,8 +115,8 @@ public class LuaSettingsPanel implements SearchableConfigurable, Configurable.No
     public boolean isModified() {
         return !StringUtil.equals(settings.getConstructorNamesString(), constructorNames.getText()) ||
                 !StringUtil.equals(settings.getRequireLikeFunctionNamesString(), requireFunctionNames.getText()) ||
+                !StringUtil.equals(settings.getRequirePathSeparator(), (String) requirePathSeparator.getSelectedItem()) ||
                 settings.getTooLargerFileThreshold() != getTooLargerFileThreshold() ||
-                settings.isStrictDoc() != strictDoc.isSelected() ||
                 settings.isSmartCloseEnd() != smartCloseEnd.isSelected() ||
                 settings.isShowWordsInFile() != showWordsInFile.isSelected() ||
                 settings.isEnforceTypeSafety() != enforceTypeSafety.isSelected() ||
@@ -135,8 +137,8 @@ public class LuaSettingsPanel implements SearchableConfigurable, Configurable.No
         constructorNames.setText(settings.getConstructorNamesString());
         settings.setRequireLikeFunctionNamesString(requireFunctionNames.getText());
         requireFunctionNames.setText(settings.getRequireLikeFunctionNamesString());
+        settings.setRequirePathSeparator((String) Objects.requireNonNull(requirePathSeparator.getSelectedItem()));
         settings.setTooLargerFileThreshold(getTooLargerFileThreshold());
-        settings.setStrictDoc(strictDoc.isSelected());
         settings.setSmartCloseEnd(smartCloseEnd.isSelected());
         settings.setShowWordsInFile(showWordsInFile.isSelected());
         settings.setEnforceTypeSafety(enforceTypeSafety.isSelected());
