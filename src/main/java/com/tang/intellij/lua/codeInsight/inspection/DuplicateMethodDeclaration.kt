@@ -24,12 +24,12 @@ import com.intellij.psi.search.GlobalSearchScope
 import com.tang.intellij.lua.LuaBundle
 import com.tang.intellij.lua.psi.LuaClassMethodDef
 import com.tang.intellij.lua.psi.LuaVisitor
-import com.tang.intellij.lua.psi.search.LuaShortNamesManager
 import com.tang.intellij.lua.search.SearchContext
+import com.tang.intellij.lua.stubs.index.LuaClassMemberIndex
 import com.tang.intellij.lua.ty.Ty
 import com.tang.intellij.lua.ty.TyClass
 
-//同一个文字重复定义函数
+//同一个类中函数重复定义报错
 class DuplicateMethodDeclaration : LocalInspectionTool() {
     override fun buildVisitor(
         holder: ProblemsHolder,
@@ -39,29 +39,38 @@ class DuplicateMethodDeclaration : LocalInspectionTool() {
         return object : LuaVisitor() {
             override fun visitClassMethodDef(o: LuaClassMethodDef) {
                 if (o.useScope !is GlobalSearchScope) return
-                val classMethodName = o.classMethodName
-                val expr = classMethodName.expr
                 val context = SearchContext.get(o.project)
-                val ty = expr.guessType(context)
-                val className = classMethodName.id?.text
-                if (!Ty.isInvalid(ty) && ty is TyClass && className != null) {
-                    LuaShortNamesManager.getInstance(o.project).processMembers(ty, className, context) { def ->
-                        var continueProcess = true
-                        if (def != o && def is LuaClassMethodDef) {
-                            if (o.containingFile == def.containingFile && o.classMethodName.expr.guessType(context) == def.classMethodName.expr.guessType(context)) {
-                                val path = def.containingFile?.virtualFile?.canonicalPath
-                                if (path != null) {
-                                    holder.registerProblem(
-                                        o.classMethodName,
-                                        LuaBundle.message("inspection.duplicate_class", path),
-                                        ProblemHighlightType.GENERIC_ERROR
-                                    )
-                                    continueProcess = false
-                                }
+                
+                // 获取方法名
+                val methodName = o.classMethodName.id?.text ?: return
+                
+                // 获取方法所属的类类型
+                val ty = o.classMethodName.expr.guessType(context)
+                if (Ty.isInvalid(ty) || ty !is TyClass) return
+                
+                // 类名
+                val className = ty.className
+                
+                // 检查同类中是否有同名方法（使用 CLASS_MEMBER 索引）
+                val key = "$className**$methodName"
+                val hashCode = key.hashCode()
+                val all = LuaClassMemberIndex.instance.get(hashCode, o.project, context.scope)
+                
+                for (def in all) {
+                    if (def != o && def is LuaClassMethodDef) {
+                        // 确保是同一个类定义的方法（检查文件）
+                        val defClassName = def.classMethodName.expr.guessType(context)
+                        if (defClassName == ty) {
+                            val path = def.containingFile?.virtualFile?.canonicalPath
+                            if (path != null) {
+                                holder.registerProblem(
+                                    o.classMethodName,
+                                    LuaBundle.message("inspection.duplicate_method", path),
+                                    ProblemHighlightType.GENERIC_ERROR
+                                )
+                                break
                             }
-
                         }
-                        continueProcess
                     }
                 }
             }
