@@ -14,14 +14,15 @@
  * limitations under the License.
  */
 
-import de.undercouch.gradle.tasks.download.*
+import de.undercouch.gradle.tasks.download.Download
 import org.apache.tools.ant.taskdefs.condition.Os
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.io.ByteArrayOutputStream
 
 plugins {
-    id("org.jetbrains.intellij").version("1.13.3")
-    id("org.jetbrains.kotlin.jvm").version("2.1.20")
-    id("de.undercouch.download").version("5.3.0")
+    id("org.jetbrains.intellij.platform") version "2.7.0"
+    id("org.jetbrains.kotlin.jvm") version "2.3.0"
+    id("de.undercouch.download") version "5.3.0"
 }
 
 data class BuildData(
@@ -43,13 +44,14 @@ data class BuildData(
 //https://www.jetbrains.com/intellij-repository/snapshots
 val buildDataList = listOf(
     BuildData(
-        ideaSDKShortVersion = "251",
-        ideaSDKVersion = "251-EAP-SNAPSHOT",
-        sinceBuild = "251",
-        untilBuild = "253.*",
+        ideaSDKShortVersion = "2026.1",
+        ideaSDKVersion = "2026.1",
+        sinceBuild = "253",
+        untilBuild = "261.*",
         bunch = "212",
-        targetCompatibilityLevel = JavaVersion.VERSION_17,
-        jvmTarget = "17"
+        targetCompatibilityLevel = JavaVersion.VERSION_21,
+        //https://learn.microsoft.com/en-us/java/openjdk/download
+        jvmTarget = "21"
     ),
     BuildData(
         ideaSDKShortVersion = "241",
@@ -62,8 +64,6 @@ val buildDataList = listOf(
     ),
     BuildData(
         ideaSDKShortVersion = "231",
-        // 223.7571.123-EAP-SNAPSHOT
-        // LATEST-EAP-SNAPSHOT
         ideaSDKVersion = "233-EAP-SNAPSHOT",
         sinceBuild = "232",
         untilBuild = "233.*",
@@ -74,55 +74,44 @@ val buildDataList = listOf(
 )
 
 val buildVersion = System.getProperty("IDEA_VER") ?: buildDataList.first().ideaSDKShortVersion
-
 val buildVersionData = buildDataList.find { it.ideaSDKShortVersion == buildVersion }!!
 
-val emmyDebuggerVersion = "1.7.1"
-
+val emmyDebuggerVersion = "1.9.0"
 val resDir = "src/main/resources"
-
 val isWin = Os.isFamily(Os.FAMILY_WINDOWS)
-
 val isCI = System.getenv("CI") != null
 
-// CI
+fun runCommand(vararg command: String) {
+    providers.exec {
+        commandLine(*command)
+    }.result.get()
+}
 if (isCI) {
     version = System.getenv("CI_BUILD_VERSION")
-    exec {
-        executable = "git"
-        args("config", "--global", "user.email", "love.tangzx@qq.com")
-    }
-    exec {
-        executable = "git"
-        args("config", "--global", "user.name", "tangzx")
-    }
+    runCommand("git", "config", "--global", "user.email", "love.tangzx@qq.com")
+    runCommand("git", "config", "--global", "user.name", "tangzx")
 }
-
 version = "${version}-IDEA${buildVersion}"
 
 fun getRev(): String {
-    val os = ByteArrayOutputStream()
-    exec {
-        executable = "git"
-        args("rev-parse", "HEAD")
-        standardOutput = os
-    }
-    return os.toString().substring(0, 7)
+    return providers.exec {
+        commandLine("git", "rev-parse", "HEAD")
+    }.standardOutput.asText.get().trim().take(7)
 }
-
-task("downloadEmmyDebugger", type = Download::class) {
-    src(arrayOf(
-        "https://github.com/EmmyLua/EmmyLuaDebugger/releases/download/${emmyDebuggerVersion}/darwin-arm64.zip",
-        "https://github.com/EmmyLua/EmmyLuaDebugger/releases/download/${emmyDebuggerVersion}/darwin-x64.zip",
-        "https://github.com/EmmyLua/EmmyLuaDebugger/releases/download/${emmyDebuggerVersion}/linux-x64.zip",
-        "https://github.com/EmmyLua/EmmyLuaDebugger/releases/download/${emmyDebuggerVersion}/win32-x64.zip",
-        "https://github.com/EmmyLua/EmmyLuaDebugger/releases/download/${emmyDebuggerVersion}/win32-x86.zip"
-    ))
-
+tasks.register<Download>("downloadEmmyDebugger") {
+    src(
+        arrayOf(
+            "https://github.com/EmmyLua/EmmyLuaDebugger/releases/download/${emmyDebuggerVersion}/darwin-arm64.zip",
+            "https://github.com/EmmyLua/EmmyLuaDebugger/releases/download/${emmyDebuggerVersion}/darwin-x64.zip",
+            "https://github.com/EmmyLua/EmmyLuaDebugger/releases/download/${emmyDebuggerVersion}/linux-x64.zip",
+            "https://github.com/EmmyLua/EmmyLuaDebugger/releases/download/${emmyDebuggerVersion}/win32-x64.zip",
+            "https://github.com/EmmyLua/EmmyLuaDebugger/releases/download/${emmyDebuggerVersion}/win32-x86.zip"
+        )
+    )
     dest("temp")
 }
 
-task("unzipEmmyDebugger", type = Copy::class) {
+tasks.register<Copy>("unzipEmmyDebugger") {
     dependsOn("downloadEmmyDebugger")
     from(zipTree("temp/win32-x86.zip")) {
         into("windows/x86")
@@ -142,7 +131,7 @@ task("unzipEmmyDebugger", type = Copy::class) {
     destinationDir = file("temp")
 }
 
-task("installEmmyDebugger", type = Copy::class) {
+tasks.register<Copy>("installEmmyDebugger") {
     dependsOn("unzipEmmyDebugger")
     from("temp/windows/x64/") {
         include("*.*")
@@ -166,16 +155,21 @@ task("installEmmyDebugger", type = Copy::class) {
     }
     destinationDir = file("src/main/resources")
 }
+
 allprojects {
     repositories {
-        maven (url="https://maven.aliyun.com/repository/public/")
+        maven(url = "https://maven.aliyun.com/repository/public/")
         mavenCentral()
     }
 }
+
 project(":") {
     repositories {
         maven(url = "https://www.jetbrains.com/intellij-repository/releases")
         mavenCentral()
+        intellijPlatform {
+            defaultRepositories()
+        }
     }
 
     dependencies {
@@ -185,6 +179,11 @@ project(":") {
         implementation("org.luaj:luaj-jse:3.0.1")
         implementation("org.eclipse.mylyn.github:org.eclipse.egit.github.core:2.1.5")
         implementation("com.jgoodies:forms:1.2.1")
+
+        intellijPlatform {
+            intellijIdeaUltimate(buildVersionData.ideaSDKVersion)
+            bundledModule("intellij.spellchecker")
+        }
     }
 
     sourceSets {
@@ -195,77 +194,54 @@ project(":") {
         }
     }
 
-    /*configure<JavaPluginConvention> {
-        sourceCompatibility = buildVersionData.targetCompatibilityLevel
-        targetCompatibility = buildVersionData.targetCompatibilityLevel
-    }*/
+    intellijPlatform {
+        buildSearchableOptions = false
+        sandboxContainer = layout.buildDirectory.dir("${buildVersionData.ideaSDKShortVersion}/idea-sandbox")
 
-    intellij {
-        type.set("IC")
-        updateSinceUntilBuild.set(false)
-        downloadSources.set(!isCI)
-        version.set(buildVersionData.ideaSDKVersion)
-        //localPath.set(System.getenv("IDEA_HOME_${buildVersionData.ideaSDKShortVersion}"))
-        sandboxDir.set("${project.buildDir}/${buildVersionData.ideaSDKShortVersion}/idea-sandbox")
-    }
+        pluginConfiguration {
+            ideaVersion {
+                sinceBuild = buildVersionData.sinceBuild
+                untilBuild = buildVersionData.untilBuild
+            }
+        }
 
-    task("bunch") {
-        doLast {
-            val rev = getRev()
-            // reset
-            exec {
-                executable = "git"
-                args("reset", "HEAD", "--hard")
-            }
-            // clean untracked files
-            exec {
-                executable = "git"
-                args("clean", "-d", "-f")
-            }
-            // switch
-            exec {
-                executable = if (isWin) "bunch/bin/bunch.bat" else "bunch/bin/bunch"
-                args("switch", ".", buildVersionData.bunch)
-            }
-            // reset to HEAD
-            exec {
-                executable = "git"
-                args("reset", rev)
-            }
+        publishing {
+            token = System.getenv("IDEA_PUBLISH_TOKEN")
         }
     }
 
+    tasks.register("bunch") {
+        doLast {
+            val rev = getRev()
+            runCommand("git", "reset", "HEAD", "--hard")
+            runCommand("git", "clean", "-d", "-f")
+            runCommand(if (isWin) "bunch/bin/bunch.bat" else "bunch/bin/bunch", "switch", ".", buildVersionData.bunch)
+            runCommand("git", "reset", rev)
+        }
+    }
     tasks {
+        named("processResources") {
+            dependsOn("installEmmyDebugger")
+        }
+        named("patchPluginXml") {
+            dependsOn("installEmmyDebugger")
+        }
+
         buildPlugin {
-            dependsOn(
-                "bunch",
-                "installEmmyDebugger")
+            dependsOn("bunch", "installEmmyDebugger")
             archiveBaseName.set(buildVersionData.archiveName)
-            from(fileTree(resDir) { include("!!DONT_UNZIP_ME!!.txt") }) {
-                into("/${project.name}")
-            }
+//            from(fileTree(resDir) { include("!!DONT_UNZIP_ME!!.txt") }) {
+//                into("/${project.name}")
+//            }
         }
 
         compileKotlin {
-            kotlinOptions {
-                jvmTarget = buildVersionData.jvmTarget
+            compilerOptions {
+                jvmTarget.set(JvmTarget.fromTarget(buildVersionData.jvmTarget))
             }
         }
 
-        patchPluginXml {
-            sinceBuild.set(buildVersionData.sinceBuild)
-            untilBuild.set(buildVersionData.untilBuild)
-        }
-
-        instrumentCode {
-            compilerVersion.set(buildVersionData.instrumentCodeCompilerVersion)
-        }
-
-        publishPlugin {
-            token.set(System.getenv("IDEA_PUBLISH_TOKEN"))
-        }
-
-        withType<org.jetbrains.intellij.tasks.PrepareSandboxTask> {
+        withType<org.jetbrains.intellij.platform.gradle.tasks.PrepareSandboxTask> {
             doLast {
                 copy {
                     from("src/main/resources/std")
