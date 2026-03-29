@@ -17,7 +17,6 @@
 import de.undercouch.gradle.tasks.download.Download
 import org.apache.tools.ant.taskdefs.condition.Os
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import java.io.ByteArrayOutputStream
 
 plugins {
     id("org.jetbrains.intellij.platform") version "2.7.0"
@@ -44,13 +43,12 @@ data class BuildData(
 //https://www.jetbrains.com/intellij-repository/snapshots
 val buildDataList = listOf(
     BuildData(
-        ideaSDKShortVersion = "2026.1",
-        ideaSDKVersion = "2026.1",
+        ideaSDKShortVersion = "2025.3",
+        ideaSDKVersion = "2025.3",
         sinceBuild = "253",
-        untilBuild = "261.*",
+        untilBuild = "253.*",
         bunch = "212",
         targetCompatibilityLevel = JavaVersion.VERSION_21,
-        //https://learn.microsoft.com/en-us/java/openjdk/download
         jvmTarget = "21"
     ),
     BuildData(
@@ -179,6 +177,7 @@ project(":") {
         implementation("org.luaj:luaj-jse:3.0.1")
         implementation("org.eclipse.mylyn.github:org.eclipse.egit.github.core:2.1.5")
         implementation("com.jgoodies:forms:1.2.1")
+        implementation("org.slf4j:slf4j-simple:2.0.9")
 
         intellijPlatform {
             intellijIdeaUltimate(buildVersionData.ideaSDKVersion)
