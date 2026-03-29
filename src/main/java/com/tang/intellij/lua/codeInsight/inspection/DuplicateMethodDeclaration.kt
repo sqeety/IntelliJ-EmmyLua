@@ -24,10 +24,10 @@ import com.intellij.psi.search.GlobalSearchScope
 import com.tang.intellij.lua.LuaBundle
 import com.tang.intellij.lua.psi.LuaClassMethodDef
 import com.tang.intellij.lua.psi.LuaVisitor
+import com.tang.intellij.lua.psi.guessClassType
 import com.tang.intellij.lua.search.SearchContext
 import com.tang.intellij.lua.stubs.index.LuaClassMemberIndex
 import com.tang.intellij.lua.ty.Ty
-import com.tang.intellij.lua.ty.TyClass
 
 //同一个类中函数重复定义报错
 class DuplicateMethodDeclaration : LocalInspectionTool() {
@@ -45,12 +45,11 @@ class DuplicateMethodDeclaration : LocalInspectionTool() {
                 val methodName = o.classMethodName.id?.text ?: return
                 
                 // 获取方法所属的类类型
-                val ty = o.classMethodName.expr.guessType(context)
-                if (Ty.isInvalid(ty) || ty !is TyClass) return
-                
+                val ty = o.guessClassType(context) ?: return
+                if (Ty.isInvalid(ty)) return
+
                 // 类名
                 val className = ty.className
-                
                 // 检查同类中是否有同名方法（使用 CLASS_MEMBER 索引）
                 val key = "$className**$methodName"
                 val hashCode = key.hashCode()
@@ -58,9 +57,9 @@ class DuplicateMethodDeclaration : LocalInspectionTool() {
                 
                 for (def in all) {
                     if (def != o && def is LuaClassMethodDef) {
-                        // 确保是同一个类定义的方法（检查文件）
-                        val defClassName = def.classMethodName.expr.guessType(context)
-                        if (defClassName == ty) {
+                        // 确保是同一个 table / class 上定义的方法
+                        val defClassType = def.guessClassType(context)
+                        if (defClassType == ty) {
                             val path = def.containingFile?.virtualFile?.canonicalPath
                             if (path != null) {
                                 holder.registerProblem(

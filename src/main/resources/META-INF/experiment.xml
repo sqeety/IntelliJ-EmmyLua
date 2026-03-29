@@ -20,6 +20,7 @@
     <extensions defaultExtensionNs="com.intellij">
         <projectViewPane implementation="com.tang.intellij.lua.project.LuaProjectViewPane"/>
         <iconProvider implementation="com.tang.intellij.lua.project.LuaSourceRootIconProvider"/>
+        <internalFileTemplate name="NewLua"/>
     </extensions>
 
     <actions>

@@ -43,9 +43,9 @@ data class BuildData(
 //https://www.jetbrains.com/intellij-repository/snapshots
 val buildDataList = listOf(
     BuildData(
-        ideaSDKShortVersion = "2026.1",
-        ideaSDKVersion = "2026.1",
-        sinceBuild = "261",
+        ideaSDKShortVersion = "2025.3",
+        ideaSDKVersion = "2025.3",
+        sinceBuild = "253",
         untilBuild = "263.*",
         bunch = "212",
         targetCompatibilityLevel = JavaVersion.VERSION_21,
