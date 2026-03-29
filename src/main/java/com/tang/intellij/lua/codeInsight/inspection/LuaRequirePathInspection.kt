@@ -23,8 +23,8 @@ import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiFile
+import com.intellij.openapi.util.io.FileUtil
 import com.tang.intellij.lua.project.LuaSettings
-import com.tang.intellij.lua.project.LuaSourceRootManager
 import com.tang.intellij.lua.psi.*
 
 class LuaRequirePathInspection : StrictInspection() {
@@ -50,52 +50,47 @@ class LuaRequirePathInspection : StrictInspection() {
 
             override fun visitCallExpr(o: LuaCallExpr) {
                 if (!isRequireLikeFunc(o)) return
-                if (o.argList.isNotEmpty()) {
-                    val firstArg = o.argList[0]
-                    if (firstArg is LuaLiteralExpr) {
-                        if (firstArg.kind == LuaLiteralKind.String) {
-                            val pathString = firstArg.stringValue
-                            val file = resolveRequireFile(pathString, o.project)
-                            if (file != null) {
-                                val path = file.virtualFile.toString()
-                                for (sourceRoot in LuaSourceRootManager.getInstance(o.project).getSourceRootUrls()) {
-                                    if (path.startsWith(sourceRoot)) {
-                                        val lastIndex = path.lastIndexOf('.')
-                                        val fileAbsolutePath = path.substring(sourceRoot.length + 1, lastIndex)
-                                        val filePathString = fileAbsolutePath.replace('/', '.')
-                                        if (filePathString.equals(pathString, ignoreCase = true)) {
-                                            if (!filePathString.equals(pathString, ignoreCase = false)) {
-                                                myHolder.registerProblem(
-                                                    firstArg,
-                                                    "Path '%s' Case not Match '%s'.".format(
-                                                        pathString,
-                                                        filePathString
-                                                    ),
-                                                    object :
-                                                        LocalQuickFix {
-                                                        override fun getFamilyName(): String {
-                                                            return "Rename to '${filePathString}'"
-                                                        }
+                if (o.argList.isEmpty()) return
 
-                                                        override fun applyFix(p0: Project, p1: ProblemDescriptor) {
-                                                            val newLiteral = LuaElementFactory.createLiteral(
-                                                                o.project,
-                                                                "\"" + filePathString + "\""
-                                                            )
-                                                            firstArg.replace(newLiteral)
-                                                        }
+                val firstArg = o.argList[0]
+                if (firstArg !is LuaLiteralExpr || firstArg.kind != LuaLiteralKind.String) return
 
-                                                    })
-                                            }
-                                        }
-                                        return
-                                    }
-                                }
-                            } else {
-                                myHolder.registerProblem(firstArg, "Path '%s' not in SourceRoot.".format(pathString))
-                            }
-                        }
+                val pathString = firstArg.stringValue
+                val file = resolveRequireFile(pathString, o.project)
+                if (file == null) {
+                    myHolder.registerProblem(firstArg, "Path '%s' not in SourceRoot.".format(pathString))
+                    return
+                }
+
+                val path = file.virtualFile.toString()
+                for (sourceRoot in LuaSourceRootManager.getInstance(o.project).getSourceRootUrls()) {
+                    if (!path.startsWith(sourceRoot)) {
+                        continue
                     }
+
+                    val extension = FileUtil.getExtension(path)
+                    val fileAbsolutePath = path.substring(sourceRoot.length + 1, path.length - extension.length - 1)
+                    val filePathString = LuaSettings.instance.normalizeRequirePath(fileAbsolutePath)
+                    if (!filePathString.equals(pathString, ignoreCase = false)) {
+                        myHolder.registerProblem(
+                            firstArg,
+                            "Path '%s' Case not Match '%s'.".format(pathString, filePathString),
+                            object : LocalQuickFix {
+                                override fun getFamilyName(): String {
+                                    return "Rename to '${filePathString}'"
+                                }
+
+                                override fun applyFix(p0: Project, p1: ProblemDescriptor) {
+                                    val newLiteral = LuaElementFactory.createLiteral(
+                                        o.project,
+                                        "\"$filePathString\""
+                                    )
+                                    firstArg.replace(newLiteral)
+                                }
+                            }
+                        )
+                    }
+                    return
                 }
             }
         }

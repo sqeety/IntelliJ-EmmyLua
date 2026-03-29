@@ -25,6 +25,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.tang.intellij.lua.lang.LuaFileType
 import com.tang.intellij.lua.lang.LuaIcons
 import com.tang.intellij.lua.lang.type.LuaString
+import com.tang.intellij.lua.project.LuaSettings
 import com.tang.intellij.lua.project.LuaSourceRootManager
 
 /**
@@ -39,7 +40,7 @@ class RequirePathCompletionProvider : LuaCompletionProvider() {
         val cur = file.findElementAt(completionParameters.offset - 1)
         if (cur != null) {
             val ls = LuaString.getContent(cur.text)
-            val content = ls.value.replace('/', PATH_SPLITTER) //统一用.来处理，aaa.bbb.ccc
+            val content = LuaSettings.instance.normalizeRequirePath(ls.value)
 
             val resultSet = completionResultSet.withPrefixMatcher(content)
             addAllFiles(completionParameters, resultSet)
@@ -62,7 +63,8 @@ class RequirePathCompletionProvider : LuaCompletionProvider() {
                 continue
 
             val fileName = FileUtil.getNameWithoutExtension(child.name)
-            val newPath = if (pck == null) fileName else "$pck.$fileName"
+            val separator = LuaSettings.instance.requirePathSeparatorChar
+            val newPath = if (pck == null) fileName else "$pck$separator$fileName"
 
             if (child.isDirectory) {
 
@@ -96,7 +98,4 @@ class RequirePathCompletionProvider : LuaCompletionProvider() {
         }
     }
 
-    companion object {
-        private const val PATH_SPLITTER = '.'
-    }
 }
