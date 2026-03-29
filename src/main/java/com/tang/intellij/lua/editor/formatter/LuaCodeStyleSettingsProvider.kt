@@ -59,4 +59,6 @@ class LuaCodeStyleSettingsProvider : CodeStyleSettingsProvider() {
     override fun createCustomSettings(settings: CodeStyleSettings): CustomCodeStyleSettings {
         return LuaCodeStyleSettings(settings)
     }
+
+    override fun getLanguage() = LuaLanguage.INSTANCE
 }
