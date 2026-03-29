@@ -177,7 +177,7 @@ project(":") {
         implementation("org.luaj:luaj-jse:3.0.1")
         implementation("org.eclipse.mylyn.github:org.eclipse.egit.github.core:2.1.5")
         implementation("com.jgoodies:forms:1.2.1")
-        implementation("org.slf4j:slf4j-simple:2.0.9")
+        implementation("org.slf4j:slf4j-nop:2.0.12")
 
         intellijPlatform {
             intellijIdeaUltimate(buildVersionData.ideaSDKVersion)
