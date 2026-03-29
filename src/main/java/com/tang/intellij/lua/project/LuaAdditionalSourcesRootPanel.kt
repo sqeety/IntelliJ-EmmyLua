@@ -30,15 +30,25 @@ import javax.swing.ListSelectionModel
 class LuaAdditionalSourcesRootPanel : JPanel(BorderLayout()) {
     private val dataModel = DefaultListModel<String>()
     private val pathList = JBList(dataModel)
+
     init {
         pathList.selectionMode = ListSelectionModel.SINGLE_SELECTION
+        pathList.visibleRowCount = 5
 
-        add(ToolbarDecorator.createDecorator(pathList)
+        val decoratorPanel = ToolbarDecorator.createDecorator(pathList)
                 .setAddAction { addPath() }
                 .setEditAction { editPath() }
                 .setRemoveAction { removePath() }
-                .createPanel(), BorderLayout.CENTER)
+                .createPanel()
+        decoratorPanel.preferredSize = java.awt.Dimension(0, 180)
+
+        add(decoratorPanel, BorderLayout.CENTER)
         border = IdeBorderFactory.createTitledBorder(LuaBundle.message("ui.settings.additional_root"), false)
+    }
+
+    override fun getPreferredSize(): java.awt.Dimension {
+        val size = super.getPreferredSize()
+        return java.awt.Dimension(size.width, maxOf(size.height, 200))
     }
 
     var roots: Array<String> get() {

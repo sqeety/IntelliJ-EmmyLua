@@ -33,6 +33,7 @@ import javax.swing.*;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.PlainDocument;
+import java.awt.*;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Objects;
@@ -41,7 +42,7 @@ import java.util.SortedMap;
 /**
  * Created by tangzx on 2017/6/12.
  */
-public class LuaSettingsPanel implements SearchableConfigurable, Configurable.NoScroll {
+public class LuaSettingsPanel implements SearchableConfigurable {
     private final LuaSettings settings;
     private JPanel myPanel;
     private JTextField constructorNames;
@@ -61,6 +62,7 @@ public class LuaSettingsPanel implements SearchableConfigurable, Configurable.No
     private JComboBox<String> requirePathSeparator;
     private JTextField tooLargerFileThreshold;
     private JTextField strictGlobalNames;
+
     public LuaSettingsPanel() {
         this.settings = LuaSettings.Companion.getInstance();
         constructorNames.setText(settings.getConstructorNamesString());
@@ -108,7 +110,15 @@ public class LuaSettingsPanel implements SearchableConfigurable, Configurable.No
     @Nullable
     @Override
     public JComponent createComponent() {
-        return myPanel;
+        JPanel contentWrapper = new JPanel(new BorderLayout());
+        contentWrapper.add(myPanel, BorderLayout.NORTH);
+
+        JScrollPane scrollPane = new JScrollPane(contentWrapper,
+                ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.setBorder(null);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        return scrollPane;
     }
 
     @Override
