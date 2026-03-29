@@ -25,6 +25,7 @@ import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiFile
 import com.intellij.openapi.util.io.FileUtil
 import com.tang.intellij.lua.project.LuaSettings
+import com.tang.intellij.lua.project.LuaSourceRootManager
 import com.tang.intellij.lua.psi.*
 
 class LuaRequirePathInspection : StrictInspection() {
