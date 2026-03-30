@@ -129,7 +129,7 @@ private class Declaration(
         val flags: Int,
         val prevDeclaration: Declaration? = null
 ) : Node(), LuaDeclarationTree.IDeclaration {
-    private val children = mutableMapOf<String, Declaration>()
+    private val children = LinkedHashMap<String, Declaration>()
 
     fun findField(name: String): Declaration? {
         return children[name]
