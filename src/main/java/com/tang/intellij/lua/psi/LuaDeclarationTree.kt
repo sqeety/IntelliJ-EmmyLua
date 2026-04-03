@@ -22,34 +22,37 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiNamedElement
 import com.intellij.util.BitUtil
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 
 interface LuaDeclarationTree {
     companion object {
         private val key = Key.create<LuaDeclarationTree>("lua.object.tree.manager")
         fun get(file: PsiFile): LuaDeclarationTree {
-            var ret = file.getUserData(key)
-            if (ret != null && ret.shouldRebuild()) {
-                file.putUserData(key, null)
-                ret = null
-            }
-            if (ret == null) {
-                var manager: LuaDeclarationTree? = null
-                if (file is LuaPsiFile && !file.isContentsLoaded) {
-                    manager = LuaDeclarationTreeStub(file)
-                    try {
-                        manager.buildTree(file)
-                    } catch (e: Exception) {
-                        manager = null
+            synchronized(file) {
+                var ret = file.getUserData(key)
+                if (ret != null && ret.shouldRebuild()) {
+                    file.putUserData(key, null)
+                    ret = null
+                }
+                if (ret == null) {
+                    var manager: LuaDeclarationTree? = null
+                    if (file is LuaPsiFile && !file.isContentsLoaded) {
+                        manager = LuaDeclarationTreeStub(file)
+                        try {
+                            manager.buildTree(file)
+                        } catch (e: Exception) {
+                            manager = null
+                        }
                     }
+                    if (manager == null) {
+                        manager = LuaDeclarationTreePsi(file)
+                        manager.buildTree(file)
+                    }
+                    file.putUserData(key, manager)
+                    ret = manager
                 }
-                if (manager == null) {
-                    manager = LuaDeclarationTreePsi(file)
-                    manager.buildTree(file)
-                }
-                file.putUserData(key, manager)
-                ret = manager
+                return ret
             }
-            return ret
         }
     }
 
@@ -129,7 +132,7 @@ private class Declaration(
         val flags: Int,
         val prevDeclaration: Declaration? = null
 ) : Node(), LuaDeclarationTree.IDeclaration {
-    private val children = LinkedHashMap<String, Declaration>()
+    private val children = ConcurrentHashMap<String, Declaration>()
 
     fun findField(name: String): Declaration? {
         return children[name]
@@ -204,6 +207,7 @@ private abstract class LuaDeclarationTreeBase(val file: PsiFile) : LuaRecursiveV
     }
 
     val modificationStamp: Long = file.modificationStamp
+    private val buildingDepth = ThreadLocal.withInitial { 0 }
 
     private val scopes = Stack<Scope>()
     private var topScope: Scope? = null
@@ -270,18 +274,28 @@ private abstract class LuaDeclarationTreeBase(val file: PsiFile) : LuaRecursiveV
 
     fun buildTree(file: PsiFile) {
         synchronized(scopes) {
-            //val t = System.currentTimeMillis()
-            scopes.clear()
-            topScope = null
-            curScope = null
-            file.accept(this)
-            //println("build tree : ${file.name}, ${System.currentTimeMillis() - t}")
+            val depth = buildingDepth.get()
+            buildingDepth.set(depth + 1)
+            try {
+                //val t = System.currentTimeMillis()
+                scopes.clear()
+                topScope = null
+                curScope = null
+                file.accept(this)
+                //println("build tree : ${file.name}, ${System.currentTimeMillis() - t}")
+            } finally {
+                buildingDepth.set(depth)
+            }
         }
     }
 
     abstract fun findScope(psi: PsiElement): Scope?
 
     abstract fun getPosition(psi: PsiElement): Int
+
+    protected fun isBuildingTree(): Boolean {
+        return buildingDepth.get() > 0
+    }
 
     override fun walkUp(pin: PsiElement, process: (declaration: LuaDeclarationTree.IDeclaration) -> Boolean) {
         assert(pin.containingFile == file)
@@ -364,11 +378,13 @@ private class LuaDeclarationTreePsi(file: PsiFile) : LuaDeclarationTreeBase(file
         while (cur != null) {
             if (cur is LuaDeclarationScope) {
                 var scope = cur.getUserData(scopeKey)
-                if (scope == null) {
+                if ((scope == null || scope.tree !== this) && !isBuildingTree()) {
                     buildTree(psi.containingFile)
                     scope = cur.getUserData(scopeKey)
                 }
-                return scope
+                if (scope?.tree === this) {
+                    return scope
+                }
             }
             cur = cur.parent
         }
@@ -412,7 +428,14 @@ private class LuaDeclarationTreeStub(file: PsiFile) : LuaDeclarationTreeBase(fil
                 while (cur != null) {
                     val stubPsi = cur.psi
                     if (stubPsi is LuaDeclarationScope)  {
-                        return stubPsi.getUserData(scopeKey)
+                        var scope = stubPsi.getUserData(scopeKey)
+                        if ((scope == null || scope.tree !== this) && !isBuildingTree()) {
+                            buildTree(psi.containingFile)
+                            scope = stubPsi.getUserData(scopeKey)
+                        }
+                        if (scope?.tree === this) {
+                            return scope
+                        }
                     }
                     cur = cur.parentStub
                 }
