@@ -34,6 +34,10 @@ class StrictGlobalName: StrictInspection() {
         holder.registerProblem(id, "Global name \"$name\" not in strict names", AddToStrictGlobalNamesQuickFix(name))
     }
 
+    private fun isCurrentGlobalDefinition(o: LuaNameExpr, resolved: PsiElement): Boolean {
+        return resolved is LuaNameExpr && o.manager.areElementsEquivalent(o, resolved)
+    }
+
     private fun isCallExprName(o: LuaNameExpr): Boolean {
         val parent = o.parent as? LuaCallExpr ?: return false
         return parent.expr == o
@@ -95,6 +99,7 @@ class StrictGlobalName: StrictInspection() {
                 if (LuaFileUtil.isStdLibFile(containingFile.virtualFile, o.project)) {
                     return
                 }
+
                 val res = resolve(o, searchContext)
                 if (res != null) { //std api highlighting
                     containingFile = res.containingFile
@@ -113,7 +118,7 @@ class StrictGlobalName: StrictInspection() {
 
                         } else if (res is LuaLocalFuncDef) {
 
-                        } else {
+                        } else if (isCurrentGlobalDefinition(o, res)) {
                             if (!containsStrictGlobalName(o.project, name))
                                 registerStrictGlobalNameProblem(holder, name, id)
                         }
