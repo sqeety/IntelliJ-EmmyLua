@@ -16,17 +16,17 @@
 
 package com.tang.intellij.lua.codeInsight.inspection
 
-import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.project.ProjectManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
 import com.tang.intellij.lua.Constants
 import com.tang.intellij.lua.project.LuaSettings
+import com.tang.intellij.lua.project.StrictGlobalNamesManager
 import com.tang.intellij.lua.psi.*
+import com.tang.intellij.lua.psi.search.LuaShortNamesManager
 import com.tang.intellij.lua.search.SearchContext
 
 class StrictGlobalName: StrictInspection() {
@@ -34,15 +34,63 @@ class StrictGlobalName: StrictInspection() {
         holder.registerProblem(id, "Global name \"$name\" not in strict names", AddToStrictGlobalNamesQuickFix(name))
     }
 
+    private fun isCallExprName(o: LuaNameExpr): Boolean {
+        val parent = o.parent as? LuaCallExpr ?: return false
+        return parent.expr == o
+    }
+
+    private fun isStdBuiltinFunction(o: LuaNameExpr, context: SearchContext): Boolean {
+        if (!isCallExprName(o)) {
+            return false
+        }
+
+        var isBuiltin = false
+        LuaShortNamesManager.getInstance(o.project).processMembers(Constants.WORD_G, o.name, context, {
+            val containingFile = it.containingFile
+            if (LuaFileUtil.isStdLibFile(containingFile.virtualFile, o.project) && it is LuaFuncDef) {
+                isBuiltin = true
+                false
+            } else {
+                true
+            }
+        })
+        return isBuiltin
+    }
+
+    private fun shouldIgnoreStrictGlobalName(o: LuaNameExpr, context: SearchContext): Boolean {
+        if (o.assignStat != null && o.moduleName != null) {
+            return true
+        }
+
+        if (isCallExprName(o) && LuaSettings.isRequireLikeFunctionName(o.name)) {
+            return true
+        }
+
+        return isStdBuiltinFunction(o, context)
+    }
+
     override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor {
+        var strictGlobalNames: Set<String>? = null
+        fun containsStrictGlobalName(project: Project, name: String): Boolean {
+            if (strictGlobalNames == null) {
+                strictGlobalNames = StrictGlobalNamesManager.getStrictGlobalNames(project)
+            }
+            return strictGlobalNames!!.contains(name)
+        }
+
         return object : LuaVisitor() {
             override fun visitNameExpr(o: LuaNameExpr) {
+                val searchContext = SearchContext.get(o.project)
+                if (shouldIgnoreStrictGlobalName(o, searchContext)) {
+                    return
+                }
+
                 val id = o.firstChild
                 var containingFile = o.containingFile
                 if (LuaFileUtil.isStdLibFile(containingFile.virtualFile, o.project)) {
                     return
                 }
-                val res = resolve(o, SearchContext.get(o.project))
+                val res = resolve(o, searchContext)
                 if (res != null) { //std api highlighting
                     containingFile = res.containingFile
                     if (LuaFileUtil.isStdLibFile(containingFile.virtualFile, o.project)) {
@@ -51,9 +99,9 @@ class StrictGlobalName: StrictInspection() {
                     val name = id.text
                     if (res is LuaParamNameDef) {
 
-                    }else if (res is LuaFuncDef) {
+                    } else if (res is LuaFuncDef) {
 
-                    }else {
+                    } else {
                         if (id.textMatches(Constants.WORD_SELF)) {
 
                         } else if (res is LuaNameDef) {
@@ -61,13 +109,13 @@ class StrictGlobalName: StrictInspection() {
                         } else if (res is LuaLocalFuncDef) {
 
                         } else {
-                            if (!LuaSettings.instance.strictGlobalNames.contains(name))
+                            if (!containsStrictGlobalName(o.project, name))
                                 registerStrictGlobalNameProblem(holder, name, id)
                         }
                     }
                 } else {
                     val name = id.text
-                    if (!LuaSettings.instance.strictGlobalNames.contains(name))
+                    if (!containsStrictGlobalName(o.project, name))
                         registerStrictGlobalNameProblem(holder, name, id)
                 }
             }
@@ -78,14 +126,7 @@ class StrictGlobalName: StrictInspection() {
         override fun getFamilyName() = "Add \"$name\" to strict global names"
 
         override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
-            val settings = LuaSettings.instance
-            if (!settings.strictGlobalNames.contains(name)) {
-                settings.strictGlobalNames = (settings.strictGlobalNames + name).distinct().toTypedArray()
-            }
-
-            ProjectManager.getInstance().openProjects.forEach {
-                DaemonCodeAnalyzer.getInstance(it).restart()
-            }
+            StrictGlobalNamesManager.add(project, name)
         }
     }
 }

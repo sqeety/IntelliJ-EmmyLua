@@ -17,6 +17,7 @@
 package com.tang.intellij.lua.project;
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.options.SearchableConfigurable;
 import com.intellij.openapi.project.Project;
@@ -24,6 +25,7 @@ import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.ArrayUtil;
 import com.intellij.util.FileContentUtil;
+import com.tang.intellij.lua.LuaBundle;
 import com.tang.intellij.lua.lang.LuaLanguageLevel;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
@@ -62,6 +64,8 @@ public class LuaSettingsPanel implements SearchableConfigurable {
     private JComboBox<String> requirePathSeparator;
     private JTextField tooLargerFileThreshold;
     private JTextField strictGlobalNames;
+    private JTextField strictGlobalNamesFilePath;
+    private JButton openStrictGlobalNamesFileButton;
 
     public LuaSettingsPanel() {
         this.settings = LuaSettings.Companion.getInstance();
@@ -80,6 +84,14 @@ public class LuaSettingsPanel implements SearchableConfigurable {
         requirePathSeparator.setModel(new DefaultComboBoxModel<>(new String[]{LuaSettings.REQUIRE_PATH_SEPARATOR_SLASH, LuaSettings.REQUIRE_PATH_SEPARATOR_DOT}));
         requirePathSeparator.setSelectedItem(settings.getRequirePathSeparator());
         strictGlobalNames.setText(settings.getStrictGlobalNamesString());
+        strictGlobalNamesFilePath.setEditable(false);
+        updateStrictGlobalNamesPath(getSingleOpenProject());
+        openStrictGlobalNamesFileButton.addActionListener(event -> {
+            Project project = chooseProjectForStrictGlobalNames();
+            if (project != null && StrictGlobalNamesManager.openFile(project)) {
+                updateStrictGlobalNamesPath(project);
+            }
+        });
 
         captureStd.setSelected(settings.getAttachDebugCaptureStd());
         captureOutputDebugString.setSelected(settings.getAttachDebugCaptureOutput());
@@ -172,6 +184,43 @@ public class LuaSettingsPanel implements SearchableConfigurable {
                 DaemonCodeAnalyzer.getInstance(project).restart();
             }
         }
+    }
+
+    private void updateStrictGlobalNamesPath(@Nullable Project project) {
+        strictGlobalNamesFilePath.setText(StrictGlobalNamesManager.getDisplayPath(project));
+        strictGlobalNamesFilePath.setCaretPosition(0);
+    }
+
+    @Nullable
+    private Project getSingleOpenProject() {
+        Project[] projects = ProjectManager.getInstance().getOpenProjects();
+        return projects.length == 1 ? projects[0] : null;
+    }
+
+    @Nullable
+    private Project chooseProjectForStrictGlobalNames() {
+        Project[] projects = ProjectManager.getInstance().getOpenProjects();
+        if (projects.length == 0) {
+            Messages.showInfoMessage(LuaBundle.message("ui.settings.strict_global_names_no_project"), getDisplayName());
+            return null;
+        }
+        if (projects.length == 1) {
+            return projects[0];
+        }
+
+        String[] projectNames = new String[projects.length];
+        for (int i = 0; i < projects.length; i++) {
+            projectNames[i] = projects[i].getName();
+        }
+
+        int index = Messages.showDialog(
+                myPanel,
+                LuaBundle.message("ui.settings.strict_global_names_choose_project"),
+                LuaBundle.message("ui.settings.strict_global_names_choose_title"),
+                projectNames,
+                0,
+                null);
+        return index >= 0 ? projects[index] : null;
     }
 
     private int getTooLargerFileThreshold() {
