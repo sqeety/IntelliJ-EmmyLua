@@ -16,15 +16,24 @@
 
 package com.tang.intellij.lua.codeInsight.inspection
 
+import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
+import com.intellij.codeInspection.LocalQuickFix
+import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.codeInspection.ProblemsHolder
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.ProjectManager
+import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
 import com.tang.intellij.lua.Constants
-import com.tang.intellij.lua.highlighting.LuaHighlightingData
 import com.tang.intellij.lua.project.LuaSettings
 import com.tang.intellij.lua.psi.*
 import com.tang.intellij.lua.search.SearchContext
 
 class StrictGlobalName: StrictInspection() {
+    private fun registerStrictGlobalNameProblem(holder: ProblemsHolder, name: String, id: PsiElement) {
+        holder.registerProblem(id, "Global name \"$name\" not in strict names", AddToStrictGlobalNamesQuickFix(name))
+    }
+
     override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor {
         return object : LuaVisitor() {
             override fun visitNameExpr(o: LuaNameExpr) {
@@ -52,15 +61,30 @@ class StrictGlobalName: StrictInspection() {
                         } else if (res is LuaLocalFuncDef) {
 
                         } else {
-                            if(!LuaSettings.instance.strictGlobalNames.contains(name))
-                                holder.registerProblem(id, "Global name \"$name\" not in strict names")
+                            if (!LuaSettings.instance.strictGlobalNames.contains(name))
+                                registerStrictGlobalNameProblem(holder, name, id)
                         }
                     }
                 } else {
                     val name = id.text
-                    if(!LuaSettings.instance.strictGlobalNames.contains(name))
-                        holder.registerProblem(id, "Global name \"$name\" not in strict names")
+                    if (!LuaSettings.instance.strictGlobalNames.contains(name))
+                        registerStrictGlobalNameProblem(holder, name, id)
                 }
+            }
+        }
+    }
+
+    private class AddToStrictGlobalNamesQuickFix(private val name: String) : LocalQuickFix {
+        override fun getFamilyName() = "Add \"$name\" to strict global names"
+
+        override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
+            val settings = LuaSettings.instance
+            if (!settings.strictGlobalNames.contains(name)) {
+                settings.strictGlobalNames = (settings.strictGlobalNames + name).distinct().toTypedArray()
+            }
+
+            ProjectManager.getInstance().openProjects.forEach {
+                DaemonCodeAnalyzer.getInstance(it).restart()
             }
         }
     }
