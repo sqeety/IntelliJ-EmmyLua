@@ -182,6 +182,9 @@ class MatchMemberInspection : StrictInspection() {
                         parent = parent.parent
                     }
                     if (type == Ty.NIL || type == Ty.UNKNOWN) {
+                        if (resolve(o, searchContext) != null) {
+                            return
+                        }
                         val psi = o.lastChild
                         if (psi != null) {
                             val nodeType = psi.node.elementType

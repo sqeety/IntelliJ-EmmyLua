@@ -58,7 +58,12 @@ class StrictGlobalName: StrictInspection() {
     }
 
     private fun shouldIgnoreStrictGlobalName(o: LuaNameExpr, context: SearchContext): Boolean {
-        if (o.assignStat != null && o.moduleName != null) {
+        val psiFile = o.containingFile
+        val isModuleFile = if (psiFile is LuaPsiFile) {
+            psiFile.moduleName != null
+        } else false
+
+        if (isModuleFile) {
             return true
         }
 
@@ -75,7 +80,7 @@ class StrictGlobalName: StrictInspection() {
             if (strictGlobalNames == null) {
                 strictGlobalNames = StrictGlobalNamesManager.getStrictGlobalNames(project)
             }
-            return strictGlobalNames!!.contains(name)
+            return strictGlobalNames.contains(name)
         }
 
         return object : LuaVisitor() {

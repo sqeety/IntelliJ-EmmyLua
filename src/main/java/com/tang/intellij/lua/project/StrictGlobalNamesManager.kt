@@ -29,7 +29,7 @@ import java.nio.file.Paths
 import java.util.LinkedHashSet
 
 object StrictGlobalNamesManager {
-    private const val DIRECTORY_NAME = ".emmy"
+    private const val DIRECTORY_NAME = ".idea"
     private const val FILE_NAME = "strict-global-names.txt"
     private val DEFAULT_FILE_LINES = listOf(
         "# One global name per line.",
@@ -123,7 +123,7 @@ object StrictGlobalNamesManager {
 
         settings.strictGlobalNames = (settings.strictGlobalNames + name).distinct().toTypedArray()
         ProjectManager.getInstance().openProjects.forEach {
-            DaemonCodeAnalyzer.getInstance(it).restart()
+            DaemonCodeAnalyzer.getInstance(it).restart("Global restart")
         }
         return true
     }
@@ -131,7 +131,7 @@ object StrictGlobalNamesManager {
     private fun refreshProject(project: Project?, path: Path) {
         if (project != null) {
             LocalFileSystem.getInstance().refreshAndFindFileByPath(FileUtil.toSystemIndependentName(path.toString()))
-            DaemonCodeAnalyzer.getInstance(project).restart()
+            DaemonCodeAnalyzer.getInstance(project).restart("Global restart")
         }
     }
 
