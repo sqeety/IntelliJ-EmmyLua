@@ -16,6 +16,7 @@
 
 package com.tang.intellij.lua.codeInsight.intention
 
+import com.intellij.codeInsight.intention.preview.IntentionPreviewInfo
 import com.intellij.codeInsight.intention.impl.BaseIntentionAction
 import com.intellij.codeInsight.template.Template
 import com.intellij.codeInsight.template.TemplateEditingAdapter
@@ -47,6 +48,10 @@ class CreateFieldFromParameterIntention : BaseIntentionAction() {
 
     override fun getText(): String {
         return familyName
+    }
+
+    override fun generatePreview(project: Project, editor: Editor, psiFile: PsiFile): IntentionPreviewInfo {
+        return IntentionPreviewInfo.EMPTY
     }
 
     override fun isAvailable(project: Project, editor: Editor, psiFile: PsiFile): Boolean {
