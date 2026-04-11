@@ -127,7 +127,11 @@ object LuaCommentUtil {
     }
 
     fun insertEditableTypeAnnotation(localDef: LuaLocalDef, editor: Editor, defaultType: String = "table") {
-        insertTemplate(localDef, editor) { _, template ->
+        insertEditableTypeTag(localDef, editor, defaultType)
+    }
+
+    fun insertEditableTypeTag(commentOwner: LuaCommentOwner, editor: Editor, defaultType: String = "table") {
+        insertTemplate(commentOwner, editor) { _, template ->
             template.addTextSegment("---@type ")
             val typeSuggest = MacroCallNode(SuggestTypeMacro())
             template.addVariable("type", typeSuggest, TextExpression(defaultType), true)
@@ -136,12 +140,16 @@ object LuaCommentUtil {
     }
 
     fun insertTypeAnnotation(localDef: LuaLocalDef, typeText: String) {
-        val insertion = if (localDef.comment != null) {
-            AnnotationInsertion(localDef.comment!!.textRange.endOffset, prefix = "\n")
+        insertTypeTag(localDef, typeText)
+    }
+
+    fun insertTypeTag(commentOwner: LuaCommentOwner, typeText: String) {
+        val insertion = if (commentOwner.comment != null) {
+            AnnotationInsertion(commentOwner.comment!!.textRange.endOffset, prefix = "\n")
         } else {
-            AnnotationInsertion(localDef.node.startOffset, suffix = "\n")
+            AnnotationInsertion(commentOwner.node.startOffset, suffix = "\n")
         }
-        insertResolvedText(localDef, insertion, "---@type $typeText")
+        insertResolvedText(commentOwner, insertion, "---@type $typeText")
     }
 
     fun insertParamAnnotation(commentOwner: LuaCommentOwner, paramName: String, typeText: String) {
@@ -194,7 +202,7 @@ object LuaCommentUtil {
     }
 
     private fun getParamInsertion(commentOwner: LuaCommentOwner, paramName: String): AnnotationInsertion {
-        val comment = commentOwner.comment ?: return AnnotationInsertion(commentOwner.textOffset, suffix = "\n")
+        val comment = commentOwner.comment ?: return AnnotationInsertion(commentOwner.node.startOffset, suffix = "\n")
         val owner = commentOwner as? LuaFuncBodyOwner
         val params = owner?.funcBody?.paramNameDefList.orEmpty()
         val targetIndex = params.indexOfFirst { it.name == paramName }
@@ -215,7 +223,7 @@ object LuaCommentUtil {
     }
 
     private fun getReturnInsertion(commentOwner: LuaCommentOwner): AnnotationInsertion {
-        val comment = commentOwner.comment ?: return AnnotationInsertion(commentOwner.textOffset, suffix = "\n")
+        val comment = commentOwner.comment ?: return AnnotationInsertion(commentOwner.node.startOffset, suffix = "\n")
         val owner = commentOwner as? LuaFuncBodyOwner
         val params = owner?.funcBody?.paramNameDefList.orEmpty()
         for (index in params.size - 1 downTo 0) {

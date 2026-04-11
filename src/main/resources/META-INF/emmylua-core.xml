@@ -376,6 +376,14 @@
                 implementationClass="com.tang.intellij.lua.codeInsight.inspection.MissingReturnAnnotationInspection"/>
 
         <localInspection
+                displayName="Missing self field annotation"
+                enabledByDefault="true"
+                groupName="Lua > Emmy doc"
+                language="Lua"
+                level="WEAK WARNING"
+                implementationClass="com.tang.intellij.lua.codeInsight.inspection.MissingSelfFieldAnnotationInspection"/>
+
+        <localInspection
                 displayName="Unresolved class in emmy doc"
                 enabledByDefault="true"
                 groupName="Lua > Emmy doc"
