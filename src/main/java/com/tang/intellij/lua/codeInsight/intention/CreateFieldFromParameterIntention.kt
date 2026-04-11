@@ -21,8 +21,6 @@ import com.intellij.codeInsight.intention.impl.BaseIntentionAction
 import com.intellij.codeInsight.template.Template
 import com.intellij.codeInsight.template.TemplateEditingAdapter
 import com.intellij.codeInsight.template.TemplateManager
-import com.intellij.codeInsight.template.impl.MacroCallNode
-import com.intellij.codeInsight.template.impl.TextExpression
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
@@ -30,7 +28,8 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.IncorrectOperationException
-import com.tang.intellij.lua.codeInsight.template.macro.SuggestTypeMacro
+import com.tang.intellij.lua.comment.LuaCommentUtil
+import com.tang.intellij.lua.comment.psi.api.LuaComment
 import com.tang.intellij.lua.psi.*
 import com.tang.intellij.lua.psi.search.LuaShortNamesManager
 import com.tang.intellij.lua.search.SearchContext
@@ -89,20 +88,15 @@ class CreateFieldFromParameterIntention : BaseIntentionAction() {
                         if (classType != null) {
                             val def = LuaShortNamesManager.getInstance(project).findClass(classType.className, context)
                             if (def != null) {
-                                val tempString = String.format("\n---@field public %s \$type$\$END$", fieldName)
-                                val templateManager = TemplateManager.getInstance(project)
-                                val template = templateManager.createTemplate("", "", tempString)
-                                template.addVariable("type", MacroCallNode(SuggestTypeMacro()), TextExpression("table"), true)
-                                template.isToReformat = true
-
-                                val textRange = def.textRange
-                                editor.caretModel.moveToOffset(textRange.endOffset)
-                                templateManager.startTemplate(editor, template, object : TemplateEditingAdapter() {
-                                    override fun templateFinished(template: Template, brokenOff: Boolean) {
-                                        insertFieldAssign(project, editor, block, paramName, fieldName)
-                                    }
-                                })
-                                return@invokeLater
+                                val comment = PsiTreeUtil.getParentOfType(def, LuaComment::class.java)
+                                if (comment != null) {
+                                    LuaCommentUtil.insertFieldTemplate(comment, editor, fieldName, listener = object : TemplateEditingAdapter() {
+                                        override fun templateFinished(template: Template, brokenOff: Boolean) {
+                                            insertFieldAssign(project, editor, block, paramName, fieldName)
+                                        }
+                                    })
+                                    return@invokeLater
+                                }
                             }
                         }
                     }

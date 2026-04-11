@@ -1,5 +1,9 @@
 package com.tang.intellij.test.inspections
 
+import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.psi.util.PsiTreeUtil
+import com.tang.intellij.lua.comment.LuaCommentUtil
+import com.tang.intellij.lua.comment.psi.api.LuaComment
 import com.tang.intellij.lua.codeInsight.inspection.MissingLocalTypeAnnotationInspection
 import com.tang.intellij.lua.codeInsight.inspection.MissingParameterAnnotationInspection
 import com.tang.intellij.lua.codeInsight.inspection.MissingReturnAnnotationInspection
@@ -124,5 +128,37 @@ class GeneratedEmmyAnnotationInspectionTest : LuaTestBase() {
 
         myFixture.enableInspections(MissingSelfFieldAnnotationInspection())
         myFixture.checkHighlighting(false, false, true)
+    }
+
+    fun `test field annotation inserts after last field`() {
+        checkByDirectory(
+            before = """
+            --- main.lua
+            ---@class Foo
+            ---@field public existing string
+            local Foo = {}
+            
+            function Foo:init()
+                self.bar = unknown()
+            end
+            """.trimIndent(),
+            after = """
+            --- main.lua
+            ---@class Foo
+            ---@field public existing string
+            ---@field public bar table
+            local Foo = {}
+            
+            function Foo:init()
+                self.bar = unknown()
+            end
+            """.trimIndent()
+        ) {
+            myFixture.configureFromTempProjectFile("main.lua")
+            val comment = PsiTreeUtil.findChildOfType(myFixture.file, LuaComment::class.java)!!
+            WriteCommandAction.runWriteCommandAction(project) {
+                LuaCommentUtil.insertFieldAnnotation(comment, "bar", "table")
+            }
+        }
     }
 }

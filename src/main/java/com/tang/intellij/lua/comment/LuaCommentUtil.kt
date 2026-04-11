@@ -18,6 +18,7 @@ package com.tang.intellij.lua.comment
 
 import com.intellij.codeInsight.template.Expression
 import com.intellij.codeInsight.template.Template
+import com.intellij.codeInsight.template.TemplateEditingAdapter
 import com.intellij.codeInsight.template.TemplateManager
 import com.intellij.codeInsight.template.impl.MacroCallNode
 import com.intellij.codeInsight.template.impl.TextExpression
@@ -32,6 +33,7 @@ import com.intellij.psi.util.startOffset
 import com.intellij.refactoring.suggested.startOffset
 import com.tang.intellij.lua.codeInsight.template.macro.SuggestTypeMacro
 import com.tang.intellij.lua.comment.psi.LuaDocPsiElement
+import com.tang.intellij.lua.comment.psi.LuaDocTagField
 import com.tang.intellij.lua.comment.psi.LuaDocTagParam
 import com.tang.intellij.lua.comment.psi.api.LuaComment
 import com.tang.intellij.lua.psi.*
@@ -162,6 +164,11 @@ object LuaCommentUtil {
         insertResolvedText(commentOwner, insertion, "---@return $typeText")
     }
 
+    fun insertFieldAnnotation(comment: LuaComment, fieldName: String, typeText: String) {
+        val insertion = getFieldInsertion(comment)
+        insertResolvedText(comment, insertion, "---@field public $fieldName $typeText")
+    }
+
     fun insertParameterTemplate(commentOwner: LuaCommentOwner, editor: Editor, paramName: String, defaultType: String = "table") {
         val insertion = getParamInsertion(commentOwner, paramName)
         insertTemplateAt(commentOwner, editor, insertion) { template ->
@@ -180,6 +187,22 @@ object LuaCommentUtil {
         }
     }
 
+    fun insertFieldTemplate(
+        comment: LuaComment,
+        editor: Editor,
+        fieldName: String,
+        defaultType: String = "table",
+        listener: TemplateEditingAdapter? = null
+    ) {
+        val insertion = getFieldInsertion(comment)
+        insertTemplateAt(comment, editor, insertion, listener) { template ->
+            template.addTextSegment("---@field public $fieldName ")
+            template.addVariable("type", MacroCallNode(SuggestTypeMacro()), TextExpression(defaultType), true)
+            template.addEndVariable()
+            template.isToReformat = true
+        }
+    }
+
     private fun insertResolvedText(owner: PsiElement, insertion: AnnotationInsertion, text: String) {
         val documentManager = PsiDocumentManager.getInstance(owner.project)
         val document = documentManager.getDocument(owner.containingFile) ?: return
@@ -187,7 +210,13 @@ object LuaCommentUtil {
         documentManager.commitDocument(document)
     }
 
-    private fun insertTemplateAt(owner: PsiElement, editor: Editor, insertion: AnnotationInsertion, buildTemplate: (Template) -> Unit) {
+    private fun insertTemplateAt(
+        owner: PsiElement,
+        editor: Editor,
+        insertion: AnnotationInsertion,
+        listener: TemplateEditingAdapter? = null,
+        buildTemplate: (Template) -> Unit
+    ) {
         val project = owner.project
         val documentManager = PsiDocumentManager.getInstance(project)
         val targetEditor = if (documentManager.getPsiFile(editor.document) == owner.containingFile) editor else findEditor(owner) ?: editor
@@ -198,7 +227,11 @@ object LuaCommentUtil {
         template.addTextSegment(insertion.prefix)
         buildTemplate(template)
         template.addTextSegment(insertion.suffix)
-        templateManager.startTemplate(targetEditor, template)
+        if (listener != null) {
+            templateManager.startTemplate(targetEditor, template, listener)
+        } else {
+            templateManager.startTemplate(targetEditor, template)
+        }
     }
 
     private fun getParamInsertion(commentOwner: LuaCommentOwner, paramName: String): AnnotationInsertion {
@@ -233,6 +266,16 @@ object LuaCommentUtil {
             }
         }
         return AnnotationInsertion(comment.textRange.endOffset, prefix = "\n")
+    }
+
+    private fun getFieldInsertion(comment: LuaComment): AnnotationInsertion {
+        val lastField = comment.findTags(LuaDocTagField::class.java)
+            .maxByOrNull { it.textRange.endOffset }
+        return if (lastField != null) {
+            AnnotationInsertion(lastField.textRange.endOffset, prefix = "\n")
+        } else {
+            AnnotationInsertion(comment.textRange.endOffset, prefix = "\n")
+        }
     }
 
     fun findComment(psi: PsiElement): LuaComment? {

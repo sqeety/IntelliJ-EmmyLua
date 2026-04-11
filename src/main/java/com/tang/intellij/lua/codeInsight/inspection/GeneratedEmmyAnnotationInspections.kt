@@ -21,16 +21,13 @@ import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemsHolder
-import com.intellij.codeInsight.template.TemplateManager
-import com.intellij.codeInsight.template.impl.MacroCallNode
-import com.intellij.codeInsight.template.impl.TextExpression
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.util.PsiTreeUtil
 import com.tang.intellij.lua.codeInsight.annotation.LuaAnnotationSupport
-import com.tang.intellij.lua.codeInsight.template.macro.SuggestTypeMacro
 import com.tang.intellij.lua.comment.LuaCommentUtil
+import com.tang.intellij.lua.comment.psi.api.LuaComment
 import com.tang.intellij.lua.psi.LuaClosureExpr
 import com.tang.intellij.lua.psi.LuaClassMethodDef
 import com.tang.intellij.lua.psi.LuaCommentOwner
@@ -191,13 +188,11 @@ private class GenerateSelfFieldAnnotationQuickFix : LocalQuickFix {
 
         val editor = LuaCommentUtil.findEditor(indexExpr)
         if (classDef != null && editor != null) {
-            val templateManager = TemplateManager.getInstance(project)
-            val template = templateManager.createTemplate("", "", "\n---@field public $fieldName \$type$\$END$")
-            template.addVariable("type", MacroCallNode(SuggestTypeMacro()), TextExpression("table"), true)
-            template.isToReformat = true
-            editor.caretModel.moveToOffset(classDef.textRange.endOffset)
-            templateManager.startTemplate(editor, template)
-            return
+            val comment = PsiTreeUtil.getParentOfType(classDef, LuaComment::class.java)
+            if (comment != null) {
+                LuaCommentUtil.insertFieldTemplate(comment, editor, fieldName)
+                return
+            }
         }
 
         val statement = PsiTreeUtil.getParentOfType(indexExpr, LuaStatement::class.java) as? LuaCommentOwner ?: return
