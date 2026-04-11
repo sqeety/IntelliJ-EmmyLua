@@ -105,4 +105,22 @@ class GenericTest : TestCompletionBase() {
             assertTrue(it.contains("sayHello"))
         }
     }
+
+    fun `test generic class`() {
+        myFixture.configureByFile("class.lua")
+        doTest("""
+            --- test_generic.lua
+
+            ---@class Box<T>
+            ---@field value T
+            local Box = {}
+
+            ---@type Box<Emmy>
+            local box = {}
+
+            box.value.--[[caret]]
+        """) {
+            assertTrue(it.contains("sayHello"))
+        }
+    }
 }
