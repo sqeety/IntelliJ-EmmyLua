@@ -36,15 +36,15 @@ class MatchMemberInspectionTest : LuaInspectionsTestBase(MatchMemberInspection()
         t.foo()
     """)
 
-    fun `test unknown field still warns`() = checkByText("""
+    fun `test unknown field still errors`() = checkByText("""
         local t = {}
 
-        print(t.<warning>foo</warning>)
+        print(t.<error descr="Unknown field 'foo'.">foo</error>)
     """)
 
-    fun `test unknown function still warns`() = checkByText("""
+    fun `test unknown function still errors`() = checkByText("""
         local t = {}
 
-        t.<warning>foo</warning>()
+        t.<error descr="Unknown function 'foo'.">foo</error>()
     """)
 }

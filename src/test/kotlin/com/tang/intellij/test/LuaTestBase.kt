@@ -44,6 +44,13 @@ abstract class LuaTestBase : BasePlatformTestCase() {
         fileTreeFromText(after).assertEquals(myFixture.findFileInTempDir(""))
     }
 
+    protected fun checkByDirectoryWithProject(@Language("Lua") before: String, @Language("Lua") after: String, action: TestProject.() -> Unit) {
+        val testProject = fileTreeFromText(before).create()
+        testProject.action()
+        FileDocumentManager.getInstance().saveAllDocuments()
+        fileTreeFromText(after).assertEquals(myFixture.findFileInTempDir(""))
+    }
+
     private fun FileTree.create(): TestProject =
             create(myFixture.project, myFixture.findFileInTempDir(""))
 

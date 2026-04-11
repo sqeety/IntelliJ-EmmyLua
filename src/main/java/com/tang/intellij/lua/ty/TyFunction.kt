@@ -19,6 +19,7 @@ package com.tang.intellij.lua.ty
 import com.intellij.psi.stubs.StubInputStream
 import com.intellij.psi.stubs.StubOutputStream
 import com.intellij.util.Processor
+import com.tang.intellij.lua.Constants
 import com.tang.intellij.lua.comment.psi.LuaDocFunctionTy
 import com.tang.intellij.lua.psi.*
 import com.tang.intellij.lua.search.SearchContext
@@ -60,9 +61,13 @@ fun IFunSignature.processArgs(thisTy: ITy?, colonStyle: Boolean, processor: (ind
     var index = 0
     var pIndex = 0
     if (colonStyle && !colonCall) {
-        val pi = LuaParamInfo.createSelf(thisTy)
-        if (!processor(0, pi)) return
-        index++
+        if (params.firstOrNull()?.isExplicitSelfParam() == true) {
+            pIndex = 1
+        } else {
+            val pi = LuaParamInfo.createSelf(thisTy)
+            if (!processor(0, pi)) return
+            index++
+        }
     } else if (!colonStyle && colonCall) {
         val pi = LuaParamInfo.createSelf(thisTy)
         if (!processor(index++, pi)) return
@@ -71,6 +76,10 @@ fun IFunSignature.processArgs(thisTy: ITy?, colonStyle: Boolean, processor: (ind
     for (i in pIndex until params.size) {
         if (!processor(index++, params[i])) return
     }
+}
+
+private fun LuaParamInfo.isExplicitSelfParam(): Boolean {
+    return isSelf || name == Constants.WORD_SELF
 }
 
 fun IFunSignature.processArgs(processor: (index:Int, param: LuaParamInfo) -> Boolean) {

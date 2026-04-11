@@ -16,32 +16,31 @@
 
 package com.tang.intellij.test.refactoring
 
-import com.intellij.openapi.fileEditor.FileDocumentManager
-import com.intellij.psi.PsiElement
-import com.intellij.refactoring.MultiFileTestCase
-import com.intellij.refactoring.move.moveFilesOrDirectories.MoveFilesOrDirectoriesProcessor
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.refactoring.move.moveFilesOrDirectories.MoveFilesOrDirectoriesUtil
+import com.tang.intellij.test.LuaTestBase
 
-class MoveFileTest : MultiFileTestCase() {
-    override fun getTestRoot() = "/refactoring/"
+class MoveFileTest : LuaTestBase() {
+    fun `test move file`() = checkByDirectoryWithProject("""
+         --- A.lua
+         require('B')
+         --- B.lua
+         require('to.C')
+         --- to/C.lua
+         print('c')
+    """, """
+         --- B.lua
+         require('to.C')
+         --- to/A.lua
+         require('B')
+         --- to/C.lua
+         print('c')
+    """) {
+        val file = psiFile("A.lua")
+        val targetDirectory = psiDirectory("to")
 
-    override fun getTestDataPath() = "src/test/resources/"
-
-    fun testMoveFile() {
-        val fileToMove = "A.lua"
-        val targetDirName = "to"
-        doTest { rootDir, _ ->
-            val child = rootDir.findFileByRelativePath(fileToMove)
-            assertNotNull("File $fileToMove not found", child)
-            val file = myPsiManager.findFile(child!!)!!
-
-            val child1 = rootDir.findChild(targetDirName)
-            assertNotNull("File $targetDirName not found", child1)
-            val targetDirectory = myPsiManager.findDirectory(child1!!)
-
-            MoveFilesOrDirectoriesProcessor(myProject, arrayOf<PsiElement>(file), targetDirectory!!,
-                    false, false, null, null).run()
-
-            FileDocumentManager.getInstance().saveAllDocuments()
+        ApplicationManager.getApplication().runWriteAction {
+            MoveFilesOrDirectoriesUtil.doMoveFile(file, targetDirectory)
         }
     }
 }

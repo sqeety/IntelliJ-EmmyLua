@@ -187,9 +187,14 @@ project(":") {
         implementation("org.eclipse.mylyn.github:org.eclipse.egit.github.core:2.1.5")
         implementation("com.jgoodies:forms:1.2.1")
 
+        testImplementation("junit:junit:4.13.2")
+
         intellijPlatform {
             intellijIdeaUltimate(buildVersionData.ideaSDKVersion)
             bundledModule("intellij.spellchecker")
+            bundledPlugin("com.intellij.java")
+
+            testFramework(org.jetbrains.intellij.platform.gradle.TestFrameworkType.Platform)
         }
     }
 

@@ -127,20 +127,30 @@ class FileTree(private val rootDirectory: Entry.Directory) {
 }
 
 class TestProject(
-        private val project: Project,
+        val project: Project,
         private val root: VirtualFile,
         private val filesWithCaret: List<String>
 ) {
     val fileWithCaret: String get() = filesWithCaret.singleOrNull()!!
 
     fun doFindElementInFile(path: String): PsiElement {
-        val vFile = root.findFileByRelativePath(path)
-            ?: error("No `$path` file in test project")
-        val file = PsiManager.getInstance(project).findFile(vFile)!!
+        val file = psiFile(path)
         return findElementInFile(file, "^")
     }
 
-    fun psiFile(path: String): PsiFileSystemItem {
+    fun psiFile(path: String): PsiFile {
+        val psiFile = psiItem(path)
+        check(psiFile is PsiFile) { "`$path` is not a file" }
+        return psiFile
+    }
+
+    fun psiDirectory(path: String): PsiDirectory {
+        val psiDirectory = psiItem(path)
+        check(psiDirectory is PsiDirectory) { "`$path` is not a directory" }
+        return psiDirectory
+    }
+
+    fun psiItem(path: String): PsiFileSystemItem {
         val vFile = root.findFileByRelativePath(path)
             ?: error("Can't find `$path`")
         val psiManager = PsiManager.getInstance(project)
