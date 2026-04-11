@@ -98,7 +98,8 @@ class LuaAppRunConfiguration(project: Project, factory: ConfigurationFactory)
         workingDir = JDOMExternalizerUtil.readField(element, "workingDir")
 
         JDOMExternalizerUtil.readField(element, "debuggerType")
-                ?.let { debuggerType = DebuggerType.valueOf(Integer.parseInt(it)) }
+                ?.let { DebuggerType.valueOf(Integer.parseInt(it)) }
+                ?.let { debuggerType = it }
 
         parameters = JDOMExternalizerUtil.readField(element, "params")
         charset = JDOMExternalizerUtil.readField(element, "charset") ?: "UTF-8"

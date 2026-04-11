@@ -32,7 +32,6 @@ abstract class LuaStatMixin<StubT: StubElement<*>> : StubBasedPsiElementBase<Stu
 
     internal constructor(stub: StubT, nodeType: IElementType, node: ASTNode) : super(stub, nodeType, node)
 
-    override fun getComment(): LuaComment? {
-        return LuaCommentUtil.findComment(this)
-    }
+    override val comment: LuaComment?
+        get() = LuaCommentUtil.findComment(this)
 }

@@ -19,8 +19,8 @@ package com.tang.intellij.lua.psi.parser
 import com.intellij.lang.PsiBuilder
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.tree.TokenSet
-import com.tang.intellij.lua.psi.LuaParserUtil.MY_LEFT_COMMENT_BINDER
-import com.tang.intellij.lua.psi.LuaParserUtil.MY_RIGHT_COMMENT_BINDER
+import com.tang.intellij.lua.psi.LuaParserUtil.Companion.MY_LEFT_COMMENT_BINDER
+import com.tang.intellij.lua.psi.LuaParserUtil.Companion.MY_RIGHT_COMMENT_BINDER
 import com.tang.intellij.lua.psi.LuaTypes.*
 
 internal fun expectError(builder: PsiBuilder, expectedType: IElementType, errorProvider: () -> String): Boolean {

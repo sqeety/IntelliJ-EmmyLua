@@ -42,18 +42,22 @@ open class LuaTypeGuessableLookupElement(name: String, val psi: LuaPsiElement, p
     private var typeString: String? = null
 
     init {
-        lookupString = name
+        setLookupString(name)
     }
 
-    override fun getTypeText(): String? {
-        if (typeString == null) {
-            typeString = type.displayName
+    override var typeText: String?
+        get() {
             if (typeString == null) {
-                typeString = Constants.WORD_ANY
+                typeString = type.displayName
+                if (typeString == null) {
+                    typeString = Constants.WORD_ANY
+                }
             }
+            return typeString
         }
-        return typeString
-    }
+        set(value) {
+            typeString = value
+        }
 
     /**
      * https://github.com/tangzx/IntelliJ-EmmyLua/issues/54
@@ -119,7 +123,9 @@ class TyFunctionLookupElement(name: String,
 
     private val lazyTypeText by lazy { signature.returnTy.displayName }
 
-    override fun getTypeText() = lazyTypeText
+    override var typeText: String?
+        get() = lazyTypeText
+        set(_) = Unit
 
     private val lazyItemText by lazy {
         val list = mutableListOf<String>()
@@ -130,7 +136,8 @@ class TyFunctionLookupElement(name: String,
         "$lookupString(${list.joinToString(", ")})"
     }
 
-    override fun getItemText() = myItemString ?: lazyItemText
+    override val itemText: String
+        get() = myItemString ?: lazyItemText
 
     override fun hashCode(): Int {
         return super.hashCode() * 31 * (signature.params.size + 1)

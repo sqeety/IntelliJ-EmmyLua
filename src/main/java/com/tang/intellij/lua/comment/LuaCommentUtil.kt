@@ -16,16 +16,23 @@
 
 package com.tang.intellij.lua.comment
 
+import com.intellij.codeInsight.template.Expression
 import com.intellij.codeInsight.template.Template
 import com.intellij.codeInsight.template.TemplateManager
+import com.intellij.codeInsight.template.impl.MacroCallNode
+import com.intellij.codeInsight.template.impl.TextExpression
+import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.editor.Editor
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.startOffset
 import com.intellij.refactoring.suggested.startOffset
+import com.tang.intellij.lua.codeInsight.template.macro.SuggestTypeMacro
 import com.tang.intellij.lua.comment.psi.LuaDocPsiElement
+import com.tang.intellij.lua.comment.psi.LuaDocTagParam
 import com.tang.intellij.lua.comment.psi.api.LuaComment
 import com.tang.intellij.lua.psi.*
 import com.tang.intellij.lua.psi.impl.LuaLocalDefImpl
@@ -37,6 +44,7 @@ import org.mozilla.javascript.ast.StringLiteral
  * Created by TangZX on 2016/11/24.
  */
 object LuaCommentUtil {
+    private data class AnnotationInsertion(val offset: Int, val prefix: String = "", val suffix: String = "")
 
     fun findOwner(element: LuaDocPsiElement): LuaCommentOwner? {
         val comment = findContainer(element)
@@ -109,6 +117,114 @@ object LuaCommentUtil {
         }
 
         templateManager.startTemplate(editor, template)
+    }
+
+    fun findEditor(element: PsiElement): Editor? {
+        val project = element.project
+        val editor = FileEditorManager.getInstance(project).selectedTextEditor ?: return null
+        val psiFile = PsiDocumentManager.getInstance(project).getPsiFile(editor.document)
+        return if (psiFile == element.containingFile) editor else null
+    }
+
+    fun insertEditableTypeAnnotation(localDef: LuaLocalDef, editor: Editor, defaultType: String = "table") {
+        insertTemplate(localDef, editor) { _, template ->
+            template.addTextSegment("---@type ")
+            val typeSuggest = MacroCallNode(SuggestTypeMacro())
+            template.addVariable("type", typeSuggest, TextExpression(defaultType), true)
+            template.addEndVariable()
+        }
+    }
+
+    fun insertTypeAnnotation(localDef: LuaLocalDef, typeText: String) {
+        val insertion = if (localDef.comment != null) {
+            AnnotationInsertion(localDef.comment!!.textRange.endOffset, prefix = "\n")
+        } else {
+            AnnotationInsertion(localDef.node.startOffset, suffix = "\n")
+        }
+        insertResolvedText(localDef, insertion, "---@type $typeText")
+    }
+
+    fun insertParamAnnotation(commentOwner: LuaCommentOwner, paramName: String, typeText: String) {
+        val insertion = getParamInsertion(commentOwner, paramName)
+        insertResolvedText(commentOwner, insertion, "---@param $paramName $typeText")
+    }
+
+    fun insertReturnAnnotation(commentOwner: LuaCommentOwner, typeText: String) {
+        val insertion = getReturnInsertion(commentOwner)
+        insertResolvedText(commentOwner, insertion, "---@return $typeText")
+    }
+
+    fun insertParameterTemplate(commentOwner: LuaCommentOwner, editor: Editor, paramName: String, defaultType: String = "table") {
+        val insertion = getParamInsertion(commentOwner, paramName)
+        insertTemplateAt(commentOwner, editor, insertion) { template ->
+            template.addTextSegment("---@param $paramName ")
+            template.addVariable("type", MacroCallNode(SuggestTypeMacro()), TextExpression(defaultType), true)
+            template.addEndVariable()
+        }
+    }
+
+    fun insertReturnTemplate(commentOwner: LuaCommentOwner, editor: Editor, defaultType: String = "table") {
+        val insertion = getReturnInsertion(commentOwner)
+        insertTemplateAt(commentOwner, editor, insertion) { template ->
+            template.addTextSegment("---@return ")
+            template.addVariable("returnType", MacroCallNode(SuggestTypeMacro()), TextExpression(defaultType), true)
+            template.addEndVariable()
+        }
+    }
+
+    private fun insertResolvedText(owner: PsiElement, insertion: AnnotationInsertion, text: String) {
+        val documentManager = PsiDocumentManager.getInstance(owner.project)
+        val document = documentManager.getDocument(owner.containingFile) ?: return
+        document.insertString(insertion.offset, insertion.prefix + text + insertion.suffix)
+        documentManager.commitDocument(document)
+    }
+
+    private fun insertTemplateAt(owner: PsiElement, editor: Editor, insertion: AnnotationInsertion, buildTemplate: (Template) -> Unit) {
+        val project = owner.project
+        val documentManager = PsiDocumentManager.getInstance(project)
+        val targetEditor = if (documentManager.getPsiFile(editor.document) == owner.containingFile) editor else findEditor(owner) ?: editor
+        targetEditor.caretModel.moveToOffset(insertion.offset)
+
+        val templateManager = TemplateManager.getInstance(project)
+        val template = templateManager.createTemplate("", "")
+        template.addTextSegment(insertion.prefix)
+        buildTemplate(template)
+        template.addTextSegment(insertion.suffix)
+        templateManager.startTemplate(targetEditor, template)
+    }
+
+    private fun getParamInsertion(commentOwner: LuaCommentOwner, paramName: String): AnnotationInsertion {
+        val comment = commentOwner.comment ?: return AnnotationInsertion(commentOwner.textOffset, suffix = "\n")
+        val owner = commentOwner as? LuaFuncBodyOwner
+        val params = owner?.funcBody?.paramNameDefList.orEmpty()
+        val targetIndex = params.indexOfFirst { it.name == paramName }
+        if (targetIndex >= 0) {
+            for (index in targetIndex - 1 downTo 0) {
+                val existing = comment.getParamDef(params[index].name)
+                if (existing != null) {
+                    return AnnotationInsertion(existing.textRange.endOffset, prefix = "\n")
+                }
+            }
+        }
+
+        val returnTag = comment.tagReturn
+        if (returnTag != null) {
+            return AnnotationInsertion(returnTag.textRange.startOffset, suffix = "\n")
+        }
+        return AnnotationInsertion(comment.textRange.endOffset, prefix = "\n")
+    }
+
+    private fun getReturnInsertion(commentOwner: LuaCommentOwner): AnnotationInsertion {
+        val comment = commentOwner.comment ?: return AnnotationInsertion(commentOwner.textOffset, suffix = "\n")
+        val owner = commentOwner as? LuaFuncBodyOwner
+        val params = owner?.funcBody?.paramNameDefList.orEmpty()
+        for (index in params.size - 1 downTo 0) {
+            val paramTag = comment.getParamDef(params[index].name)
+            if (paramTag != null) {
+                return AnnotationInsertion(paramTag.textRange.endOffset, prefix = "\n")
+            }
+        }
+        return AnnotationInsertion(comment.textRange.endOffset, prefix = "\n")
     }
 
     fun findComment(psi: PsiElement): LuaComment? {

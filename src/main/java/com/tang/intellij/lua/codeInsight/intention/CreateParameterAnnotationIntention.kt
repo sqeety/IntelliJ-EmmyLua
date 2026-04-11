@@ -17,14 +17,12 @@
 package com.tang.intellij.lua.codeInsight.intention
 
 import com.intellij.codeInsight.intention.impl.BaseIntentionAction
-import com.intellij.codeInsight.template.impl.MacroCallNode
-import com.intellij.codeInsight.template.impl.TextExpression
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.IncorrectOperationException
-import com.tang.intellij.lua.codeInsight.template.macro.SuggestTypeMacro
+import com.tang.intellij.lua.codeInsight.annotation.LuaAnnotationSupport
 import com.tang.intellij.lua.comment.LuaCommentUtil
 import com.tang.intellij.lua.psi.LuaCommentOwner
 import com.tang.intellij.lua.psi.LuaParamNameDef
@@ -63,11 +61,11 @@ class CreateParameterAnnotationIntention : BaseIntentionAction() {
 
         val owner = PsiTreeUtil.getParentOfType(parDef, LuaCommentOwner::class.java)
         if (owner != null) {
-            LuaCommentUtil.insertTemplate(owner, editor) { _, template ->
-                template.addTextSegment(String.format("---@param %s ", parDef.name))
-                val name = MacroCallNode(SuggestTypeMacro())
-                template.addVariable("type", name, TextExpression("table"), true)
-                template.addEndVariable()
+            val typeText = LuaAnnotationSupport.getParameterTypeText(parDef)
+            if (typeText != null) {
+                LuaCommentUtil.insertParamAnnotation(owner, parDef.name, typeText)
+            } else {
+                LuaCommentUtil.insertParameterTemplate(owner, editor, parDef.name)
             }
         }
     }

@@ -102,8 +102,8 @@ open class ClassMemberCompletionProvider : LuaCompletionProvider() {
                             val resultSet = completionResultSet.withPrefixMatcher("$prefixName*$postfixName")
                             complete(isColon, project, contextTy, type, matchTy, resultSet, prefixMatcher, object : HandlerProcessor() {
                                 override fun process(element: LuaLookupElement, member: LuaClassMember, memberTy: ITy?): LookupElement {
-                                    element.itemText = txt + colon + element.itemText
-                                    element.lookupString = txt + colon + element.lookupString
+                                    element.setItemText(txt + colon + element.itemText)
+                                    element.setLookupString(txt + colon + element.lookupString)
                                     return PrioritizedLookupElement.withPriority(element, -2.0)
                                 }
                             })

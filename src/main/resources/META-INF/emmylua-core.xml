@@ -352,6 +352,30 @@
                 implementationClass="com.tang.intellij.lua.codeInsight.inspection.doc.UnresolvedSymbolInEmmyDocInspection"/>
 
         <localInspection
+                displayName="Missing local type annotation"
+                enabledByDefault="true"
+                groupName="Lua > Emmy doc"
+                language="Lua"
+                level="WEAK WARNING"
+                implementationClass="com.tang.intellij.lua.codeInsight.inspection.MissingLocalTypeAnnotationInspection"/>
+
+        <localInspection
+                displayName="Missing parameter annotation"
+                enabledByDefault="true"
+                groupName="Lua > Emmy doc"
+                language="Lua"
+                level="WEAK WARNING"
+                implementationClass="com.tang.intellij.lua.codeInsight.inspection.MissingParameterAnnotationInspection"/>
+
+        <localInspection
+                displayName="Missing return annotation"
+                enabledByDefault="true"
+                groupName="Lua > Emmy doc"
+                language="Lua"
+                level="WEAK WARNING"
+                implementationClass="com.tang.intellij.lua.codeInsight.inspection.MissingReturnAnnotationInspection"/>
+
+        <localInspection
                 displayName="Unresolved class in emmy doc"
                 enabledByDefault="true"
                 groupName="Lua > Emmy doc"
