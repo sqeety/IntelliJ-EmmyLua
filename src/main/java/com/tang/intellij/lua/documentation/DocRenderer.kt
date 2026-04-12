@@ -84,11 +84,24 @@ fun renderComment(sb: StringBuilder, comment: LuaComment?, tyRenderer: ITyRender
                         flushDocString()
                         renderTypeDef(sb, child, tyRenderer)
                     }
+                    is LuaDocTagAlias -> {
+                        flushDocString()
+                        renderAliasDef(sb, child, tyRenderer)
+                    }
+                    is LuaDocTagGenericList -> {
+                        flushDocString()
+                        renderGenericDef(sb, child)
+                    }
+                    is LuaDocTagLan -> {
+                        flushDocString()
+                        renderLanguageDef(sb, child)
+                    }
                     is LuaDocTagField -> {}
                     is LuaDocTagSee -> {}
                     is LuaDocTagParam -> {}
                     is LuaDocTagReturn -> {}
                     is LuaDocTagOverload -> {}
+                    is LuaDocTagVararg -> {}
                 }
             }
             child = child.nextSibling
@@ -115,6 +128,21 @@ fun renderComment(sb: StringBuilder, comment: LuaComment?, tyRenderer: ITyRender
         //Overloads
         val overloads = comment.findTags(LuaDocTagOverload::class.java)
         renderTagList(sections, "Overloads", overloads) { renderOverload(sections, it, tyRenderer) }
+        //Varargs
+        val varargTags = comment.findTags(LuaDocTagVararg::class.java)
+        renderTagList(sections, "Vararg", varargTags) { renderVararg(sections, it, tyRenderer) }
+        //Generic
+        val genericTags = comment.findTags(LuaDocTagGenericList::class.java)
+        renderTagList(sections, "Generic", genericTags) { renderGenericDef(sections, it) }
+        //Alias
+        val aliasTags = comment.findTags(LuaDocTagAlias::class.java)
+        renderTagList(sections, "Alias", aliasTags) { renderAliasDef(sections, it, tyRenderer) }
+        //Language
+        val languageTags = comment.findTags(LuaDocTagLan::class.java)
+        renderTagList(sections, "Language", languageTags) { renderLanguageDef(sections, it) }
+        //Module
+        val moduleTags = comment.findTags(LuaDocTagClass::class.java).filter { it.module != null }
+        renderTagList(sections, "Module", moduleTags) { renderModuleDef(sections, it, tyRenderer) }
         //See
         val seeTags = comment.findTags(LuaDocTagSee::class.java)
         renderTagList(sections, "See", seeTags) { renderSee(sections, it, tyRenderer) }
@@ -149,8 +177,9 @@ private fun renderReturn(sb: StringBuilder, tagReturn: LuaDocTagReturn, tyRender
 fun renderClassDef(sb: StringBuilder, tag: LuaDocTagClass, tyRenderer: ITyRenderer) {
     val cls = tag.type
     sb.append("<pre>")
-    sb.append("class ")
+    sb.append(if (tag.module != null) "module " else "class ")
     sb.wrapTag("b") { tyRenderer.render(cls, sb) }
+    renderGenericParameters(sb, tag)
     val superClassName = cls.superClassNames
     if (superClassName.isNotEmpty() && superClassName.size > 0) {
         sb.append(" : ")
@@ -170,6 +199,60 @@ private fun renderFieldDef(sb: StringBuilder, tagField: LuaDocTagField, tyRender
     sb.append("${tagField.name}: ")
     renderTypeUnion(null, null, sb, tagField.ty, tyRenderer)
     renderCommentString(" - ", null, sb, tagField.commentString)
+}
+
+private fun renderAliasDef(sb: StringBuilder, tagAlias: LuaDocTagAlias, tyRenderer: ITyRenderer) {
+    sb.append("alias ")
+    sb.wrapTag("b") { sb.append(tagAlias.name ?: "?") }
+    sb.append(" = ")
+    renderTy(sb, tagAlias.type, tyRenderer)
+}
+
+private fun renderModuleDef(sb: StringBuilder, tagClass: LuaDocTagClass, tyRenderer: ITyRenderer) {
+    sb.append("module ")
+    sb.wrapTag("b") { tyRenderer.render(tagClass.type, sb) }
+    renderGenericParameters(sb, tagClass)
+    tagClass.commentString?.let {
+        renderCommentString(" - ", null, sb, it)
+    }
+}
+
+private fun renderVararg(sb: StringBuilder, tagVararg: LuaDocTagVararg, tyRenderer: ITyRenderer) {
+    sb.append("...")
+    tagVararg.ty?.let {
+        sb.append(": ")
+        renderTypeUnion(null, null, sb, it, tyRenderer)
+    }
+    renderCommentString(" - ", null, sb, tagVararg.commentString)
+}
+
+private fun renderGenericDef(sb: StringBuilder, tagGenericList: LuaDocTagGenericList) {
+    sb.append("generic ")
+    val genericDefs = tagGenericList.genericDefList
+    if (genericDefs.isNotEmpty()) {
+        genericDefs.forEachIndexed { index, genericDef ->
+            if (index != 0) sb.append(", ")
+            sb.append(genericDef.name ?: genericDef.text)
+            genericDef.classNameRef?.name?.let {
+                sb.append(" : ")
+                sb.appendClassLink(it)
+            }
+        }
+    } else {
+        sb.append(tagGenericList.text.removePrefix("---@"))
+    }
+}
+
+private fun renderLanguageDef(sb: StringBuilder, tagLan: LuaDocTagLan) {
+    sb.append("language ")
+    sb.wrapTag("code") { sb.append(tagLan.id?.text ?: "?") }
+    renderCommentString(" - ", null, sb, tagLan.commentString)
+}
+
+private fun renderGenericParameters(sb: StringBuilder, tagClass: LuaDocTagClass) {
+    val genericText = tagClass.genericParameters?.text ?: return
+    if (genericText.isEmpty()) return
+    sb.append(genericText)
 }
 
 fun renderDefinition(sb: StringBuilder, block: () -> Unit) {
