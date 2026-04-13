@@ -17,10 +17,8 @@
 package com.tang.intellij.lua.codeInsight.intention
 
 import com.intellij.openapi.editor.Editor
-import com.intellij.psi.util.PsiTreeUtil
 import com.tang.intellij.lua.codeInsight.annotation.LuaAnnotationSupport
 import com.tang.intellij.lua.comment.LuaCommentUtil
-import com.tang.intellij.lua.comment.psi.LuaDocTagReturn
 import com.tang.intellij.lua.psi.LuaCommentOwner
 import com.tang.intellij.lua.psi.LuaFuncBodyOwner
 import org.jetbrains.annotations.Nls
@@ -28,11 +26,7 @@ import org.jetbrains.annotations.Nls
 
 class CreateFunctionReturnAnnotationIntention : FunctionIntention() {
     override fun isAvailable(bodyOwner: LuaFuncBodyOwner, editor: Editor): Boolean {
-        if (bodyOwner is LuaCommentOwner) {
-            val comment = bodyOwner.comment
-            return comment == null || PsiTreeUtil.getChildrenOfType(comment, LuaDocTagReturn::class.java) == null
-        }
-        return false
+        return LuaAnnotationSupport.canGenerateReturnAnnotation(bodyOwner)
     }
 
     @Nls

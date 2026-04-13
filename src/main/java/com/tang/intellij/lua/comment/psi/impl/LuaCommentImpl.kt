@@ -178,14 +178,9 @@ class LuaCommentImpl(node: ASTNode) : ASTWrapperPsiElement(node), LuaComment {
     }
 
     override fun isOverride(): Boolean {
-        var elem = firstChild
-        while (elem != null) {
-            if (elem is LuaDocTagDef) {
-                if (elem.text == "override") return true
-            }
-            elem = elem.nextSibling
-        }
-        return false
+        return text.lineSequence()
+            .map(String::trim)
+            .any { it.startsWith("---@override") || it.startsWith("@override") }
     }
 
     override fun createSubstitutor(): ITySubstitutor? {

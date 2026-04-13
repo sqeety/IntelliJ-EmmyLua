@@ -129,6 +129,32 @@ class GeneratedEmmyAnnotationInspectionTest : LuaTestBase() {
         }
     }
 
+    fun `test override return does not get weak warning`() {
+        myFixture.configureByText(
+            "main.lua",
+            """
+            ---@class Base
+            local Base = {}
+            
+            ---@return string
+            function Base:name()
+                return "base"
+            end
+            
+            ---@class Derived:Base
+            local Derived = {}
+            
+            ---@override
+            function Derived:name()
+                return "derived"
+            end
+            """.trimIndent()
+        )
+
+        myFixture.enableInspections(MissingReturnAnnotationInspection())
+        myFixture.checkHighlighting(false, false, true)
+    }
+
     fun `test unresolved self field gets weak warning`() {
         myFixture.configureByText(
             "main.lua",
