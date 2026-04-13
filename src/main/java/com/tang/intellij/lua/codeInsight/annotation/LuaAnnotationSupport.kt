@@ -41,11 +41,17 @@ object LuaAnnotationSupport {
         return getTypeText(nameDef.guessType(SearchContext.get(localDef.project))) == null
     }
 
-    fun getParameterTypeText(paramNameDef: LuaParamNameDef): String? {
+    fun canGenerateParameterAnnotation(paramNameDef: LuaParamNameDef): Boolean {
         val owner = paramNameDef.owner
-        if (owner is LuaClosureExpr || owner !is LuaCommentOwner) {
+        return owner is LuaFuncBodyOwner && owner is LuaCommentOwner && owner !is LuaClosureExpr
+    }
+
+    fun getParameterTypeText(paramNameDef: LuaParamNameDef): String? {
+        if (!canGenerateParameterAnnotation(paramNameDef)) {
             return null
         }
+
+        val owner = paramNameDef.owner as LuaCommentOwner
         if (owner.comment?.getParamDef(paramNameDef.name) != null) {
             return null
         }

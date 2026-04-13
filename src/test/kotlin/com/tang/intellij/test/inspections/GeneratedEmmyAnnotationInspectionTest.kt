@@ -83,6 +83,22 @@ class GeneratedEmmyAnnotationInspectionTest : LuaTestBase() {
         }
     }
 
+    fun `test numeric for parameter does not get weak warning`() {
+        myFixture.configureByText(
+            "main.lua",
+            """
+            local childCount = 10
+            
+            for i = 1, childCount do
+                print(i)
+            end
+            """.trimIndent()
+        )
+
+        myFixture.enableInspections(MissingParameterAnnotationInspection())
+        myFixture.checkHighlighting(false, false, true)
+    }
+
     fun `test create return annotation intention keeps param order`() {
         checkByDirectory(
             before = """
