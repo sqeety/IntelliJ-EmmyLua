@@ -161,4 +161,36 @@ class GeneratedEmmyAnnotationInspectionTest : LuaTestBase() {
             }
         }
     }
+
+    fun `test field annotation inserts after trailing field text`() {
+        val before = """
+            --- main.lua
+            ---@class Foo
+            ---@field boxCollider UnityEngine.BoxCollider<VT>---box collider data
+            local Foo = {}
+
+            function Foo:init()
+                self.flowEffectGo = unknown()
+            end
+            """.trimIndent().replace("<VT>", "\u000B")
+        val after = """
+            --- main.lua
+            ---@class Foo
+            ---@field boxCollider UnityEngine.BoxCollider<VT>---box collider data
+            ---@field public flowEffectGo table
+            local Foo = {}
+
+            function Foo:init()
+                self.flowEffectGo = unknown()
+            end
+            """.trimIndent().replace("<VT>", "\u000B")
+
+        checkByDirectory(before, after) {
+            myFixture.configureFromTempProjectFile("main.lua")
+            val comment = PsiTreeUtil.findChildOfType(myFixture.file, LuaComment::class.java)!!
+            WriteCommandAction.runWriteCommandAction(project) {
+                LuaCommentUtil.insertFieldAnnotation(comment, "flowEffectGo", "table")
+            }
+        }
+    }
 }
