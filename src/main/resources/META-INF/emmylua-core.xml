@@ -333,7 +333,7 @@
                 implementationClass="com.tang.intellij.lua.codeInsight.inspection.GlobalNameCanbeLocal"/>
         <localInspection
                 displayName="Global name strict"
-                enabledByDefault="false"
+                enabledByDefault="true"
                 groupName="Lua"
                 language="Lua"
                 level="ERROR"
