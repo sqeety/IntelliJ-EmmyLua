@@ -272,10 +272,21 @@ object LuaCommentUtil {
         val lastField = comment.findTags(LuaDocTagField::class.java)
             .maxByOrNull { it.textRange.endOffset }
         return if (lastField != null) {
-            AnnotationInsertion(lastField.textRange.endOffset, prefix = "\n")
+            AnnotationInsertion(getLineEndOffset(lastField), prefix = "\n")
         } else {
             AnnotationInsertion(comment.textRange.endOffset, prefix = "\n")
         }
+    }
+
+    private fun getLineEndOffset(element: PsiElement): Int {
+        val document = PsiDocumentManager.getInstance(element.project).getDocument(element.containingFile)
+            ?: return element.textRange.endOffset
+        if (document.textLength == 0) {
+            return element.textRange.endOffset
+        }
+
+        val line = document.getLineNumber(element.textRange.endOffset.coerceAtMost(document.textLength - 1))
+        return document.getLineEndOffset(line)
     }
 
     fun findComment(psi: PsiElement): LuaComment? {

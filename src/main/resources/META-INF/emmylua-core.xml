@@ -188,12 +188,12 @@
             <className>com.tang.intellij.lua.codeInsight.intention.CreateFunctionDocIntention</className>
             <descriptionDirectoryName>CreateFunctionDocIntention</descriptionDirectoryName>
         </intentionAction>
-        <intentionAction>
-            <language>Lua</language>
-            <category>Lua</category>
-            <className>com.tang.intellij.lua.codeInsight.intention.CreateFieldFromParameterIntention</className>
-            <descriptionDirectoryName>CreateFieldFromParameterIntention</descriptionDirectoryName>
-        </intentionAction>
+<!--        <intentionAction>-->
+<!--            <language>Lua</language>-->
+<!--            <category>Lua</category>-->
+<!--            <className>com.tang.intellij.lua.codeInsight.intention.CreateFieldFromParameterIntention</className>-->
+<!--            <descriptionDirectoryName>CreateFieldFromParameterIntention</descriptionDirectoryName>-->
+<!--        </intentionAction>-->
         <intentionAction>
             <language>Lua</language>
             <category>Lua</category>
@@ -333,7 +333,7 @@
                 implementationClass="com.tang.intellij.lua.codeInsight.inspection.GlobalNameCanbeLocal"/>
         <localInspection
                 displayName="Global name strict"
-                enabledByDefault="false"
+                enabledByDefault="true"
                 groupName="Lua"
                 language="Lua"
                 level="ERROR"

@@ -83,6 +83,22 @@ class GeneratedEmmyAnnotationInspectionTest : LuaTestBase() {
         }
     }
 
+    fun `test numeric for parameter does not get weak warning`() {
+        myFixture.configureByText(
+            "main.lua",
+            """
+            local childCount = 10
+            
+            for i = 1, childCount do
+                print(i)
+            end
+            """.trimIndent()
+        )
+
+        myFixture.enableInspections(MissingParameterAnnotationInspection())
+        myFixture.checkHighlighting(false, false, true)
+    }
+
     fun `test create return annotation intention keeps param order`() {
         checkByDirectory(
             before = """
@@ -111,6 +127,32 @@ class GeneratedEmmyAnnotationInspectionTest : LuaTestBase() {
             val intention = myFixture.findSingleIntention("Create return annotation")
             myFixture.launchAction(intention)
         }
+    }
+
+    fun `test override return does not get weak warning`() {
+        myFixture.configureByText(
+            "main.lua",
+            """
+            ---@class Base
+            local Base = {}
+            
+            ---@return string
+            function Base:name()
+                return "base"
+            end
+            
+            ---@class Derived:Base
+            local Derived = {}
+            
+            ---@override
+            function Derived:name()
+                return "derived"
+            end
+            """.trimIndent()
+        )
+
+        myFixture.enableInspections(MissingReturnAnnotationInspection())
+        myFixture.checkHighlighting(false, false, true)
     }
 
     fun `test unresolved self field gets weak warning`() {
@@ -158,6 +200,38 @@ class GeneratedEmmyAnnotationInspectionTest : LuaTestBase() {
             val comment = PsiTreeUtil.findChildOfType(myFixture.file, LuaComment::class.java)!!
             WriteCommandAction.runWriteCommandAction(project) {
                 LuaCommentUtil.insertFieldAnnotation(comment, "bar", "table")
+            }
+        }
+    }
+
+    fun `test field annotation inserts after trailing field text`() {
+        val before = """
+            --- main.lua
+            ---@class Foo
+            ---@field boxCollider UnityEngine.BoxCollider<VT>---box collider data
+            local Foo = {}
+
+            function Foo:init()
+                self.flowEffectGo = unknown()
+            end
+            """.trimIndent().replace("<VT>", "\u000B")
+        val after = """
+            --- main.lua
+            ---@class Foo
+            ---@field boxCollider UnityEngine.BoxCollider<VT>---box collider data
+            ---@field public flowEffectGo table
+            local Foo = {}
+
+            function Foo:init()
+                self.flowEffectGo = unknown()
+            end
+            """.trimIndent().replace("<VT>", "\u000B")
+
+        checkByDirectory(before, after) {
+            myFixture.configureFromTempProjectFile("main.lua")
+            val comment = PsiTreeUtil.findChildOfType(myFixture.file, LuaComment::class.java)!!
+            WriteCommandAction.runWriteCommandAction(project) {
+                LuaCommentUtil.insertFieldAnnotation(comment, "flowEffectGo", "table")
             }
         }
     }

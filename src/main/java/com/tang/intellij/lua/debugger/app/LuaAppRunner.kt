@@ -14,6 +14,7 @@ import com.intellij.xdebugger.XDebugProcessStarter
 import com.intellij.xdebugger.XDebugSession
 import com.intellij.xdebugger.XDebuggerManager
 import com.tang.intellij.lua.debugger.LuaRunner
+import com.tang.intellij.lua.debugger.getRunContentDescriptorCompat
 
 class LuaAppRunner : LuaRunner() {
     override fun getRunnerId(): String = ID
@@ -27,7 +28,7 @@ class LuaAppRunner : LuaRunner() {
         FileDocumentManager.getInstance().saveAllDocuments()
 
         if (environment.executor.id == DefaultDebugExecutor.EXECUTOR_ID) {
-            return createSession(environment).runContentDescriptor
+            return getRunContentDescriptorCompat(createSession(environment))
         }
 
         val result: ExecutionResult? = state.execute(environment.executor, environment.runner)

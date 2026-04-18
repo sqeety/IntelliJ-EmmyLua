@@ -16,11 +16,14 @@
 
 package com.tang.intellij.lua.codeInsight.annotation
 
+import com.tang.intellij.lua.psi.LuaClassMethod
+import com.tang.intellij.lua.psi.LuaClassMethodDef
 import com.tang.intellij.lua.psi.LuaCommentOwner
 import com.tang.intellij.lua.psi.LuaClosureExpr
 import com.tang.intellij.lua.psi.LuaFuncBodyOwner
 import com.tang.intellij.lua.psi.LuaLocalDef
 import com.tang.intellij.lua.psi.LuaParamNameDef
+import com.tang.intellij.lua.psi.guessClassType
 import com.tang.intellij.lua.psi.owner
 import com.tang.intellij.lua.search.SearchContext
 import com.tang.intellij.lua.ty.ITy
@@ -41,15 +44,56 @@ object LuaAnnotationSupport {
         return getTypeText(nameDef.guessType(SearchContext.get(localDef.project))) == null
     }
 
-    fun getParameterTypeText(paramNameDef: LuaParamNameDef): String? {
+    fun canGenerateParameterAnnotation(paramNameDef: LuaParamNameDef): Boolean {
         val owner = paramNameDef.owner
-        if (owner is LuaClosureExpr || owner !is LuaCommentOwner) {
+        return owner is LuaFuncBodyOwner && owner is LuaCommentOwner && owner !is LuaClosureExpr
+    }
+
+    fun getParameterTypeText(paramNameDef: LuaParamNameDef): String? {
+        if (!canGenerateParameterAnnotation(paramNameDef)) {
             return null
         }
+
+        val owner = paramNameDef.owner as LuaCommentOwner
         if (owner.comment?.getParamDef(paramNameDef.name) != null) {
             return null
         }
         return getTypeText(paramNameDef.guessType(SearchContext.get(paramNameDef.project)))
+    }
+
+    fun canGenerateReturnAnnotation(bodyOwner: LuaFuncBodyOwner): Boolean {
+        if (bodyOwner !is LuaCommentOwner || bodyOwner is LuaClosureExpr) {
+            return false
+        }
+
+        val comment = bodyOwner.comment
+        if (comment?.tagReturn != null) {
+            return false
+        }
+
+        if (bodyOwner is LuaClassMethodDef && comment?.isOverride() == true) {
+            val context = SearchContext.get(bodyOwner.project)
+            val classType = bodyOwner.guessClassType(context)
+            val methodName = bodyOwner.name
+            val superMember = if (classType != null && methodName != null) {
+                classType.findSuperMember(methodName, context)
+            } else {
+                null
+            }
+
+            if (superMember is LuaClassMethod && getTypeText(superMember.guessReturnType(context)) != null) {
+                return false
+            }
+        }
+
+        return true
+    }
+
+    fun getReturnType(bodyOwner: LuaFuncBodyOwner): ITy {
+        if (!canGenerateReturnAnnotation(bodyOwner)) {
+            return Ty.UNKNOWN
+        }
+        return bodyOwner.guessReturnType(SearchContext.get(bodyOwner.project))
     }
 
     fun getReturnTypeText(bodyOwner: LuaFuncBodyOwner): String? {

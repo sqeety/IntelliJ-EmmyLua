@@ -28,7 +28,6 @@ import com.intellij.psi.util.PsiTreeUtil
 import com.tang.intellij.lua.codeInsight.annotation.LuaAnnotationSupport
 import com.tang.intellij.lua.comment.LuaCommentUtil
 import com.tang.intellij.lua.comment.psi.api.LuaComment
-import com.tang.intellij.lua.psi.LuaClosureExpr
 import com.tang.intellij.lua.psi.LuaClassMethodDef
 import com.tang.intellij.lua.psi.LuaCommentOwner
 import com.tang.intellij.lua.psi.LuaFuncBody
@@ -41,9 +40,10 @@ import com.tang.intellij.lua.psi.LuaStatement
 import com.tang.intellij.lua.psi.LuaVisitor
 import com.tang.intellij.lua.psi.guessClassType
 import com.tang.intellij.lua.psi.prefixExpr
-import com.tang.intellij.lua.psi.resolve
 import com.tang.intellij.lua.psi.search.LuaShortNamesManager
 import com.tang.intellij.lua.search.SearchContext
+import com.tang.intellij.lua.ty.Ty
+import com.tang.intellij.lua.ty.TyUnknown
 
 class MissingLocalTypeAnnotationInspection : LocalInspectionTool() {
     override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor {
@@ -86,18 +86,20 @@ class MissingReturnAnnotationInspection : LocalInspectionTool() {
         return object : LuaVisitor() {
             override fun visitFuncBody(o: LuaFuncBody) {
                 val bodyOwner = o.parent as? LuaFuncBodyOwner ?: return
-                if (bodyOwner is LuaClosureExpr) {
+                if (!LuaAnnotationSupport.canGenerateReturnAnnotation(bodyOwner)) {
                     return
                 }
 
-                val commentOwner = bodyOwner as? LuaCommentOwner ?: return
-                val typeText = LuaAnnotationSupport.getReturnTypeText(bodyOwner) ?: return
+                val type = LuaAnnotationSupport.getReturnType(bodyOwner)
+                if (type != Ty.UNKNOWN) {
+                    return
+                }
                 val anchor = bodyOwner.funcBody?.rparen ?: bodyOwner as PsiElement
                 holder.registerProblem(
                     anchor,
                     "Return annotation can be generated.",
                     ProblemHighlightType.WEAK_WARNING,
-                    GenerateReturnAnnotationQuickFix(typeText)
+                    GenerateReturnAnnotationQuickFix("table")
                 )
             }
         }

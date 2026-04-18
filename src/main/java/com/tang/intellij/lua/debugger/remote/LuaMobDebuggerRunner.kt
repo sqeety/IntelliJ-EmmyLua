@@ -11,6 +11,7 @@ import com.intellij.xdebugger.XDebugProcessStarter
 import com.intellij.xdebugger.XDebugSession
 import com.intellij.xdebugger.XDebuggerManager
 import com.tang.intellij.lua.debugger.LuaRunner
+import com.tang.intellij.lua.debugger.getRunContentDescriptorCompat
 
 class LuaMobDebuggerRunner : LuaRunner() {
     override fun getRunnerId(): String = ID
@@ -21,7 +22,7 @@ class LuaMobDebuggerRunner : LuaRunner() {
 
     @Throws(ExecutionException::class)
     override fun doExecute(state: RunProfileState, environment: ExecutionEnvironment): RunContentDescriptor? {
-        return createSession(environment).runContentDescriptor
+        return getRunContentDescriptorCompat(createSession(environment))
     }
 
     @Throws(ExecutionException::class)

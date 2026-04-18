@@ -44,7 +44,7 @@ class CreateParameterAnnotationIntention : BaseIntentionAction() {
         var element = psiFile.findElementAt(offset)
         if (element != null) {
             element = element.parent
-            if (element is LuaParamNameDef) {
+            if (element is LuaParamNameDef && LuaAnnotationSupport.canGenerateParameterAnnotation(element)) {
                 val commentOwner = PsiTreeUtil.getParentOfType(element, LuaCommentOwner::class.java)
                 val comment = commentOwner?.comment
                 comment?.getParamDef(element.name) ?: return element
