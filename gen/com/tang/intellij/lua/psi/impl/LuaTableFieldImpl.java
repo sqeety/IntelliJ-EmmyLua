@@ -6,6 +6,7 @@ import org.jetbrains.annotations.*;
 import com.intellij.lang.ASTNode;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
+import com.intellij.psi.PsiReference;
 import com.intellij.psi.util.PsiTreeUtil;
 import static com.tang.intellij.lua.psi.LuaTypes.*;
 import com.intellij.extapi.psi.StubBasedPsiElementBase;
@@ -121,6 +122,18 @@ public class LuaTableFieldImpl extends StubBasedPsiElementBase<LuaTableFieldStub
   @Nullable
   public LuaComment getComment() {
     return LuaPsiImplUtilKt.getComment(this);
+  }
+
+  @Override
+  @NotNull
+  public PsiReference[] getReferences() {
+    return LuaPsiImplUtilKt.getReferences(this);
+  }
+
+  @Override
+  @Nullable
+  public PsiReference getReference() {
+    return LuaPsiImplUtilKt.getReference(this);
   }
 
   @Override

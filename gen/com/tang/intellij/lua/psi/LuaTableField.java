@@ -5,6 +5,7 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiNameIdentifierOwner;
+import com.intellij.psi.PsiReference;
 import com.intellij.psi.StubBasedPsiElement;
 import com.tang.intellij.lua.stubs.LuaTableFieldStub;
 import com.intellij.navigation.ItemPresentation;
@@ -49,6 +50,12 @@ public interface LuaTableField extends LuaClassField, PsiNameIdentifierOwner, Lu
 
   @Nullable
   LuaComment getComment();
+
+  @NotNull
+  PsiReference[] getReferences();
+
+  @Nullable
+  PsiReference getReference();
 
   @Nullable
   LuaExpr getIdExpr();

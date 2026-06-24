@@ -534,6 +534,14 @@ fun getPresentation(tableField: LuaTableField): ItemPresentation {
 /**
  * xx['id']
  */
+fun getReferences(tableField: LuaTableField): Array<PsiReference> {
+    return ReferenceProvidersRegistry.getReferencesFromProviders(tableField, PsiReferenceService.Hints.NO_HINTS)
+}
+
+fun getReference(tableField: LuaTableField): PsiReference? {
+    return tableField.references.firstOrNull()
+}
+
 fun getIdExpr(tableField: LuaTableField): LuaExpr? {
     val bracket = tableField.lbrack
     if (bracket != null) {

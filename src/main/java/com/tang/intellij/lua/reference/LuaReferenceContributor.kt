@@ -30,6 +30,7 @@ class LuaReferenceContributor : PsiReferenceContributor() {
     override fun registerReferenceProviders(psiReferenceRegistrar: PsiReferenceRegistrar) {
         psiReferenceRegistrar.registerReferenceProvider(psiElement().withElementType(LuaTypes.CALL_EXPR), CallExprReferenceProvider())
         psiReferenceRegistrar.registerReferenceProvider(psiElement().withElementType(LuaTypes.INDEX_EXPR), IndexExprReferenceProvider())
+        psiReferenceRegistrar.registerReferenceProvider(psiElement(LuaTableField::class.java), TableFieldReferenceProvider())
         psiReferenceRegistrar.registerReferenceProvider(psiElement().withElementType(LuaTypes.NAME_EXPR), NameReferenceProvider())
         psiReferenceRegistrar.registerReferenceProvider(psiElement().withElementType(LuaTypes.GOTO_STAT), GotoReferenceProvider())
         psiReferenceRegistrar.registerReferenceProvider(psiElement().withElementType(LuaTypes.FUNC_DEF), FuncReferenceProvider())
@@ -80,6 +81,15 @@ class LuaReferenceContributor : PsiReferenceContributor() {
             val idExpr = indexExpr.idExpr
             return if (idExpr != null) {
                 arrayOf(LuaIndexBracketReference(indexExpr, idExpr))
+            } else PsiReference.EMPTY_ARRAY
+        }
+    }
+
+    internal inner class TableFieldReferenceProvider : PsiReferenceProvider() {
+        override fun getReferencesByElement(psiElement: PsiElement, processingContext: ProcessingContext): Array<PsiReference> {
+            val tableField = psiElement as LuaTableField
+            return if (tableField.nameIdentifier != null) {
+                arrayOf(LuaTableFieldReference(tableField))
             } else PsiReference.EMPTY_ARRAY
         }
     }

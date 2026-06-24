@@ -188,7 +188,7 @@ class GeneratedEmmyAnnotationInspectionTest : LuaTestBase() {
             --- main.lua
             ---@class Foo
             ---@field public existing string
-            ---@field public bar table
+            ---@field bar table
             local Foo = {}
             
             function Foo:init()
@@ -219,7 +219,7 @@ class GeneratedEmmyAnnotationInspectionTest : LuaTestBase() {
             --- main.lua
             ---@class Foo
             ---@field boxCollider UnityEngine.BoxCollider<VT>---box collider data
-            ---@field public flowEffectGo table
+            ---@field flowEffectGo table
             local Foo = {}
 
             function Foo:init()

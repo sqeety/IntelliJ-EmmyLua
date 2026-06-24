@@ -166,7 +166,7 @@ object LuaCommentUtil {
 
     fun insertFieldAnnotation(comment: LuaComment, fieldName: String, typeText: String) {
         val insertion = getFieldInsertion(comment)
-        insertResolvedText(comment, insertion, "---@field public $fieldName $typeText")
+        insertResolvedText(comment, insertion, "---@field $fieldName $typeText")
     }
 
     fun insertParameterTemplate(commentOwner: LuaCommentOwner, editor: Editor, paramName: String, defaultType: String = "table") {
@@ -196,7 +196,7 @@ object LuaCommentUtil {
     ) {
         val insertion = getFieldInsertion(comment)
         insertTemplateAt(comment, editor, insertion, listener) { template ->
-            template.addTextSegment("---@field public $fieldName ")
+            template.addTextSegment("---@field $fieldName ")
             template.addVariable("type", MacroCallNode(SuggestTypeMacro()), TextExpression(defaultType), true)
             template.addEndVariable()
             template.isToReformat = true

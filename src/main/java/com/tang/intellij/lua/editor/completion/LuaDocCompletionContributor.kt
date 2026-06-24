@@ -99,13 +99,6 @@ class LuaDocCompletionContributor : CompletionContributor() {
             }
         })
 
-        extend(CompletionType.BASIC, SHOW_ACCESS_MODIFIER, object : CompletionProvider<CompletionParameters>() {
-            override fun addCompletions(completionParameters: CompletionParameters, processingContext: ProcessingContext, completionResultSet: CompletionResultSet) {
-                completionResultSet.addElement(LookupElementBuilder.create("protected"))
-                completionResultSet.addElement(LookupElementBuilder.create("public"))
-            }
-        })
-
         // 属性提示
         extend(CompletionType.BASIC, SHOW_FIELD, object : CompletionProvider<CompletionParameters>() {
             override fun addCompletions(completionParameters: CompletionParameters, processingContext: ProcessingContext, completionResultSet: CompletionResultSet) {
@@ -187,11 +180,6 @@ class LuaDocCompletionContributor : CompletionContributor() {
 
         // 在 extends 之后提示类型
         private val SHOW_CLASS = psiElement().withParent(LuaDocClassNameRef::class.java)
-
-        // 在 @field 之后提示 public / protected
-        private val SHOW_ACCESS_MODIFIER = psiElement().afterLeaf(
-                psiElement().withElementType(LuaDocTypes.TAG_NAME_FIELD)
-        )
 
         private val SHOW_FIELD = psiElement(LuaDocTypes.ID).inside(LuaDocTagField::class.java)
 

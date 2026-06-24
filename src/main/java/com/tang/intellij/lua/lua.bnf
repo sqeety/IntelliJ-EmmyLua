@@ -544,6 +544,8 @@ tableField ::= tableField1 | tableField2 | expr {
         getWorth
         isDeprecated
         getComment
+        getReferences
+        getReference
         getIdExpr
         nameDef = "tableFieldNameDef"
         lbrack = 'LBRACK'

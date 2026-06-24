@@ -8,7 +8,7 @@
 ---define a class
 ---**Markdown** is available for comment strings
 ---@class Person comment string goes here
----@field public age number age value
+---@field age number age value
 ---@field weight number
 local Person = {}
 

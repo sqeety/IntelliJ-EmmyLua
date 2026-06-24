@@ -34,3 +34,10 @@ jflex*.jar
 *.iobj
 *.ipdb
 .intellijPlatform
+
+# CodeAgent workspace memory runtime state
+.codeAgent/memory/state.json
+.codeAgent/memory/phase2_workspace_diff.md
+.codeAgent/memory/raw/
+.codeAgent/memory/stage_one_raw/
+.codeAgent/memory/extensions/
