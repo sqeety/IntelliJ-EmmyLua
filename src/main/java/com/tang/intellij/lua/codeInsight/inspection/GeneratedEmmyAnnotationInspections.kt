@@ -38,6 +38,9 @@ import com.tang.intellij.lua.psi.LuaNameExpr
 import com.tang.intellij.lua.psi.LuaParamNameDef
 import com.tang.intellij.lua.psi.LuaStatement
 import com.tang.intellij.lua.psi.LuaVisitor
+import com.tang.intellij.lua.psi.assignStat
+import com.tang.intellij.lua.psi.getExprAt
+import com.tang.intellij.lua.psi.getIndexFor
 import com.tang.intellij.lua.psi.guessClassType
 import com.tang.intellij.lua.psi.prefixExpr
 import com.tang.intellij.lua.psi.search.LuaShortNamesManager
@@ -121,10 +124,18 @@ class MissingSelfFieldAnnotationInspection : LocalInspectionTool() {
                     return
                 }
 
-                val hasFallback = PsiTreeUtil.getParentOfType(o, LuaStatement::class.java) is LuaCommentOwner
+                val statement = PsiTreeUtil.getParentOfType(o, LuaStatement::class.java) as? LuaCommentOwner
                 val classType = method.guessClassType(SearchContext.get(o.project))
                 val classDef = LuaShortNamesManager.getInstance(o.project).findClass(classType?.className ?: "", SearchContext.get(o.project))
-                if (classDef == null && !hasFallback) {
+                val fixes = buildList {
+                    if (classDef != null) {
+                        add(GenerateSelfFieldAnnotationQuickFix())
+                    }
+                    if (statement != null) {
+                        add(GenerateSelfTypeAnnotationQuickFix())
+                    }
+                }
+                if (fixes.isEmpty()) {
                     return
                 }
 
@@ -132,7 +143,7 @@ class MissingSelfFieldAnnotationInspection : LocalInspectionTool() {
                     o.lastChild,
                     "Field type cannot be inferred. Generate annotation.",
                     ProblemHighlightType.WEAK_WARNING,
-                    GenerateSelfFieldAnnotationQuickFix()
+                    *fixes.toTypedArray()
                 )
             }
         }
@@ -189,19 +200,39 @@ private class GenerateSelfFieldAnnotationQuickFix : LocalQuickFix {
         }
 
         val editor = LuaCommentUtil.findEditor(indexExpr)
-        if (classDef != null && editor != null) {
+        if (classDef != null) {
             val comment = PsiTreeUtil.getParentOfType(classDef, LuaComment::class.java)
             if (comment != null) {
-                LuaCommentUtil.insertFieldTemplate(comment, editor, fieldName)
-                return
+                if (editor != null) {
+                    LuaCommentUtil.insertFieldTemplate(comment, editor, fieldName)
+                } else {
+                    LuaCommentUtil.insertFieldAnnotation(comment, fieldName, "table")
+                }
             }
         }
+    }
+}
 
+private class GenerateSelfTypeAnnotationQuickFix : LocalQuickFix {
+    override fun getFamilyName(): String = "Generate type annotation"
+
+    override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
+        val indexExpr = PsiTreeUtil.getParentOfType(descriptor.psiElement, LuaIndexExpr::class.java) ?: return
         val statement = PsiTreeUtil.getParentOfType(indexExpr, LuaStatement::class.java) as? LuaCommentOwner ?: return
+        val editor = LuaCommentUtil.findEditor(indexExpr)
+        val defaultType = getAssignedValueTypeText(indexExpr)
         if (editor != null) {
-            LuaCommentUtil.insertEditableTypeTag(statement, editor)
+            LuaCommentUtil.insertEditableTypeTag(statement, editor, defaultType)
         } else {
-            LuaCommentUtil.insertTypeTag(statement, "table")
+            LuaCommentUtil.insertTypeTag(statement, defaultType)
         }
+    }
+
+    private fun getAssignedValueTypeText(indexExpr: LuaIndexExpr): String {
+        val context = SearchContext.get(indexExpr.project)
+        val assignStat = indexExpr.assignStat ?: return "table"
+        val index = assignStat.getIndexFor(indexExpr)
+        val type = assignStat.valueExprList?.getExprAt(index)?.guessType(context)
+        return LuaAnnotationSupport.getTypeText(type) ?: "table"
     }
 }

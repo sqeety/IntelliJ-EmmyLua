@@ -172,6 +172,36 @@ class GeneratedEmmyAnnotationInspectionTest : LuaTestBase() {
         myFixture.checkHighlighting(false, false, true)
     }
 
+    fun `test create self type annotation quick fix`() {
+        checkByDirectory(
+            before = """
+            --- main.lua
+            ---@class Foo
+            local Foo = {}
+            
+            function Foo:init()
+                self.ba<caret>r = unknown()
+            end
+            """.trimIndent(),
+            after = """
+            --- main.lua
+            ---@class Foo
+            local Foo = {}
+            
+            function Foo:init()
+                ---@type table
+                self.bar = unknown()
+            end
+            """.trimIndent()
+        ) {
+            myFixture.configureFromTempProjectFile("main.lua")
+            myFixture.enableInspections(MissingSelfFieldAnnotationInspection())
+            myFixture.findSingleIntention("Generate field annotation")
+            val intention = myFixture.findSingleIntention("Generate type annotation")
+            myFixture.launchAction(intention)
+        }
+    }
+
     fun `test field annotation inserts after last field`() {
         checkByDirectory(
             before = """

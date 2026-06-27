@@ -135,7 +135,7 @@ object LuaCommentUtil {
     fun insertEditableTypeTag(commentOwner: LuaCommentOwner, editor: Editor, defaultType: String = "table") {
         insertTemplate(commentOwner, editor) { _, template ->
             template.addTextSegment("---@type ")
-            val typeSuggest = MacroCallNode(SuggestTypeMacro())
+            val typeSuggest = MacroCallNode(SuggestTypeMacro(defaultType))
             template.addVariable("type", typeSuggest, TextExpression(defaultType), true)
             template.addEndVariable()
         }

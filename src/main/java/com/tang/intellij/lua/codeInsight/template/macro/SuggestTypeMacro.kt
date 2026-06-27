@@ -17,10 +17,12 @@
 package com.tang.intellij.lua.codeInsight.template.macro
 
 import com.intellij.codeInsight.lookup.LookupElement
+import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.codeInsight.template.Expression
 import com.intellij.codeInsight.template.ExpressionContext
 import com.intellij.codeInsight.template.Macro
 import com.intellij.codeInsight.template.Result
+import com.intellij.codeInsight.template.TextResult
 import com.tang.intellij.lua.editor.completion.LuaLookupElement
 import java.util.*
 
@@ -28,7 +30,7 @@ import java.util.*
  * SuggestTypeMacro
  * Created by TangZX on 2016/12/16.
  */
-class SuggestTypeMacro : Macro() {
+class SuggestTypeMacro(private val defaultType: String? = null) : Macro() {
     override fun getName(): String {
         return "SuggestTypeMacro"
     }
@@ -38,11 +40,12 @@ class SuggestTypeMacro : Macro() {
     }
 
     override fun calculateResult(expressions: Array<Expression>, expressionContext: ExpressionContext): Result? {
-        return null
+        return defaultType?.let(::TextResult)
     }
 
     override fun calculateLookupItems(params: Array<Expression>, context: ExpressionContext): Array<LookupElement>? {
         val list = ArrayList<LookupElement>()
+        defaultType?.takeIf { it.isNotBlank() }?.let { list.add(LookupElementBuilder.create(it)) }
         LuaLookupElement.fillTypes(context.project, list)
         return list.toTypedArray()
     }
