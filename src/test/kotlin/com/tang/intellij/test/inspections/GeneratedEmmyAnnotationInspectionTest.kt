@@ -83,6 +83,36 @@ class GeneratedEmmyAnnotationInspectionTest : LuaTestBase() {
         }
     }
 
+    fun `test create parameter annotation inserts after previous param line`() {
+        checkByDirectory(
+            before = """
+            --- main.lua
+            ---@class UILabel
+            local UILabel = {}
+
+            ---@param modeText UILabel
+            ---@param seasonText UILabel
+            function RefreshShareUI(seasonText, modeText, modeI<caret>con)
+            end
+            """.trimIndent(),
+            after = """
+            --- main.lua
+            ---@class UILabel
+            local UILabel = {}
+
+            ---@param modeText UILabel
+            ---@param modeIcon UILabel
+            ---@param seasonText UILabel
+            function RefreshShareUI(seasonText, modeText, modeIcon)
+            end
+            """.trimIndent()
+        ) {
+            myFixture.configureFromTempProjectFile("main.lua")
+            val intention = myFixture.findSingleIntention("Create parameter annotation")
+            myFixture.launchAction(intention)
+        }
+    }
+
     fun `test numeric for parameter does not get weak warning`() {
         myFixture.configureByText(
             "main.lua",

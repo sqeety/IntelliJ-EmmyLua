@@ -243,7 +243,7 @@ object LuaCommentUtil {
             for (index in targetIndex - 1 downTo 0) {
                 val existing = comment.getParamDef(params[index].name)
                 if (existing != null) {
-                    return AnnotationInsertion(existing.textRange.endOffset, prefix = "\n")
+                    return AnnotationInsertion(getLineEndOffset(existing), prefix = "\n")
                 }
             }
         }
@@ -262,7 +262,7 @@ object LuaCommentUtil {
         for (index in params.size - 1 downTo 0) {
             val paramTag = comment.getParamDef(params[index].name)
             if (paramTag != null) {
-                return AnnotationInsertion(paramTag.textRange.endOffset, prefix = "\n")
+                return AnnotationInsertion(getLineEndOffset(paramTag), prefix = "\n")
             }
         }
         return AnnotationInsertion(comment.textRange.endOffset, prefix = "\n")
@@ -285,7 +285,7 @@ object LuaCommentUtil {
             return element.textRange.endOffset
         }
 
-        val line = document.getLineNumber(element.textRange.endOffset.coerceAtMost(document.textLength - 1))
+        val line = document.getLineNumber(element.textRange.startOffset.coerceAtMost(document.textLength - 1))
         return document.getLineEndOffset(line)
     }
 
