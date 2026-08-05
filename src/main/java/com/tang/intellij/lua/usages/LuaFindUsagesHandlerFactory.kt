@@ -47,18 +47,28 @@ class LuaFindUsagesHandlerFactory : FindUsagesHandlerFactory() {
     }
 }
 
+internal fun processResolvedUsage(usage: UsageInfo, processor: Processor<in UsageInfo>): Boolean {
+    // Dynamic usages are unresolved text candidates, not semantic Lua references.
+    return usage.isDynamicUsage || processor.process(usage)
+}
+
 /**
  * 查找方法的引用-》同时查找重写的子类方法
  */
 class FindMethodUsagesHandler(val methodDef: LuaClassMethod) : FindUsagesHandler(methodDef) {
+    private fun isResolved(reference: PsiReference): Boolean {
+        return !UsageInfo(reference).isDynamicUsage
+    }
+
     override fun findReferencesToHighlight(target: PsiElement, searchScope: SearchScope): MutableCollection<PsiReference> {
         val collection = super.findReferencesToHighlight(target, searchScope)
+        collection.removeIf { !isResolved(it) }
         val query = MergeQuery(LuaOverridingMethodsSearch.search(methodDef), LuaOverridenMethodsSearch.search(methodDef))
         val psiFile = target.containingFile
         query.forEach {
             if (psiFile == it.containingFile)
                 collection.add(LuaOverridingMethodReference(it, methodDef))
-            collection.addAll(ReferencesSearch.search(it, searchScope).findAll())
+            collection.addAll(ReferencesSearch.search(it, searchScope).findAll().filter(::isResolved))
         }
         return collection
     }
@@ -97,19 +107,21 @@ class FindMethodUsagesHandler(val methodDef: LuaClassMethod) : FindUsagesHandler
     }
 
     override fun processElementUsages(element: PsiElement, processor: Processor<in UsageInfo>, options: FindUsagesOptions): Boolean {
-        if (super.processElementUsages(element, processor, options)) {
-            ApplicationManager.getApplication().runReadAction {
-                val query = MergeQuery(LuaOverridingMethodsSearch.search(methodDef), LuaOverridenMethodsSearch.search(methodDef))
-                query.forEach {
-                    val identifier = it.nameIdentifier
-                    if (identifier != null)
-                        processor.process(UsageInfo(identifier))
+        val resolvedUsageProcessor = Processor<UsageInfo> { usage ->
+            processResolvedUsage(usage, processor)
+        }
+        if (!super.processElementUsages(element, resolvedUsageProcessor, options))
+            return false
 
-                    ReferencesSearch.search(it, options.searchScope).forEach { ref ->
-                        processor.process(UsageInfo(ref.element))
-                    }
-                }
-            }
+        ApplicationManager.getApplication().runReadAction {
+            val query = MergeQuery(LuaOverridingMethodsSearch.search(methodDef), LuaOverridenMethodsSearch.search(methodDef))
+            query.forEach(Processor { method ->
+                val identifier = method.nameIdentifier
+                (identifier == null || processor.process(UsageInfo(identifier))) &&
+                        ReferencesSearch.search(method, options.searchScope).forEach(Processor { ref ->
+                            resolvedUsageProcessor.process(UsageInfo(ref))
+                        })
+            })
         }
         return true
     }

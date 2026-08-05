@@ -16,10 +16,17 @@
 
 package com.tang.intellij.test.reference
 
+import com.intellij.openapi.util.TextRange
+import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiNameIdentifierOwner
+import com.intellij.psi.PsiReferenceBase
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.usageView.UsageInfo
+import com.intellij.util.Processor
+import com.tang.intellij.lua.psi.LuaClassMethodDef
 import com.tang.intellij.lua.psi.LuaTableField
+import com.tang.intellij.lua.usages.processResolvedUsage
 import com.tang.intellij.test.LuaTestBase
 
 class LuaReferenceTest : LuaTestBase() {
@@ -45,5 +52,50 @@ class LuaReferenceTest : LuaTestBase() {
 
         assertTrue(message, references.contains("a = 1"))
         assertTrue(message, references.contains("test.a"))
+    }
+
+    fun `test class method usages exclude unresolved dynamic references`() {
+        val notesFile = myFixture.addFileToProject("notes.md", "RefreshUI")
+        val notesElement = notesFile.findElementAt(0) ?: notesFile
+        myFixture.configureByText("test.lua", """
+            ---@class View
+            local view = {}
+
+            function view:<caret>RefreshUI()
+                self:RefreshUI()
+            end
+        """.trimIndent())
+
+        val target = PsiTreeUtil.findChildOfType(myFixture.file, LuaClassMethodDef::class.java)!!
+        val callOffset = myFixture.file.text.lastIndexOf("RefreshUI")
+        val callElement = myFixture.file.findElementAt(callOffset)!!
+        val dynamicReference = object : PsiReferenceBase<PsiElement>(
+            notesElement,
+            TextRange(0, notesElement.textLength)
+        ) {
+            override fun resolve(): PsiElement? = null
+            override fun getVariants(): Array<Any> = emptyArray()
+        }
+        val resolvedReference = object : PsiReferenceBase<PsiElement>(
+            callElement,
+            TextRange(0, callElement.textLength)
+        ) {
+            override fun resolve(): PsiElement = target
+            override fun getVariants(): Array<Any> = emptyArray()
+        }
+        val dynamicUsage = UsageInfo(dynamicReference)
+        val resolvedUsage = UsageInfo(resolvedReference)
+        val usages = mutableListOf<UsageInfo>()
+        val processor = Processor<UsageInfo> { usage ->
+            usages.add(usage)
+            true
+        }
+
+        assertTrue(dynamicUsage.isDynamicUsage)
+        assertFalse(resolvedUsage.isDynamicUsage)
+        assertTrue(processResolvedUsage(dynamicUsage, processor))
+        assertTrue(processResolvedUsage(resolvedUsage, processor))
+        assertEquals(1, usages.size)
+        assertSame(callElement, usages.single().element)
     }
 }
