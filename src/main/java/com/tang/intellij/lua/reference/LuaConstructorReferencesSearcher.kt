@@ -16,6 +16,7 @@
 
 package com.tang.intellij.lua.reference
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.psi.PsiReference
 import com.intellij.psi.search.PsiSearchHelper
 import com.intellij.psi.search.UsageSearchContext
@@ -29,6 +30,15 @@ import com.tang.intellij.lua.psi.LuaIndexExpr
 
 class LuaConstructorReferencesSearcher : QueryExecutor<PsiReference, ReferencesSearch.SearchParameters> {
     override fun execute(
+        queryParameters: ReferencesSearch.SearchParameters,
+        consumer: Processor<in PsiReference>
+    ): Boolean {
+        return ApplicationManager.getApplication().runReadAction<Boolean> {
+            executeInReadAction(queryParameters, consumer)
+        }
+    }
+
+    private fun executeInReadAction(
         queryParameters: ReferencesSearch.SearchParameters,
         consumer: Processor<in PsiReference>
     ): Boolean {

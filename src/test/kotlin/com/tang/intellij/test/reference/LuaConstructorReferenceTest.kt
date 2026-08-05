@@ -16,15 +16,23 @@
 
 package com.tang.intellij.test.reference
 
+import com.intellij.find.findUsages.FindUsagesOptions
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.usageView.UsageInfo
+import com.intellij.util.Processor
 import com.tang.intellij.lua.project.LuaSettings
 import com.tang.intellij.lua.psi.LuaClassMethodDef
 import com.tang.intellij.lua.psi.LuaNameDef
 import com.tang.intellij.lua.search.SearchContext
 import com.tang.intellij.lua.ty.ITyGeneric
 import com.tang.intellij.lua.ty.TyUnion
+import com.tang.intellij.lua.usages.FindMethodUsagesHandler
 import com.tang.intellij.test.LuaTestBase
+import java.util.concurrent.Callable
+import java.util.concurrent.TimeUnit
 
 class LuaConstructorReferenceTest : LuaTestBase() {
     private lateinit var originalConstructorNames: Array<String>
@@ -54,6 +62,38 @@ class LuaConstructorReferenceTest : LuaTestBase() {
         assertNull(LuaSettings.getConstructorInitializerName("new"))
         assertEquals("init", LuaSettings.getConstructorInitializerName("create"))
         assertNull(LuaSettings.getConstructorInitializerName("build"))
+    }
+
+    fun `test find usages runs on pooled thread`() {
+        myFixture.configureByText("test.lua", """
+            ---@class A
+            local a = {}
+
+            function a:<caret>ctor(cnt)
+            end
+
+            a.new(111)
+        """.trimIndent())
+
+        val target = PsiTreeUtil.findChildrenOfType(myFixture.file, LuaClassMethodDef::class.java)
+            .first { it.textOffset <= myFixture.caretOffset && myFixture.caretOffset <= it.textRange.endOffset }
+        val options = FindUsagesOptions(project).apply {
+            searchScope = GlobalSearchScope.projectScope(project)
+            isSearchForTextOccurrences = false
+        }
+        val handler = FindMethodUsagesHandler(target)
+        val future = ApplicationManager.getApplication().executeOnPooledThread(Callable {
+            val references = ReferencesSearch.search(target).findAll()
+            val referenceStates = ApplicationManager.getApplication().runReadAction<List<Pair<String, Boolean>>> {
+                references.map { it.element.text to UsageInfo(it).isDynamicUsage }
+            }
+            val completed = handler.processElementUsages(target, Processor { true }, options)
+            completed to referenceStates
+        })
+
+        val (completed, references) = future.get(30, TimeUnit.SECONDS)
+        assertTrue(completed)
+        assertEquals(listOf("a.new" to false), references)
     }
 
     fun `test initializer references include constructor aliases`() {
