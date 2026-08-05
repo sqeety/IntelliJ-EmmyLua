@@ -24,12 +24,14 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiReference
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.util.parentOfType
 import com.intellij.ui.awt.RelativePoint
 import com.tang.intellij.lua.psi.impl.LuaClassMethodDefImpl
 import com.tang.intellij.lua.psi.impl.LuaClassMethodNameImpl
+import com.tang.intellij.lua.usages.isLuaUsageReference
 import java.awt.Point
 import java.awt.event.MouseEvent
 import javax.swing.JComponent
@@ -65,7 +67,7 @@ class LuaInlayHintsProvider: InlayHintsProvider<NoSettings> {
                 if(element is LuaClassMethodNameImpl) {
                     val methodDef = element.parentOfType<LuaClassMethodDefImpl>()
                     if (methodDef != null) {
-                        val usageCount = findUsageCount(file.project, methodDef)
+                        val usageCount = countLuaMethodUsages(file.project, methodDef)
                         val hintText = "Usages: $usageCount"
                         val offset = element.textRange.startOffset
                         val factory = PresentationFactory(editor)
@@ -84,10 +86,14 @@ class LuaInlayHintsProvider: InlayHintsProvider<NoSettings> {
             }
         }
     }
+}
 
-    private fun findUsageCount(project: Project, method: PsiElement): Int {
-        val searchScope = GlobalSearchScope.projectScope(project)
-        val search = ReferencesSearch.search(method, searchScope, true)
-        return search.findAll().size
-    }
+internal fun countLuaMethodUsages(project: Project, method: PsiElement): Int {
+    val searchScope = GlobalSearchScope.projectScope(project)
+    val search = ReferencesSearch.search(method, searchScope, true)
+    return countLuaUsageReferences(search.findAll())
+}
+
+internal fun countLuaUsageReferences(references: Collection<PsiReference>): Int {
+    return references.count(::isLuaUsageReference)
 }

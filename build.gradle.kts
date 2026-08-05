@@ -195,6 +195,7 @@ project(":") {
             bundledPlugin("com.intellij.java")
 
             testFramework(org.jetbrains.intellij.platform.gradle.TestFrameworkType.Platform)
+            testBundledPlugin("org.intellij.plugins.markdown")
         }
     }
 

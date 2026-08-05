@@ -16,13 +16,21 @@
 
 package com.tang.intellij.test.reference
 
+import com.intellij.find.findUsages.FindUsagesManager
 import com.intellij.find.findUsages.FindUsagesOptions
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.progress.EmptyProgressIndicator
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.psi.search.GlobalSearchScope
+import com.intellij.psi.search.SearchRequestCollector
+import com.intellij.psi.search.SearchSession
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.usageView.UsageInfo
+import com.intellij.usages.Usage
+import com.intellij.usages.UsageInfo2UsageAdapter
 import com.intellij.util.Processor
+import com.tang.intellij.lua.editor.Hints.countLuaMethodUsages
 import com.tang.intellij.lua.project.LuaSettings
 import com.tang.intellij.lua.psi.LuaClassMethodDef
 import com.tang.intellij.lua.psi.LuaNameDef
@@ -75,11 +83,15 @@ class LuaConstructorReferenceTest : LuaTestBase() {
             a.new(111)
         """.trimIndent())
 
+        myFixture.addFileToProject("notes.md", "The ctor method is documented here.")
         val target = PsiTreeUtil.findChildrenOfType(myFixture.file, LuaClassMethodDef::class.java)
             .first { it.textOffset <= myFixture.caretOffset && myFixture.caretOffset <= it.textRange.endOffset }
+        val sharedCollector = SearchRequestCollector(SearchSession(target))
         val options = FindUsagesOptions(project).apply {
             searchScope = GlobalSearchScope.projectScope(project)
-            isSearchForTextOccurrences = false
+            isUsages = true
+            isSearchForTextOccurrences = true
+            fastTrack = sharedCollector
         }
         val handler = FindMethodUsagesHandler(target)
         val future = ApplicationManager.getApplication().executeOnPooledThread(Callable {
@@ -87,13 +99,89 @@ class LuaConstructorReferenceTest : LuaTestBase() {
             val referenceStates = ApplicationManager.getApplication().runReadAction<List<Pair<String, Boolean>>> {
                 references.map { it.element.text to UsageInfo(it).isDynamicUsage }
             }
-            val completed = handler.processElementUsages(target, Processor { true }, options)
-            completed to referenceStates
+            val usageFiles = mutableListOf<Pair<String?, Boolean>>()
+            val completed = handler.processElementUsages(target, Processor { usage ->
+                usageFiles.add(usage.virtualFile?.name to usage.isNonCodeUsage)
+                true
+            }, options)
+            val deferredRequestCount = sharedCollector.takeSearchRequests().size +
+                    sharedCollector.takeQueryRequests().size +
+                    sharedCollector.takeCustomSearchActions().size
+            Triple(completed, referenceStates, deferredRequestCount to usageFiles)
         })
 
-        val (completed, references) = future.get(30, TimeUnit.SECONDS)
+        val (completed, references, deferredUsages) = future.get(30, TimeUnit.SECONDS)
+        val (deferredRequestCount, usages) = deferredUsages
         assertTrue(completed)
         assertEquals(listOf("a.new" to false), references)
+        assertEquals(0, deferredRequestCount)
+        assertEquals(listOf("test.lua" to false), usages)
+    }
+
+    fun `test usage hint counts Lua semantic references`() {
+        myFixture.configureByText("test.lua", """
+            ---@class View
+            local view = {}
+
+            function view:<caret>RefreshUI()
+                self:RefreshUI()
+            end
+        """.trimIndent())
+
+        val target = PsiTreeUtil.findChildOfType(myFixture.file, LuaClassMethodDef::class.java)!!
+        assertEquals(1, countLuaMethodUsages(project, target))
+    }
+
+    fun `test complete find usages excludes markdown text occurrences`() {
+        val notesFile = myFixture.addFileToProject("notes.md", "RefreshUI is documented here.")
+        myFixture.configureByText("test.lua", """
+            ---@class View
+            local view = {}
+
+            function view:<caret>RefreshUI()
+                self:RefreshUI()
+            end
+        """.trimIndent())
+
+        val target = PsiTreeUtil.findChildOfType(myFixture.file, LuaClassMethodDef::class.java)!!
+        val handler = FindMethodUsagesHandler(target)
+        val options = FindUsagesOptions(project).apply {
+            searchScope = GlobalSearchScope.projectScope(project)
+            isUsages = true
+            isSearchForTextOccurrences = true
+        }
+        val future = ApplicationManager.getApplication().executeOnPooledThread(Callable {
+            val primaryElements = ApplicationManager.getApplication().runReadAction<Array<com.intellij.psi.PsiElement>> {
+                handler.primaryElements
+            }
+            val searcher = FindUsagesManager.createUsageSearcher(
+                handler,
+                primaryElements,
+                handler.secondaryElements,
+                options
+            )
+            val foundUsages = mutableListOf<Usage>()
+            ProgressManager.getInstance().runProcess({
+                searcher.generate(Processor { usage ->
+                    foundUsages.add(usage)
+                    true
+                })
+            }, EmptyProgressIndicator())
+            ApplicationManager.getApplication().runReadAction<List<String>> {
+                foundUsages.map { usage ->
+                    if (usage is UsageInfo2UsageAdapter) {
+                        val info = usage.usageInfo
+                        "${usage.file?.name}:dynamic=${info.isDynamicUsage}:nonCode=${info.isNonCodeUsage}:${usage.javaClass.name}"
+                    } else {
+                        usage.javaClass.name
+                    }
+                }
+            }
+        })
+
+        val usages = future.get(30, TimeUnit.SECONDS)
+        assertEquals("usages: $usages", 1, usages.size)
+        assertTrue(usages.single(), usages.single().startsWith("test.lua:"))
     }
 
     fun `test initializer references include constructor aliases`() {

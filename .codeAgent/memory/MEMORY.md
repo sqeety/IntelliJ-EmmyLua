@@ -1,20 +1,20 @@
 ﻿# Workspace Memory
 
-This file is a stable entrypoint. Dynamic memory content is stored in path-addressed Markdown files so cross-machine Git merges add or update independent files instead of rewriting one aggregate document.
+This file is the stable entrypoint for workspace Memory. Detailed selected inputs and compact rollout summaries remain path-addressed so this file does not accumulate dynamic task content.
 
 ## Scope
-- Current workspace decisions, user preferences, reusable procedures, and failure shields extracted from prior local conversations.
-- Treat Memory as prior local project context, not confirmed-current truth; verify drift-prone facts against the current repo before acting.
+- Prior workspace decisions, user preferences, reusable procedures, architecture clues, and failure shields extracted from local conversations.
+- Treat Memory as prior project context, not confirmed-current truth; verify drift-prone details against the current repository before acting.
 
 ## Stable Layout
-- `memory_summary.md`: lightweight startup index injected into prompts.
-- `rollout_summaries/`: one file per summarized source, optimized for search and citations.
-- `raw_memories/`: one file per source with raw stage-1 memory markdown.
-- `raw_memories.md`: stable format note for the raw memory directory.
-- `extensions/ad_hoc/`: local write-back notes and processed note evidence.
+- `memory_summary.md`: lightweight startup index with retrieval clues.
+- `raw_memories.md`: detailed selected phase-2 inputs consolidated by source ID.
+- `rollout_summaries/`: compact per-rollout routing summaries.
+- `extensions/ad_hoc/`: user-requested write-back notes and their processed evidence.
 
 ## Retrieval Flow
-1. Read `memory_summary.md` first to decide whether Memory is relevant.
-2. Use `search_memory` with concrete keywords from the current task.
-3. Open matching `rollout_summaries/*.md` or `raw_memories/*.md` files only when the summary points to relevant evidence.
-4. Prefer current source files, tests, and official docs over stale Memory when facts can drift.
+1. Read `memory_summary.md` to determine whether prior workspace context is relevant.
+2. Search Memory using concrete paths, symbols, commands, or short error phrases from the current task.
+3. Open a matching `rollout_summaries/*.md` file for a compact overview.
+4. Consult the corresponding section of `raw_memories.md` when detailed semantics, tests, or failure guardrails are needed.
+5. Prefer current source files, tests, and official documentation over Memory whenever facts may have drifted.

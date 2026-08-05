@@ -28,6 +28,7 @@ import com.intellij.usageView.UsageInfo
 import com.intellij.util.MergeQuery
 import com.intellij.util.Processor
 import com.tang.intellij.lua.psi.LuaClassMethod
+import com.tang.intellij.lua.psi.LuaPsiFile
 import com.tang.intellij.lua.psi.search.LuaOverridenMethodsSearch
 import com.tang.intellij.lua.psi.search.LuaOverridingMethodsSearch
 import com.tang.intellij.lua.reference.LuaOverridingMethodReference
@@ -47,28 +48,28 @@ class LuaFindUsagesHandlerFactory : FindUsagesHandlerFactory() {
     }
 }
 
+internal fun isLuaUsageReference(reference: PsiReference): Boolean {
+    return reference.element.containingFile is LuaPsiFile && !UsageInfo(reference).isDynamicUsage
+}
+
 internal fun processResolvedUsage(usage: UsageInfo, processor: Processor<in UsageInfo>): Boolean {
-    // Dynamic usages are unresolved text candidates, not semantic Lua references.
-    return usage.isDynamicUsage || processor.process(usage)
+    // Only semantic references from Lua PSI belong to a Lua method's usage set.
+    return usage.element?.containingFile !is LuaPsiFile || usage.isDynamicUsage || processor.process(usage)
 }
 
 /**
  * 查找方法的引用-》同时查找重写的子类方法
  */
 class FindMethodUsagesHandler(val methodDef: LuaClassMethod) : FindUsagesHandler(methodDef) {
-    private fun isResolved(reference: PsiReference): Boolean {
-        return !UsageInfo(reference).isDynamicUsage
-    }
-
     override fun findReferencesToHighlight(target: PsiElement, searchScope: SearchScope): MutableCollection<PsiReference> {
         val collection = super.findReferencesToHighlight(target, searchScope)
-        collection.removeIf { !isResolved(it) }
+        collection.removeIf { !isLuaUsageReference(it) }
         val query = MergeQuery(LuaOverridingMethodsSearch.search(methodDef), LuaOverridenMethodsSearch.search(methodDef))
         val psiFile = target.containingFile
         query.forEach {
             if (psiFile == it.containingFile)
                 collection.add(LuaOverridingMethodReference(it, methodDef))
-            collection.addAll(ReferencesSearch.search(it, searchScope).findAll().filter(::isResolved))
+            collection.addAll(ReferencesSearch.search(it, searchScope).findAll().filter(::isLuaUsageReference))
         }
         return collection
     }
@@ -110,7 +111,18 @@ class FindMethodUsagesHandler(val methodDef: LuaClassMethod) : FindUsagesHandler
         val resolvedUsageProcessor = Processor<UsageInfo> { usage ->
             processResolvedUsage(usage, processor)
         }
-        if (!super.processElementUsages(element, resolvedUsageProcessor, options))
+        // FindUsagesManager reuses this exact options object for CustomUsageSearcher extensions
+        // after this handler returns. Disable plain-text search on the original object as well,
+        // otherwise Markdown searchers can append unresolved dynamic usages outside our processor.
+        options.isSearchForTextOccurrences = false
+
+        // A shared fastTrack collector also executes reference requests after this method returns,
+        // bypassing resolvedUsageProcessor. Run Lua method references immediately so every
+        // candidate is filtered before reaching Usage View.
+        val immediateOptions = options.clone().apply {
+            fastTrack = null
+        }
+        if (!super.processElementUsages(element, resolvedUsageProcessor, immediateOptions))
             return false
 
         ApplicationManager.getApplication().runReadAction {
