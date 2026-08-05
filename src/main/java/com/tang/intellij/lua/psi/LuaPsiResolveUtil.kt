@@ -147,6 +147,12 @@ fun multiResolve(indexExpr: LuaIndexExpr, context: SearchContext): List<PsiEleme
             list.add(declaration.psi)
         }
     }
+    if (list.isEmpty()) {
+        findConstructorTargets(indexExpr, context).forEach { target ->
+            if (!list.contains(target.initializer))
+                list.add(target.initializer)
+        }
+    }
     return list
 }
 
@@ -183,6 +189,10 @@ fun resolve(indexExpr: LuaIndexExpr, idString: String, context: SearchContext): 
         if (declaration != null) {
             return declaration.psi
         }
+    }
+
+    if (ret == null) {
+        ret = findConstructorTargets(indexExpr, idString, context).firstOrNull()?.initializer
     }
 
 //    if(ret == null){

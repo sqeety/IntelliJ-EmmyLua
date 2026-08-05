@@ -66,6 +66,7 @@ class LuaSettingsPanel : SearchableConfigurable {
 
     init {
         constructorNames.text = settings.constructorNamesString
+        constructorNames.toolTipText = LuaBundle.message("ui.settings.constructor_names_hint")
         tooLargerFileThreshold.document = IntegerDocument()
         tooLargerFileThreshold.text = settings.tooLargerFileThreshold.toString()
         strictDoc.isSelected = settings.isStrictDoc

@@ -18,9 +18,11 @@ package com.tang.intellij.lua.reference
 
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiNamedElement
 import com.intellij.psi.PsiReferenceBase
 import com.intellij.util.IncorrectOperationException
 import com.tang.intellij.lua.lang.type.LuaString
+import com.tang.intellij.lua.project.LuaSettings
 import com.tang.intellij.lua.psi.LuaElementFactory
 import com.tang.intellij.lua.psi.LuaIndexExpr
 import com.tang.intellij.lua.psi.LuaLiteralExpr
@@ -40,6 +42,12 @@ class LuaIndexBracketReference internal constructor(element: LuaIndexExpr, priva
 
     @Throws(IncorrectOperationException::class)
     override fun handleElementRename(newElementName: String): PsiElement {
+        val initializerName = LuaSettings.getConstructorInitializerName(content.value)
+        if (initializerName != null) {
+            val target = resolve(SearchContext.get(myElement.project))
+            if ((target as? PsiNamedElement)?.name == initializerName)
+                return myElement
+        }
         val text = id.text
         val newText = text.substring(0, content.start) + newElementName + text.substring(content.end)
         val newId = LuaElementFactory.createLiteral(myElement.project, newText)

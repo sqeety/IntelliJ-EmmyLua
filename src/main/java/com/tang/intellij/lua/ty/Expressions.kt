@@ -413,29 +413,29 @@ private fun IFunSignature.inferGeneric(genericNames:Array<String>, ty:ITyGeneric
             multiParams[paramIndex] = LuaParamInfo(param.name, paramTy.inferGeneric(genericNames, ty))
         }else if(paramTy is TySerializedGeneric){
             multiParams[paramIndex] = LuaParamInfo(param.name, paramTy.inferGeneric(genericNames, ty))
-        }
-        else{
+        } else {
             for ((index, genericName) in genericNames.withIndex()) {
-                if (param.name == genericName) {
+                if (paramTy.displayName == genericName) {
                     multiParams[paramIndex] = LuaParamInfo(param.name, ty.getParamTy(index))
                     break
                 }
             }
         }
     }
-    signature = FunSignature(signature.colonCall, returnTy, signature.varargTy, multiParams.toTypedArray())
+    signature = FunSignature(signature.colonCall, returnTy, signature.varargTy, multiParams.toTypedArray(), signature.tyParameters)
+
     return signature
 }
 
 private fun TySerializedFunction.inferGeneric(genericNames:Array<String>, ty:ITyGeneric):TySerializedFunction{
     if(signatures.isEmpty()){
-        return TySerializedFunction(mainSignature.inferGeneric(genericNames, ty),signatures)
+        return TySerializedFunction(mainSignature.inferGeneric(genericNames, ty), signatures, flags)
     }
     val multiSignatures = mutableListOf<IFunSignature>()
     for (signature in signatures) {
         multiSignatures.add(signature.inferGeneric(genericNames, ty))
     }
-    return TySerializedFunction(mainSignature.inferGeneric(genericNames, ty), multiSignatures.toTypedArray())
+    return TySerializedFunction(mainSignature.inferGeneric(genericNames, ty), multiSignatures.toTypedArray(), flags)
 }
 
 private fun TySerializedGeneric.inferGeneric(genericNames:Array<String>, ty:ITyGeneric):ITy{
@@ -533,6 +533,16 @@ private fun LuaIndexExpr.infer(context: SearchContext): ITy {
                 result = result.union(processClassMember(clazz, propName, context, selectType))
             }
         }
+        if (Ty.isInvalid(result) && selectType != SelectType.OnlyField) {
+            findConstructorTargets(indexExpr, context).forEach { target ->
+                val initializerType = infer(target.initializer, context)
+                TyUnion.each(initializerType) { type ->
+                    if (type is ITyFunction)
+                        result = result.union(type.asConstructorFunction(target.instanceType))
+                }
+            }
+        }
+
         //泛型临时处理
         prefixType.each { ty ->
             if (ty is ITyGeneric)
@@ -563,6 +573,7 @@ private fun LuaIndexExpr.infer(context: SearchContext): ITy {
             if (ty is ITyGeneric && ty.getParamTy(0) == Ty.STRING)
                 result = result.union(ty.getParamTy(1))
         }
+
     }
 
     val assignStat = indexExpr.assignStat

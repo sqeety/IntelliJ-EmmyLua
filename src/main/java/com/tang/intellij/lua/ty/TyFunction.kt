@@ -291,6 +291,22 @@ fun ITyFunction.findPerfectSignature(call: LuaCallExpr): IFunSignature {
     return findPerfectSignature(if(isStaticMethodUsedAsInstanceMethod) n + 1 else n)
 }
 
+fun ITyFunction.asConstructorFunction(returnTy: ITy): ITyFunction {
+    fun IFunSignature.asConstructorSignature(): IFunSignature {
+        val constructorParams = if (params.firstOrNull()?.isExplicitSelfParam() == true)
+            params.copyOfRange(1, params.size)
+        else
+            params
+        return FunSignature(false, returnTy, varargTy, constructorParams, tyParameters)
+    }
+
+    return TySerializedFunction(
+        mainSignature.asConstructorSignature(),
+        signatures.map { it.asConstructorSignature() }.toTypedArray(),
+        flags and TyFlags.SELF_FUNCTION.inv()
+    )
+}
+
 abstract class TyFunction : Ty(TyKind.Function), ITyFunction {
 
     override fun equals(other: Any?): Boolean {

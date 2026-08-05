@@ -101,7 +101,7 @@ class GeneratedEmmyAnnotationInspectionTest : LuaTestBase() {
             local UILabel = {}
 
             ---@param modeText UILabel
-            ---@param modeIcon UILabel
+            ---@param modeIcon table
             ---@param seasonText UILabel
             function RefreshShareUI(seasonText, modeText, modeIcon)
             end

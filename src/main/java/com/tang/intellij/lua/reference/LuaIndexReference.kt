@@ -18,8 +18,10 @@ package com.tang.intellij.lua.reference
 
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiNamedElement
 import com.intellij.psi.PsiReferenceBase
 import com.intellij.util.IncorrectOperationException
+import com.tang.intellij.lua.project.LuaSettings
 import com.tang.intellij.lua.psi.LuaElementFactory
 import com.tang.intellij.lua.psi.LuaIndexExpr
 import com.tang.intellij.lua.psi.resolve
@@ -39,6 +41,12 @@ class LuaIndexReference internal constructor(element: LuaIndexExpr, private val 
 
     @Throws(IncorrectOperationException::class)
     override fun handleElementRename(newElementName: String): PsiElement {
+        val initializerName = myElement.name?.let { LuaSettings.getConstructorInitializerName(it) }
+        if (initializerName != null) {
+            val target = resolve(SearchContext.get(myElement.project))
+            if ((target as? PsiNamedElement)?.name == initializerName)
+                return myElement
+        }
         val newId = LuaElementFactory.createIdentifier(myElement.project, newElementName)
         id.replace(newId)
         return newId

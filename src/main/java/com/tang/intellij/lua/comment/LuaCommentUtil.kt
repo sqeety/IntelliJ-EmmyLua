@@ -173,7 +173,7 @@ object LuaCommentUtil {
         val insertion = getParamInsertion(commentOwner, paramName)
         insertTemplateAt(commentOwner, editor, insertion) { template ->
             template.addTextSegment("---@param $paramName ")
-            template.addVariable("type", MacroCallNode(SuggestTypeMacro()), TextExpression(defaultType), true)
+            template.addVariable("type", MacroCallNode(SuggestTypeMacro(defaultType)), TextExpression(defaultType), true)
             template.addEndVariable()
         }
     }
@@ -182,7 +182,7 @@ object LuaCommentUtil {
         val insertion = getReturnInsertion(commentOwner)
         insertTemplateAt(commentOwner, editor, insertion) { template ->
             template.addTextSegment("---@return ")
-            template.addVariable("returnType", MacroCallNode(SuggestTypeMacro()), TextExpression(defaultType), true)
+            template.addVariable("returnType", MacroCallNode(SuggestTypeMacro(defaultType)), TextExpression(defaultType), true)
             template.addEndVariable()
         }
     }
@@ -197,7 +197,7 @@ object LuaCommentUtil {
         val insertion = getFieldInsertion(comment)
         insertTemplateAt(comment, editor, insertion, listener) { template ->
             template.addTextSegment("---@field $fieldName ")
-            template.addVariable("type", MacroCallNode(SuggestTypeMacro()), TextExpression(defaultType), true)
+            template.addVariable("type", MacroCallNode(SuggestTypeMacro(defaultType)), TextExpression(defaultType), true)
             template.addEndVariable()
             template.isToReformat = true
         }

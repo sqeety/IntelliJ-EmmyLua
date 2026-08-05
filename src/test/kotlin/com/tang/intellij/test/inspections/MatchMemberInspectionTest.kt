@@ -17,6 +17,7 @@
 package com.tang.intellij.test.inspections
 
 import com.tang.intellij.lua.codeInsight.inspection.MatchMemberInspection
+import com.tang.intellij.lua.project.LuaSettings
 
 class MatchMemberInspectionTest : LuaInspectionsTestBase(MatchMemberInspection()) {
 
@@ -47,4 +48,37 @@ class MatchMemberInspectionTest : LuaInspectionsTestBase(MatchMemberInspection()
 
         t.<error descr="Unknown function 'foo'.">foo</error>()
     """)
+
+    fun `test mapped constructor without initializer still errors`() {
+        withConstructorNames("new=ctor") {
+            checkByText("""
+                ---@class A
+                local a = {}
+
+                a.<error descr="Unknown function 'new'.">new</error>()
+            """.trimIndent())
+        }
+    }
+
+    fun `test legacy constructor without initializer stays compatible`() {
+        withConstructorNames("new") {
+            checkByText("""
+                ---@class A
+                local a = {}
+
+                a.new()
+            """.trimIndent())
+        }
+    }
+
+    private fun withConstructorNames(value: String, action: () -> Unit) {
+        val settings = LuaSettings.instance
+        val original = settings.constructorNames.copyOf()
+        try {
+            settings.constructorNamesString = value
+            action()
+        } finally {
+            settings.constructorNames = original
+        }
+    }
 }

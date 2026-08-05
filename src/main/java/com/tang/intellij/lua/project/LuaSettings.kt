@@ -91,11 +91,38 @@ class LuaSettings : PersistentStateComponent<LuaSettings> {
 
     var constructorNamesString: String
         get() {
-            return constructorNames.joinToString(";")
+            return constructorNames.mapNotNull(::normalizeConstructorConfig).joinToString(";")
         }
         set(value) {
-            constructorNames = value.split(";").map { it.trim() }.toTypedArray()
+            constructorNames = value.split(";").mapNotNull(::normalizeConstructorConfig).toTypedArray()
         }
+
+    private fun normalizeConstructorConfig(value: String): String? {
+        val parts = value.split("=", limit = 2)
+        val name = parts[0].trim()
+        if (name.isEmpty())
+            return null
+        val initializerName = parts.getOrNull(1)?.trim()
+        return if (initializerName.isNullOrEmpty()) name else "$name=$initializerName"
+    }
+
+    private fun getConstructorInitializerName(name: String): String? {
+        constructorNames.forEach { config ->
+            val parts = config.split("=", limit = 2)
+            if (parts[0].trim() == name)
+                return parts.getOrNull(1)?.trim()?.takeIf { it.isNotEmpty() }
+        }
+        return null
+    }
+
+    private fun getConstructorNamesForInitializer(initializerName: String): List<String> {
+        return constructorNames.mapNotNull { config ->
+            val parts = config.split("=", limit = 2)
+            val name = parts[0].trim()
+            val configuredInitializer = parts.getOrNull(1)?.trim()
+            name.takeIf { it.isNotEmpty() && configuredInitializer == initializerName }
+        }.distinct()
+    }
 
     val attachDebugDefaultCharset: Charset
         get() {
@@ -142,7 +169,15 @@ class LuaSettings : PersistentStateComponent<LuaSettings> {
             get() = ApplicationManager.getApplication().getService(LuaSettings::class.java)
 
         fun isConstructorName(name: String): Boolean {
-            return instance.constructorNames.contains(name)
+            return instance.constructorNames.any { it.substringBefore('=').trim() == name }
+        }
+
+        fun getConstructorInitializerName(name: String): String? {
+            return instance.getConstructorInitializerName(name)
+        }
+
+        fun getConstructorNamesForInitializer(initializerName: String): List<String> {
+            return instance.getConstructorNamesForInitializer(initializerName)
         }
 
         fun isRequireLikeFunctionName(name: String): Boolean {

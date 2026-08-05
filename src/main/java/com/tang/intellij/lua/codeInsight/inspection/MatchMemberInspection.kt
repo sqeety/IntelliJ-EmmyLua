@@ -195,7 +195,9 @@ class MatchMemberInspection : StrictInspection() {
                             {
                                 val funcName = o.name
                                 if (funcName != null) {
-                                    if (!LuaSettings.isConstructorName(funcName) && !isMemberAfterCondition(o))
+                                    val isLegacyConstructor = LuaSettings.isConstructorName(funcName) &&
+                                            LuaSettings.getConstructorInitializerName(funcName) == null
+                                    if (!isLegacyConstructor && !isMemberAfterCondition(o))
                                         myHolder.registerProblem(psi, "Unknown function '%s'.".format(funcName))
                                 }
                             }

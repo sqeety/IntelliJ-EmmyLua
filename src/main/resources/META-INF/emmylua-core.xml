@@ -50,6 +50,7 @@
         <iconProvider implementation="com.tang.intellij.lua.editor.LuaIconProvider"/>
         <fileType name="lua" implementationClass="com.tang.intellij.lua.lang.LuaFileType" fieldName="INSTANCE" extensions="lua;lua.txt" language="Lua"/>
         <psi.referenceContributor language="Lua" implementation="com.tang.intellij.lua.reference.LuaReferenceContributor"/>
+        <referencesSearch implementation="com.tang.intellij.lua.reference.LuaConstructorReferencesSearcher"/>
         <languageInjector implementation="com.tang.intellij.lua.lang.LuaLanguageInjector"/>
 
         <spellchecker.support implementationClass="com.tang.intellij.lua.spellchecker.LuaSpellcheckingStrategy" language="Lua"/>
