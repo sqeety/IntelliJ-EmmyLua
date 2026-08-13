@@ -61,13 +61,10 @@ fun IFunSignature.processArgs(thisTy: ITy?, colonStyle: Boolean, processor: (ind
     var index = 0
     var pIndex = 0
     if (colonStyle && !colonCall) {
-        if (params.firstOrNull()?.isExplicitSelfParam() == true) {
-            pIndex = 1
-        } else {
-            val pi = LuaParamInfo.createSelf(thisTy)
-            if (!processor(0, pi)) return
-            index++
-        }
+        // A colon call passes its receiver as the first argument, even when the
+        // function was declared with dot syntax. The receiver therefore consumes
+        // the first declared parameter and explicit arguments start at the second.
+        pIndex = 1
     } else if (!colonStyle && colonCall) {
         val pi = LuaParamInfo.createSelf(thisTy)
         if (!processor(index++, pi)) return
